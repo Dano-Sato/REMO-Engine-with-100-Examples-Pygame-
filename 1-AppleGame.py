@@ -28,36 +28,62 @@ class mainScene(Scene):
         ###
 
         ###플레이어가 돌아다니면서 먹을 애플 객체입니다. 플레이어와 같은 방식으로 구현되었습니다.
-        mainScene.apple = rectObj(pygame.Rect(200,100,30,30),color=Cs.red,radius=10,edge=3)
+        mainScene.apple = rectObj(pygame.Rect(200,100,20,20),color=Cs.red,radius=6,edge=3)
         mainScene.appleLabel = textObj("I'm apple!",pos=(-10,-30),size=15)
         mainScene.appleLabel.setParent(mainScene.apple)
         ###
 
+        mainScene.score = 0
+        mainScene.scoreLabel = textObj("SCORE:0",pos=(550,50),size=30)
+
         return
+
+    def updateScore(self,_score):
+        mainScene.score = _score
+        mainScene.scoreLabel.text = 'SCORE:'+str(mainScene.score)
+    
+    def putApple(self):
+        x = random.randint(100,1100)
+        y = random.randint(100,700)
+        mainScene.apple.pos = RPoint(x,y)
+
     def init(self):
         return
     def update(self):
 
-        ###WASD 조작 블록
+        ###WASD (또는 화살표) 조작 블록
 
         speed = 5
 
         ##키보드의 W키를 유저가 누르고 있을 경우, player가 위로(-y방향) 이동합니다.
-        if Rs.userPressing(pygame.K_w):
+        ##RPoint는 REMO Engine의 2D Point 객체입니다.
+        if Rs.userPressing(pygame.K_w) or Rs.userPressing(pygame.K_UP):
             mainScene.player.pos += RPoint(0,-speed)
-        if Rs.userPressing(pygame.K_a):
+        if Rs.userPressing(pygame.K_a) or Rs.userPressing(pygame.K_LEFT):
             mainScene.player.pos += RPoint(-speed,0)
-        if Rs.userPressing(pygame.K_s):
+        if Rs.userPressing(pygame.K_s) or Rs.userPressing(pygame.K_DOWN):
             mainScene.player.pos += RPoint(0,speed)
-        if Rs.userPressing(pygame.K_d):
+        if Rs.userPressing(pygame.K_d) or Rs.userPressing(pygame.K_RIGHT):
             mainScene.player.pos += RPoint(speed,0)
         ###
+            
+
+        
+        ###충돌 판정
+        
+        if mainScene.player.collidepoint(mainScene.apple.center):
+            self.updateScore(mainScene.score+10)
+            self.putApple()
+            
+    
+
 
         return
     def draw(self):
         Rs.fillScreen(Cs.black)
         mainScene.apple.draw()
         mainScene.player.draw()
+        mainScene.scoreLabel.draw()
         return
 
 
@@ -77,7 +103,8 @@ class Scenes:
 
 if __name__=="__main__":
     #Screen Setting
-    window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="DEFAULT")
+    ##게임의 윈도우 해상도, 게임내 픽셀수(screen_size), 타이틀명 등을 정합니다.
+    window = REMOGame(window_resolution=(1200,800),screen_size=(1200,800),fullscreen=False,caption="1.Apple Game")
     window.setCurrentScene(Scenes.mainScene)
     window.run()
 
