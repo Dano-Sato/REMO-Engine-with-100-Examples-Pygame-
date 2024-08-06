@@ -880,6 +880,8 @@ class REMOGame:
         REMOGame.__showBenchmark = True
 
     def draw(self):
+
+        Rs.screen.fill(Cs.black) # 검은 화면
         REMOGame.currentScene.draw()
         Rs._draw()
         _capture = Rs.screen.copy()
@@ -2265,7 +2267,7 @@ class buttonLayout(layoutObj):
     def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=10,
                  isVertical=True,buttonSize=RPoint(200,50),buttonColor = Cs.tiffanyBlue,
                  fontSize=None,fontColor=Cs.white,font="BMDOHYEON_ttf.ttf",
-                 buttonAlpha=200):
+                 buttonAlpha=225):
         self.buttons = {}
         buttonSize = Rs.Point(buttonSize)
         buttonRect = pygame.Rect(0,0,buttonSize.x(),buttonSize.y())
