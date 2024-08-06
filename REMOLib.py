@@ -153,6 +153,11 @@ class Rs:
 
     #윈도우 해상도를 변화시킨다.    
     def setWindowRes(res:tuple):
+        ##주 모니터의 최대 해상도보다 클 경우 강제 조정
+        ##Test
+        max_res = pygame.display.list_modes()[0]
+        if res[0]>max_res[0] or res[1]>max_res[1]:
+            res = max_res
         Rs.__window_resolution = res
         #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
         Rs._mouseTransformer=(Rs.screen_size[0]/res[0],Rs.screen_size[1]/res[1])
@@ -827,6 +832,16 @@ class REMOGame:
     __showBenchmark = False
     _lastStartedWindow = None
     def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window"):
+
+        ##파이게임 윈도우가 화면 밖을 벗어나는 문제를 해결하기 위한 코드
+        if sys.platform == 'win32':
+            # On Windows, the monitor scaling can be set to something besides normal 100%.
+            # PyScreeze and Pillow needs to account for this to make accurate screenshots.
+            import ctypes
+            try:
+                ctypes.windll.user32.SetProcessDPIAware()
+            except AttributeError:
+                pass # Windows XP doesn't support monitor scaling, so just do nothing.
         pygame.init()
         Rs.__fullScreen=fullscreen
         Rs.screen_size = screen_size
@@ -1853,140 +1868,278 @@ class scriptObj(longTextObj):
             super().draw()            
         
     
+### 비주얼 노벨 계열 스크립트 처리를 위해 존재하는 레모 엔진 컴포넌트.
 
-##스크립트 렌더러 클래스!
-##이미 작성된 스크립트를 화면에 출력하는 클래스이다!
-class scriptRenderer():
-    ##해상도에 맞게 레이아웃을 조정해서 사용한다.
-    __geometry = {
-        ##새 해상도 레이아웃을 편집하고 싶을 땐 아래를 활용합니다.
-        (-1,-1): ##해상도를 key로 사용합니다.
+class REMOScript:
+    scriptPipeline ={}
+
+    ##Script I/O
+
+    ##.scr 파일은 텍스트 편집기를 통해서 간단하게 편집할 수 있습니다.
+    ##.scr 파일의 문법은 별도의 파일에서 설명됩니다.
+
+            
+    ##현재 존재하는 .scr 파일을 묶어서 .scrs 파일로 만드는 함수.
+    ##input을 통해 사용할 .scr파일을 지정할 수 있다. ['text1','text2'] 같은 식으로 쓰면 됨.
+    ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 저장됨.        
+    def zipScript(outputName,inputs=None,extension='.scr'):
+        zipped = {}
+        if inputs==None:
+            current_directory = os.getcwd()
+            script_files = [f for f in os.listdir(current_directory) if f.endswith(extension)]
+        else:
+            script_files = [x+'.scr' for x in inputs]
+
+        for f in script_files:
+            file = open(f,'r',encoding='UTF-8')
+            lines = file.readlines()
+            lines = [l.strip() for l in lines if l.strip()!=""]
+            zipped[f]=lines
+
+        Rs.saveData(outputName+extension+'s',zipped)
+        print(zipped)
+
+        return zipped
+
+    ##.scr 파일을 불러와 파이프라인에 저장한다.
+    def loadScript(fileName):
+        if not fileName.endswith('.scr'):
+            fileName += '.scr'
+        file = open(fileName,'r',encoding='UTF-8')
+        lines = file.readlines()
+        REMOScript.scriptPipeline[fileName] = lines
+
+
+    ##.scrs 파일을 불러와 파이프라인에 저장한다.
+    def loadScripts(fileName):
+        if not fileName.endswith('.scrs'):
+            fileName += '.scrs'
+        path = Rs.getPath(fileName)
+        REMOScript.scriptPipeline.update(Rs.loadData(path))
+
+
+##스크립트 렌더링을 위한 레이아웃들을 저장하는 클래스.
+class scriptRenderLayouts:
+    layouts = {
+        #1920*1080 스크린을 위한 기본 레이아웃.
+        "default_1920_1080":
         {
-            "Name":pygame.Rect(0,0,0,0), #이름이 들어갈 사각형 영역
-            "FontSize":0, # 스크립트의 폰트 크기
-            "Script":
-            {
-                "Rect":pygame.Rect(0,0,0,0), ##스크립트가 들어갈 사각형 영역
-                "Pos":RPoint(0,0), ##스크립트 사각형의 위치
-                "TextWidth":0 ##스크립트의 좌우 텍스트 최대길이
-            }
+            "name-rect":pygame.Rect(300,600,200,60), #이름이 들어갈 사각형 영역
+            'name-alpha':200, #이름 영역의 배경 알파값. 입력하지 않을경우 불투명(255)
+            "font":"malgun.ttf", # 폰트
+            "font-size":40, # 폰트 크기
+            "script-rect":pygame.Rect(100,680,1700,380), ##스크립트가 들어갈 사각형 영역
+            "script-pos":RPoint(200,710), ##스크립트 텍스트의 위치
+            "script-text-width":1200, ##스크립트의 좌우 텍스트 최대길이
+            "script-alpha":200 ## 스크립트 영역의 배경 알파값. 입력하지 않을경우 255(완전 불투명)
+            ### 추가 옵션들
+            ##"name-image":이름 영역의 이미지를 지정할 수 있습니다.
+            ##"script-image" : 스크립트 영역의 이미지를 지정할 수 있습니다.
+            ###
         }
-        ,
-        (1920,1080):
-        {
-            "Name":pygame.Rect(300,600,200,60), #이름이 들어갈 사각형 영역
-            "FontSize":40, # 스크립트의 폰트 크기
-            "Script":
-            {
-                "Rect":pygame.Rect(100,680,1500,350), ##스크립트가 들어갈 사각형 영역
-                "Pos":RPoint(200,700), ##스크립트 사각형의 위치
-                "TextWidth":1200 ##스크립트의 좌우 텍스트 최대길이
-            }
-        }
+        ##TODO: 유저 커스텀 레이아웃을 이 아래에 추가해 보세요. 네이밍 양식을 지켜서!
     }
 
-    @classmethod
-    def getGeometry(cls,geo):
-        try:
-            return scriptRenderer.__geometry[geo]
-        except:
-            raise Exception(str(geo)+": Scripter resolution Is not supported. - watch class scripter")
+
+##작성한 비주얼노벨 스크립트를 화면에 그려주는 오브젝트 클래스.
+class scriptRenderer():
+
+    #textSpeed:값이 클수록 느리게 재생된다.
+    def __init__(self,fileName,*,textSpeed=5,layout="default_1920_1080",endFunc = lambda :None):
+        if not fileName.endswith('.scr'):
+            fileName += '.scr'
+        if fileName in REMOScript.scriptPipeline:
+            self.data = REMOScript.scriptPipeline[fileName]
+        else:
+            raise Exception("script file:"+fileName+" not loaded. use method: REMOScript.loadScripts")
 
 
-#scriptFileName : 스크립트를 저장하는 파일 이름
-#textFrame : 텍스트를 출력하는 프레임 수. 예를 들어 값이 3이면 3프레임당 1텍스트 출력
-#textFrame 값이 낮을수록 속도가 빨라진다.
-#geometry : 스크립트가 출력되는 화면 해상도
-#font_name : 캐릭터 이름 출력 폰트
-#font_script : 스크립트 출력 폰트
-    def __init__(self,scriptFileName,*,textFrame=3,geometry=(1920,1080),font_name="malgun.ttf",font_script="malgun.ttf"):
-        self.path = Rs.getPath(scriptFileName)
-        try:
-            self.data = pickle.load(open(self.path,'rb'))
-        except:
-            raise Exception("script file:"+scriptFileName+" doesn't exist")
+
+        self.layout = scriptRenderLayouts.layouts[layout]
         self.index = 0
-        self.geometry = scriptRenderer.getGeometry(geometry)
-        self.font = {"Name":font_name,"Script":font_script}
+        self.font = self.layout["font"]
         
-        self.textFrame = textFrame 
-        self.__textFrameTimer = 0 # 내부 타이머
+        self.currentScript = "" #현재 출력해야 되는 스크립트
+        self.endFunc = endFunc #스크립트가 끝날 경우 실행되는 함수.
+
+        self.textSpeed=textSpeed
+        self.__textFrameTimer = 0
 
         ##기본 이미지 초기화
-        self.imageObjs = []
-        self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0)
+        self.imageObjs = [] #화면에 출력될 이미지들
+        self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
+        self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
+        self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
+
+        ##스크립트 텍스트 오브젝트
+        self.scriptObj = longTextObj("",pos=self.layout["script-pos"],font=self.font,size=self.layout["font-size"],textWidth=self.layout["script-text-width"])
 
 
+        ##스크립트 영역 배경 오브젝트
+        if "script-image" in self.layout:
+            ##TODO: 이미지를 불러온다.
+            self.scriptBgObj = imageButton(self.layout["script-image"],self.layout["script-rect"],hoverMode=False)
+            None
+        else:
+            self.scriptBgObj = textButton("",self.layout["script-rect"],color=Cs.hexColor("111111"))
+            self.scriptBgObj.hoverRect.alpha=5
 
-        #Adjust : 현재 스크린 사이즈에 geometry를 맞추는 과정이 필요하다.
-        #script Background는 처음 한번의 초기화로 끝.
-        self.scriptObj = longTextObj("",pos=self.geometry["Script"]["Pos"],
-                                     font=self.font["Script"],size=self.geometry["FontSize"],
-                                     textWidth=self.geometry["Script"]["TextWidth"])
+        if "script-alpha" in self.layout:
+            self.scriptBgObj.alpha = self.layout["script-alpha"]
 
-        self.scriptBgObj = textButton("",self.geometry["Script"]["Rect"])
-        self.scriptBgObj.alpha =100
+        ##스크립트의 배경을 클릭하면, 다음 스크립트를 불러온다.
+        ##TODO: 아직 리팩토링이 덜됨
         def nextScript():
             if not self.scriptLoaded():
-                self.scriptObj.text = self.currentData()["Script"]
+                self.scriptObj.text = self.currentScript
             elif not self.isEnded():
                 self.index+=1
                 self.updateScript()
-                self.scriptObj.text=""
-        self.scriptBgObj.connect(nextScript)
+            else:
+                ##파일의 재생이 끝남.
+                self.endFunc()
+                print("script is ended")
 
+        self.scriptBgObj.connect(nextScript)
         self.updateScript()
-    
+
+
+
+    ##현 스크립트 재생이 끝났는지를 확인하는 함수
+    def scriptLoaded(self):
+        return self.scriptObj.text == self.currentScript
+
+    ##전체 파일을 다 읽었는지 확인하는 함수.
     def isEnded(self):
         if self.index == len(self.data)-1:
             return True
         return False
-    def scriptLoaded(self):
-        return self.scriptObj.text == self.currentData()["Script"]
 
-    def currentData(self):
+    @property
+    def currentLine(self):
         return self.data[self.index]
+    
+
+
     def updateScript(self):
-        data = self.currentData()
-        if data["Music"]!=None:
-            Rs.changeMusic(data["Music"]["FileName"],volume=data["Music"]["Volume"])
-        #Todo: 사운드 재생
-        if "#" in data["Name"]: #이름란 명령어 처리
-            name = data["Name"].split("#")[0]
-        else:
-            name = data["Name"]
 
-        if "#Thinking" in data["Name"]:
-            self.scriptObj.color = (200,200,200)
-        else:
-            self.scriptObj.color = Cs.white
-
-
-        self.nameObj = textButton(name,rect=self.geometry["Name"],font=self.font["Name"],
-                                size=self.geometry["FontSize"],hoverMode=False)
-        #배경 인풋이 있을 경우 배경 교체.
-        if data["Background"]!="":
-            self.bgObj = imageObj(data["Background"],Rs.screen.get_rect())
+        Rs.acquireDrawLock()
 
         
-        #imageObj를 교체한다.
-        if data["Images"]!="!SameAsBefore":
-            self.imageObjs = []
-            for image in data["Images"]:
-                obj = imageObj(image["FileName"],pos=image["Pos"],scale=image["Scale"])
-                self.imageObjs.append(obj)
-        
+        ### '#'태그 처리
+        # #bgm -> 배경음악 설정. volume 인자가 있다.
+        ## ex: '#bgm music.mp3 volume=0.7'
+        # #sound -> 효과음 설정. volume 인자가 있다.
+        ## ex: '#sound sound1.wav volume=0.3'
+        # #bg -> 배경 설정
+        ## ex: '#bg bg1.png'
+        # #image -> 이미지를 설정한다. pos, scale 인자가 있다.
+        ## ex: '#image Man1.png pos=RPoint(50,80) scale=1'
+        # #clear -> (배경을 제외한)이미지들을 제거한다. '#clear' 만으로 작동.
+        # #chara #chara1 #chara2 #chara3 -> 캐릭터를 설정한다. pos, scale 인자가 있으며, 파일명만 넣을 경우
+        while self.currentLine[0]=="#":
+            ##TODO: 블록 작성
+            l = self.currentLine.split()
+            tag = l[0] # tag : '#bgm','#bg','#image'같은 부분
+            if tag=='#clear':
+                ##이미지들을 지운다.
+                self.imageObjs=[]
+                self.charaObjs=[None,None,None]
+                self.index+=1
+                continue
+
+            fileName = l[1]
+
+            parameters = {} # parameters : 태그와 파일명을 제외한 인자들.
             
+            #예를 들면, 'volume=1' 인자는 parameters에 {'volume':'1'}로 저장된다.
+            for nibble in l[2:]:
+                if '=' in nibble:
+                    param_name,param_value = nibble.split("=")
+                    parameters[param_name]=param_value
+
+
+
+            ###태그 처리 분기문## 
+            ##TODO: #sound(효과음 처리) #action(캐릭터가 가볍게 통 점프)
+            if tag=='#bgm':
+                if 'volume' in parameters:
+                    _volume = float(parameters['volume'])
+                else:
+                    _volume = 1.0
+                
+                Rs.changeMusic(fileName,volume=_volume)
+            elif tag=='#bg':
+                self.bgObj = imageObj(fileName,Rs.screen.get_rect())
+            elif '#chara' in tag: ## #chara1 #chara2 #chara3 #chara(=#chara1)
+                if tag=='#chara':
+                    num=0
+                else:
+                    num = int(tag[-1])-1
+                if parameters == {} and self.charaObjs[num]!=None: ## 이미지 교체
+                    self.charaObjs[num].setImage(fileName)
+                else:
+                    if 'pos' in parameters:
+                        _pos = eval(parameters['pos'])
+                    else:
+                        _pos = RPoint(0,0)            
+                    if 'scale' in parameters:
+                        _scale = float(parameters['scale'])
+                    else:
+                        _scale = 1
+
+                    self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
+            elif tag=='#image':
+                if 'pos' in parameters:
+                    _pos = eval(parameters['pos'])
+                else:
+                    _pos = RPoint(0,0)
+            
+                if 'scale' in parameters:
+                    _scale = float(parameters['scale'])
+                else:
+                    _scale = 1
+
+                obj = imageObj(fileName,pos=_pos,scale=_scale)
+                self.imageObjs.append(obj)
+            else:
+                raise Exception("Tag Not Supported, please check the script file(.scr): "+self.currentLine)
+            ###
+
+            if self.index == len(self.data)-1:
+                return
+            self.index+=1
+
+        ##스크립트 처리##
+        ##ex: '민혁: 너는 왜 그렇게 생각해?'
+        if ":" in self.currentLine:
+            name,script = self.currentLine.split(":")
+            script = script.strip()
+
+            self.nameObj = textButton(name,rect=self.layout["name-rect"],font=self.font,size=self.layout['font-size'],hoverMode=False,color=Cs.hexColor("222222"))
+            if "name-alpha" in self.layout:
+                self.nameObj.alpha = self.layout["name-alpha"]
+            self.currentScript = script
+        else:
+            self.nameObj.textObj.text = ""
+            self.currentScript = self.currentLine.strip()
+        self.scriptObj.text=""
+
+        Rs.releaseDrawLock()
+
+
+
+        
     def update(self):
         self.scriptBgObj.update()
         self.__textFrameTimer+=1
-        #Todo: Script를 한 글자 혹은 단어 단위로 불러오게 해보자.
-        if self.__textFrameTimer == self.textFrame:
+        #Script를 화면에 읽어들이는 함수.
+        if self.__textFrameTimer == self.textSpeed:
             temp = False
             if not self.scriptLoaded():
                 ##미세조정: 스크립트가 위아래로 왔다리 갔다리 하는 것을 막기 위한 조정임.
                 i = len(self.scriptObj.text)
-                fullText = self.currentData()["Script"]
+                fullText = self.currentScript
                 while i < len(fullText) and fullText[i] != " ":
                     i+=1
                 parsedText = fullText[:i]
@@ -1994,25 +2147,33 @@ class scriptRenderer():
                 l2 = self.scriptObj.getStringList(parsedText)[:-1]
                 try:
                     while len(l1[-1]) > len(l2[-1]):
-                        self.scriptObj.text = self.currentData()["Script"][:len(self.scriptObj.text)+1]
+                        self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
                         l1 = self.scriptObj.getStringList(self.scriptObj.text)[:-1]
                         temp = True
                 except:
                     pass
                 if not temp:
-                    self.scriptObj.text = self.currentData()["Script"][:len(self.scriptObj.text)+1]
+                    self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
             self.__textFrameTimer = 0
 
     def draw(self):
         self.bgObj.draw()
         for imageObj in self.imageObjs:
             imageObj.draw()
+        for chara in self.charaObjs:
+            if chara:
+                chara.draw()
         self.scriptBgObj.draw()
         self.scriptObj.draw()
         if self.nameObj.textObj.text!="":
             self.nameObj.draw()
+        for emotion in self.emotionObjs:
+            emotion.draw()
 
-    
+
+
+
+
 
 
 # x*y의 grid 형태를 가진 타일링 오브젝트.
