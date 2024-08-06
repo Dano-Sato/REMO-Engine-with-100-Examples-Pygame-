@@ -1874,21 +1874,22 @@ class scriptObj(longTextObj):
 
 class REMOScript:
     scriptPipeline ={}
-
+    extension = '.scr'
     ##Script I/O
 
     ##.scr 파일은 텍스트 편집기를 통해서 간단하게 편집할 수 있습니다.
     ##.scr 파일의 문법은 별도의 파일에서 설명됩니다.
-
             
     ##현재 존재하는 .scr 파일을 묶어서 .scrs 파일로 만드는 함수.
     ##input을 통해 사용할 .scr파일을 지정할 수 있다. ['text1','text2'] 같은 식으로 쓰면 됨.
-    ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 저장됨.        
-    def zipScript(outputName,inputs=None,extension='.scr'):
+    ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 저장됨.
+    ## prefix를 통해서 지정된 .scr 파일만 묶어서 저장할 수 있다. ex)GAME1_script1.scr GAME1_script2.scr
+    ##        
+    def zipScript(outputName,inputs=None,prefix=""):
         zipped = {}
         if inputs==None:
             current_directory = os.getcwd()
-            script_files = [f for f in os.listdir(current_directory) if f.endswith(extension)]
+            script_files = [f for f in os.listdir(current_directory) if f.endswith(REMOScript.extension) and prefix in f]
         else:
             script_files = [x+'.scr' for x in inputs]
 
@@ -1898,7 +1899,7 @@ class REMOScript:
             lines = [l.strip() for l in lines if l.strip()!=""]
             zipped[f]=lines
 
-        Rs.saveData(outputName+extension+'s',zipped)
+        Rs.saveData(outputName+REMOScript.extension+'s',zipped)
         print(zipped)
 
         return zipped
