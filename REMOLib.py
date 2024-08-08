@@ -1,6 +1,8 @@
 ##Pygames 모듈을 리패키징하는 REMO Library 모듈##
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
+
 
 import pygame,time,math,copy,pickle,random
 import sys,os
@@ -149,13 +151,16 @@ class Rs:
     __window_resolution = (800,600) # 게임 윈도우 해상도
 
     def getWindowRes():
-        return Rs.__window_resolution
+        if Rs.isFullScreen():
+            return Rs.fullScreenRes
+        else:
+            return Rs.__window_resolution
 
     #윈도우 해상도를 변화시킨다.    
     def setWindowRes(res:tuple):
         ##주 모니터의 최대 해상도보다 클 경우 강제 조정
         ##Test
-        max_res = pygame.display.list_modes()[0]
+        max_res = Rs.fullScreenRes
         if res[0]>max_res[0] or res[1]>max_res[1]:
             res = max_res
         Rs.__window_resolution = res
@@ -233,6 +238,8 @@ class Rs:
         
     @classmethod
     def _draw(cls):
+        ##배경화면을 검게 채운다.
+        Rs.window.fill(Cs.black)
         ##등록된 애니메이션들을 재생한다.
         for animation in Rs.__animationPipeline:
             animation.draw()
@@ -260,7 +267,9 @@ class Rs:
             Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE)
         else:
             Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.DOUBLEBUF | pygame.HWSURFACE)
+
         Rs.window.fill(Cs.black)
+
 
 
     ##기타 함수
@@ -843,6 +852,8 @@ class REMOGame:
             except AttributeError:
                 pass # Windows XP doesn't support monitor scaling, so just do nothing.
         pygame.init()
+        info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
+        Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
         Rs.__fullScreen=fullscreen
         Rs.screen_size = screen_size
         Rs.setWindowRes(window_resolution)
@@ -880,8 +891,7 @@ class REMOGame:
         REMOGame.__showBenchmark = True
 
     def draw(self):
-
-        Rs.screen.fill(Cs.black) # 검은 화면
+        Rs.screen.fill(Cs.black) ## 검은 화면
         REMOGame.currentScene.draw()
         Rs._draw()
         _capture = Rs.screen.copy()
@@ -1039,7 +1049,10 @@ class graphicObj():
     #오브젝트의 캐시 이미지를 만든다.
     def _getCache(self):
         if id(self) in Rs.graphicCache:
-            return Rs.graphicCache[id(self)]
+            try:
+                return Rs.graphicCache[id(self)]
+            except:
+                pass
 
         r = self.boundary
         bp = RPoint(r.x,r.y) #position of boundary
@@ -1054,7 +1067,10 @@ class graphicObj():
 
     #object의 차일드를 포함한 그래픽을 캐싱한다.
     def _cacheGraphic(self):
-        Rs.graphicCache[id(self)]=self._getCache()
+        try:
+            Rs.graphicCache[id(self)]=self._getCache()
+        except:
+            pass
 
     ##캐시 청소 (그래픽을 새로 그리거나 위치를 옮길 때 캐시 청소가 필요)    
     def _clearGraphicCache(self):
@@ -1869,7 +1885,6 @@ class scriptObj(longTextObj):
                 self.bg.draw()
             super().draw()            
         
-    
 ### 비주얼 노벨 계열 스크립트 처리를 위해 존재하는 레모 엔진 컴포넌트.
 
 class REMOScript:
@@ -1919,7 +1934,6 @@ class REMOScript:
             fileName += '.scrs'
         path = Rs.getPath(fileName)
         REMOScript.scriptPipeline.update(Rs.loadData(path))
-
 
 ##스크립트 렌더링을 위한 레이아웃들을 저장하는 클래스.
 class scriptRenderLayouts:
