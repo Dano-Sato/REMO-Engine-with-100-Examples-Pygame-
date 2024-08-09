@@ -29,8 +29,8 @@ class mainScene(Scene):
         #게임 종료 버튼을 누르면 게임이 꺼진다.
         self.menus["게임 종료"].color = Cs.red #버튼의 색깔을 바꿀 수 있음.
 
-        REMOScript.zipScript("2-scripts",prefix="2")
-        REMOScript.loadScripts("2-scripts")
+        REMODatabase.zipScript("2-scripts",prefix="2")
+        REMODatabase.loadScripts("2-scripts")
 
         def test():
             self.runScript("2-script1")

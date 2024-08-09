@@ -5,6 +5,9 @@
 #업데이트 내용
 #스크린샷 버그 개선(깨진 스크린샷 버그)
 #longTextObj 관련 버그 픽스(layoutObj 고침)
+#textButton setParent 함수 개선
+#sliderObj 개선
+#REMODatabase
 ###
 
 
@@ -13,9 +16,8 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
 
 
-import pygame,time,math,copy,pickle,random
+import pygame,time,math,copy,pickle,random,pandas
 import sys,os
-import multiprocessing
 try:
     import pygame.freetype as freetype
 except ImportError:
@@ -28,6 +30,7 @@ from enum import Enum
 
 ## Idea from Pyside2.QPoint
 ## includes all of the method of QPoint + additional methods
+## 2-Dimensional (x,y) Point
 class RPoint():
     def __init__(self,x=(0,0),y=None):
         if y==None:
@@ -527,9 +530,9 @@ class Rs:
 
 
     ###Path Pipeline###
-    __pathData={}
-    __pathPipeline={}
-    __pathException=[".git"]
+    __pathData={} ## 확장자에 따라 경로를 분류하는 딕셔너리
+    __pathPipeline={} ## 파일명과 실제 경로를 연결하는 딕셔너리
+    __pathException=[".git",".pyc",".py"] ##해당 글자가 들어있으면 파이프라인에서 제외된다.
     @classmethod
     def _buildPath(cls):
         Rs.__pathData={}
@@ -750,20 +753,6 @@ class Rs:
         REMOGame.drawLock = False
         
         
-    ##File Input/Output
-    
-    @classmethod
-    def saveData(cls,path,data):
-        if os.path.isfile(path):
-            control = 'wb'
-        else:
-            control = 'xb'
-        pickle.dump(data,open(path,control))
-
-    @classmethod
-    def loadData(cls,path):
-        return pickle.load(open(path,'rb'))
-    
 
     ##Random
 
@@ -1411,7 +1400,7 @@ class spriteObj(imageObj):
 #spacing : 오브젝트간 간격
 #pad : layout.pos와 첫 오브젝트간의 간격
 class layoutObj(graphicObj):
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,pad=RPoint(0,0),style=None,
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,pad=RPoint(0,0),
                  childs=[],isVertical=True):
         super().__init__()
         self.spacing = spacing
@@ -1782,6 +1771,11 @@ class textButton(rectObj):
         self._updateShadow()
         self.setRectAlpha(ralpha)
         self.update()
+
+    ##setParent 함수 오버로드
+    def setParent(self,p):
+        super().setParent(p)
+        self._updateShadow()
     @property
     def text(self):
         return self.textObj.text
@@ -1844,6 +1838,7 @@ class textButton(rectObj):
         
 
 ##실제로 대사를 한 글자씩 출력하기 위한 오브젝트.        
+##npc의 대사 출력 등에 활용하면 좋다.
 class scriptObj(longTextObj):
     def __init__(self,text="",pos=RPoint(0,0),*,font=None,size=None,color=Cs.white,textWidth=100,alpha=255, bgExist=False, bgColor = Cs.black, liveTimer=None,speed=2):
         super().__init__(text,pos=pos,font=font,size=size,color=color,textWidth=textWidth,alpha=alpha)
@@ -1897,12 +1892,36 @@ class scriptObj(longTextObj):
             if self.bg:
                 self.bg.draw()
             super().draw()            
-        
-### 비주얼 노벨 계열 스크립트 처리를 위해 존재하는 레모 엔진 컴포넌트.
 
-class REMOScript:
+
+
+##REMO Engine의 File I/O를 다루는 클래스.
+##TODO: Path pipeline도 여기 안으로 옮긴다.
+
+class REMODatabase:
+
+
+    ##File Input/Output
+    
+    ##피클로 파이썬 객체를 저장한다. 보통 딕셔너리나 리스트 계열을 저장할때 사용
+    @classmethod
+    def saveData(cls,path,data):
+        if os.path.isfile(path):
+            control = 'wb'
+        else:
+            control = 'xb'
+        pickle.dump(data,open(path,control))
+
+    ##저장된 파이썬 객체를 불러온다.
+    @classmethod
+    def loadData(cls,path):
+        return pickle.load(open(path,'rb'))
+    
+
+
+    ### 비주얼 노벨 계열 스크립트 파일 I/O 함수
     scriptPipeline ={}
-    extension = '.scr'
+    scriptExtension = '.scr'
     ##Script I/O
 
     ##.scr 파일은 텍스트 편집기를 통해서 간단하게 편집할 수 있습니다.
@@ -1910,14 +1929,14 @@ class REMOScript:
             
     ##현재 존재하는 .scr 파일을 묶어서 .scrs 파일로 만드는 함수.
     ##input을 통해 사용할 .scr파일을 지정할 수 있다. ['text1','text2'] 같은 식으로 쓰면 됨.
-    ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 저장됨.
+    ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 파이프라인에 저장됨.
     ## prefix를 통해서 지정된 .scr 파일만 묶어서 저장할 수 있다. ex)GAME1_script1.scr GAME1_script2.scr
     ##        
     def zipScript(outputName,inputs=None,prefix=""):
         zipped = {}
         if inputs==None:
             current_directory = os.getcwd()
-            script_files = [f for f in os.listdir(current_directory) if f.endswith(REMOScript.extension) and prefix in f]
+            script_files = [f for f in os.listdir(current_directory) if f.endswith(REMODatabase.scriptExtension) and prefix in f]
         else:
             script_files = [x+'.scr' for x in inputs]
 
@@ -1927,7 +1946,7 @@ class REMOScript:
             lines = [l.strip() for l in lines if l.strip()!=""]
             zipped[f]=lines
 
-        Rs.saveData(outputName+REMOScript.extension+'s',zipped)
+        REMODatabase.saveData(outputName+REMODatabase.scriptExtension+'s',zipped)
         print(zipped)
 
         return zipped
@@ -1938,7 +1957,7 @@ class REMOScript:
             fileName += '.scr'
         file = open(fileName,'r',encoding='UTF-8')
         lines = file.readlines()
-        REMOScript.scriptPipeline[fileName] = lines
+        REMODatabase.scriptPipeline[fileName] = lines
 
 
     ##.scrs 파일을 불러와 파이프라인에 저장한다.
@@ -1946,7 +1965,20 @@ class REMOScript:
         if not fileName.endswith('.scrs'):
             fileName += '.scrs'
         path = Rs.getPath(fileName)
-        REMOScript.scriptPipeline.update(Rs.loadData(path))
+        REMODatabase.scriptPipeline.update(REMODatabase.loadData(path))
+
+
+    ##.xlsx 파일을 불러와 dictionary의 list 형태로 저장한다.    
+    def loadExcel(fileName):
+        path = Rs.getPath(fileName)
+        excel_data = pandas.read_excel(path, None)  # None loads all sheets
+
+        # Convert each sheet in the Excel file to a list of dictionaries
+        sheets_dict = {}
+        for sheet_name, data in excel_data.items():
+            sheets_dict[sheet_name] = data.to_dict(orient='records')
+        return sheets_dict
+
 
 ##스크립트 렌더링을 위한 레이아웃들을 저장하는 클래스.
 class scriptRenderLayouts:
@@ -1978,10 +2010,10 @@ class scriptRenderer():
     def __init__(self,fileName,*,textSpeed=5,layout="default_1920_1080",endFunc = lambda :None):
         if not fileName.endswith('.scr'):
             fileName += '.scr'
-        if fileName in REMOScript.scriptPipeline:
-            self.data = REMOScript.scriptPipeline[fileName]
+        if fileName in REMODatabase.scriptPipeline:
+            self.data = REMODatabase.scriptPipeline[fileName]
         else:
-            raise Exception("script file:"+fileName+" not loaded. use method: REMOScript.loadScripts")
+            raise Exception("script file:"+fileName+" not loaded. use method: REMODatabase.loadScripts")
 
 
 
@@ -2285,7 +2317,8 @@ class sliderObj(rectObj):
             d = min(1,d)
             self.value = d
             ##TODO: Value 조정
-        self.adjustObj()
+            self.adjustObj()
+
         None
         
         
