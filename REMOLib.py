@@ -7,8 +7,10 @@
 #longTextObj 관련 버그 픽스(layoutObj 고침)
 #textButton setParent 함수 개선
 #sliderObj 개선
-#REMODatabase
+#REMODatabase (File I/O) 클래스
+#topleft,topright 등 다양한 포지션 편집 기능
 ###
+
 
 
 from os import environ
@@ -954,6 +956,12 @@ class REMOGame:
 
 #abstract class for graphic Object
 class graphicObj():
+
+
+    ##포지션 편집 및 참조 기능
+    ##pygame.Rect의 attributes(topleft, topright 등...)를 그대로 물려받습니다.
+    #(pos, rect)는 실제론 obj의 parent를 원점(0,0)으로 하였을 때의 object의 위치와 영역을 의미합니다.
+
     @property
     def pos(self):
         return self._pos
@@ -968,14 +976,58 @@ class graphicObj():
     def moveTo(self,p2,speed):
         self.pos = self.pos.moveTo(p2,speed)
 
+
+    def __adjustPosBy(self,attr,_point):
+        if type(_point)==RPoint:
+            _point = _point.toTuple()
+        _rect = self.rect.copy()
+        setattr(_rect,attr,_point)
+        self.pos = RPoint(_rect.topleft)
+
+
     @property
     def center(self):
-        return RPoint(self.pos.x()+self.rect.w//2,self.pos.y()+self.rect.h//2)
+        return RPoint(self.rect.center)
     @center.setter
     def center(self,_center):
-        if type(_center)==tuple:
-            _center = RPoint(_center[0],_center[1])
-        self.pos = RPoint(_center.x()-self.rect.w//2,_center.y()-self.rect.h//2)
+        self.__adjustPosBy("center",_center)
+
+
+    @property
+    def topright(self):
+        return RPoint(self.rect.topright)
+    @topright.setter
+    def topright(self,_topright):
+        self.__adjustPosBy("topright",_topright)
+
+    @property
+    def bottomright(self):
+        return RPoint(self.rect.bottomright)
+    @bottomright.setter
+    def bottomright(self,_bottomright):
+        self.__adjustPosBy("bottomright",_bottomright)
+
+
+    @property
+    def bottomleft(self):
+        return RPoint(self.rect.bottomleft)
+    @bottomleft.setter
+    def bottomleft(self,_bottomleft):
+        self.__adjustPosBy("bottomleft",_bottomleft)
+
+    @property
+    def centerx(self):
+        return RPoint(self.rect.centerx)
+    @centerx.setter
+    def centerx(self,_p):
+        self.__adjustPosBy("centerx",_p)
+
+    @property
+    def centery(self):
+        return RPoint(self.rect.centery)
+    @centery.setter
+    def centery(self,_p):
+        self.__adjustPosBy("centery",_p)
 
     ##Rect is combination of (pos,size)
     ##pos : position of the object, size : size of the object
