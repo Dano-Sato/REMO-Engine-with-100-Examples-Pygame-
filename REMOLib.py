@@ -1,4 +1,13 @@
-##Pygames 모듈을 리패키징하는 REMO Library 모듈##
+###REMO Engine 
+#Pygames 모듈을 리패키징하는 REMO Library 모듈
+#2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
+##version 0.2.2 (24-08-08 Update)
+#업데이트 내용
+#스크린샷 버그 개선(깨진 스크린샷 버그)
+#longTextObj 관련 버그 픽스(layoutObj 고침)
+###
+
+
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
@@ -171,6 +180,7 @@ class Rs:
 
     screen_size = (1920,1080) # 게임을 구성하는 실제 스크린의 픽셀수
     screen = pygame.Surface.__new__(pygame.Surface)
+    _screenCapture  = None
     _screenBuffer = pygame.Surface.__new__(pygame.Surface)
 
 
@@ -620,8 +630,8 @@ class Rs:
     #스크린샷 캡쳐
     @classmethod
     def captureScreenShot(cls):        
-        Rs.screenShot = pygame.Surface(Rs.screen.get_rect().size,pygame.SRCALPHA)
-        Rs.screenShot.blit(Rs.screen,(0,0))
+        Rs.screenShot = Rs._screenCapture.copy() #마지막으로 버퍼에 남아있는 그림을 가져온다.
+    
         return Rs.screenShot
 
     @classmethod
@@ -894,8 +904,8 @@ class REMOGame:
         Rs.screen.fill(Cs.black) ## 검은 화면
         REMOGame.currentScene.draw()
         Rs._draw()
-        _capture = Rs.screen.copy()
-        Rs._screenBuffer = pygame.transform.smoothscale(_capture,Rs.getWindowRes())
+        Rs._screenCapture = Rs.screen.copy()
+        Rs._screenBuffer = pygame.transform.smoothscale(Rs._screenCapture,Rs.getWindowRes())
         Rs.window.blit(Rs._screenBuffer,(0,0))
         if REMOGame.__showBenchmark:
             Rs.drawBenchmark()
@@ -1427,7 +1437,8 @@ class layoutObj(graphicObj):
         
         ##rect 지정이 안 되어 있을경우 자동으로 경계로 조정한다.
         if rect==pygame.Rect(0,0,0,0):
-            rect = self.boundary
+            self.graphic_n = pygame.Surface((self.boundary.w,self.boundary.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
+            self.graphic = self.graphic_n.copy()
         
 
 
@@ -1436,10 +1447,12 @@ class layoutObj(graphicObj):
         lastChild = None
         if self.isVertical:
             def delta(c):
-                return RPoint(0,c.rect.h+self.spacing)
+                d = c.rect.h
+                return RPoint(0,d+self.spacing)
         else:
             def delta(c):
-                return RPoint(c.rect.w+self.spacing,0)
+                d = c.rect.w
+                return RPoint(d+self.spacing,0)
 
         for child in self.childs:
 
@@ -1528,7 +1541,7 @@ class longTextObj(layoutObj):
             ObjList.append(t)
         if type(pos) == tuple:
             pos = RPoint(pos[0],pos[1])
-        super().__init__(pygame.Rect(pos.x(),pos.y(),0,0),childs=ObjList,spacing=size/4)
+        super().__init__(pos=pos,childs=ObjList,spacing=size/4)
         self._clearGraphicCache()
 
     #현재 textWidth에 의해 나눠질 text 집합을 불러온다.
