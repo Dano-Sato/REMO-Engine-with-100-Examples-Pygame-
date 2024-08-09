@@ -960,7 +960,7 @@ class graphicObj():
 
     ##포지션 편집 및 참조 기능
     ##pygame.Rect의 attributes(topleft, topright 등...)를 그대로 물려받습니다.
-    #(pos, rect)는 실제론 obj의 parent를 원점(0,0)으로 하였을 때의 object의 위치와 영역을 의미합니다.
+    #(pos, rect)는 실제론 obj의 parent의 pos를 원점(0,0)으로 하였을 때의 object의 위치와 영역을 의미합니다.
 
     @property
     def pos(self):
@@ -1014,6 +1014,34 @@ class graphicObj():
     @bottomleft.setter
     def bottomleft(self,_bottomleft):
         self.__adjustPosBy("bottomleft",_bottomleft)
+
+    @property
+    def midleft(self):
+        return RPoint(self.rect.midleft)
+    @midleft.setter
+    def midleft(self,_midleft):
+        self.__adjustPosBy("midleft",_midleft)
+
+    @property
+    def midright(self):
+        return RPoint(self.rect.midright)
+    @midright.setter
+    def midright(self,_midright):
+        self.__adjustPosBy("midright",_midright)
+
+    @property
+    def midtop(self):
+        return RPoint(self.rect.midtop)
+    @midtop.setter
+    def midtop(self,_midtop):
+        self.__adjustPosBy("midtop",_midtop)
+
+    @property
+    def midbottom(self):
+        return RPoint(self.rect.midbottom)
+    @midbottom.setter
+    def midbottom(self,_midbottom):
+        self.__adjustPosBy("midbottom",_midbottom)
 
     @property
     def centerx(self):

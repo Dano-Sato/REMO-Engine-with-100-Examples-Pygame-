@@ -25,13 +25,17 @@ class mainScene(Scene):
         self.coinIcon = imageObj("coin.png",pos=RPoint(0,0),scale=0.37) ## 코인 아이콘
         self.coinIcon.centery = self.moneyBg.rect.h//2
         self.coinIcon.setParent(self.moneyBg)
-        self.money = textObj("",pos=(0,0),size=35)
+        self.money = textObj("",pos=(0,0),size=35) ## 돈을 보여주는 텍스트
         self.money.setParent(self.moneyBg)
         self.setMoney(10000)
 
         ##여고생쟝
         self.clerk = imageObj("schoolGirl1_default.png",pos=(-150,0))
 
+        self.label = textObj("Mirai's Shop",size=40,pos=(0,0))
+        self.label.midtop = (960,20)
+
+        Rs.playMusic("piano_calm.mp3")
         print(self.item_db)
         return
     def init(self):
@@ -42,6 +46,7 @@ class mainScene(Scene):
         return
     def draw(self):
         self.clerk.draw()
+        self.label.draw()
         self.moneyBg.draw()
         return
 
@@ -62,7 +67,7 @@ class Scenes:
 
 if __name__=="__main__":
     #Screen Setting
-    window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="DEFAULT")
+    window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="Item Shop")
     window.setCurrentScene(Scenes.mainScene)
     window.run()
 
