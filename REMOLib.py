@@ -9,6 +9,7 @@
 #sliderObj 개선
 #REMODatabase (File I/O) 클래스
 #topleft,topright 등 다양한 포지션 편집 기능
+#fullScreen 관련 버그 픽스
 ###
 
 
@@ -178,8 +179,6 @@ class Rs:
         if res[0]>max_res[0] or res[1]>max_res[1]:
             res = max_res
         Rs.__window_resolution = res
-        #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
-        Rs._mouseTransformer=(Rs.screen_size[0]/res[0],Rs.screen_size[1]/res[1])
         Rs.__updateWindow()
 
 
@@ -282,6 +281,9 @@ class Rs:
             Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE)
         else:
             Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.DOUBLEBUF | pygame.HWSURFACE)
+        #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
+        x,y = Rs.getWindowRes()
+        Rs._mouseTransformer=(Rs.screen_size[0]/x,Rs.screen_size[1]/y)
 
         Rs.window.fill(Cs.black)
 
