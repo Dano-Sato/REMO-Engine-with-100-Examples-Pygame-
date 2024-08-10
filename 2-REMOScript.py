@@ -52,7 +52,6 @@ class mainScene(Scene):
     def update(self):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
-            Rs.setFullScreen(True)
         self.menus.update()
         return
     def draw(self):

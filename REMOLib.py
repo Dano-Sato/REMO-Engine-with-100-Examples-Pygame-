@@ -2088,6 +2088,21 @@ class scriptRenderLayouts:
 ##작성한 비주얼노벨 스크립트를 화면에 그려주는 오브젝트 클래스.
 class scriptRenderer():
 
+
+    ##렌더러를 초기화한다. (clear의 역할을 함)
+    def _init(self):
+        ##기본 이미지 초기화
+        self.imageObjs = [] #화면에 출력될 이미지들
+        self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
+        self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
+        self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
+        self.nameObj = textButton()
+
+        ##스크립트 텍스트 오브젝트
+        self.scriptObj = longTextObj("",pos=self.layout["script-pos"],font=self.font,size=self.layout["font-size"],textWidth=self.layout["script-text-width"])
+
+
+
     #textSpeed:값이 클수록 느리게 재생된다.
     def __init__(self,fileName,*,textSpeed=5,layout="default_1920_1080",endFunc = lambda :None):
         if not fileName.endswith('.scr'):
@@ -2109,16 +2124,7 @@ class scriptRenderer():
         self.textSpeed=textSpeed
         self.__textFrameTimer = 0
 
-        ##기본 이미지 초기화
-        self.imageObjs = [] #화면에 출력될 이미지들
-        self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
-        self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
-        self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
-        self.nameObj = textButton()
-
-        ##스크립트 텍스트 오브젝트
-        self.scriptObj = longTextObj("",pos=self.layout["script-pos"],font=self.font,size=self.layout["font-size"],textWidth=self.layout["script-text-width"])
-
+        self._init()
 
         ##스크립트 영역 배경 오브젝트
         if "script-image" in self.layout:
@@ -2133,7 +2139,6 @@ class scriptRenderer():
             self.scriptBgObj.alpha = self.layout["script-alpha"]
 
         ##스크립트의 배경을 클릭하면, 다음 스크립트를 불러온다.
-        ##TODO: 아직 리팩토링이 덜됨
         def nextScript():
             if not self.scriptLoaded():
                 self.scriptObj.text = self.currentScript
@@ -2142,6 +2147,7 @@ class scriptRenderer():
                 self.updateScript()
             else:
                 ##파일의 재생이 끝남.
+                self._init() ## 초기화(오브젝트를 비운다)
                 self.endFunc()
                 print("script is ended")
 
