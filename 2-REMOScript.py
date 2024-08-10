@@ -33,7 +33,7 @@ class mainScene(Scene):
         REMODatabase.loadScripts("2-scripts")
 
         def test():
-            self.runScript("2-script2")
+            self.runScript("2-script2jp")
 
         self.menus["미소녀와 대화하기"].connect(test)
 
@@ -69,6 +69,7 @@ class scriptScene(Scene):
         def goBackToMain():
             REMOGame.setCurrentScene(Scenes.mainScene)
         self.renderer.endFunc = goBackToMain
+        self.renderer.setFont("japanese_script.ttf")
         return
     def update(self):
         self.renderer.update()

@@ -443,13 +443,13 @@ class Rs:
 
     #폰트 파이프라인(Font Pipeline)
     __fontPipeline ={}
-    __sysFontName = "BMDOHYEON_ttf.ttf"
+    __sysFontName = "korean_button.ttf"
     __sysSize = 15
     _buttonFontSize = 25
 
     #기본 설정된 폰트를 변경
     @classmethod
-    def setSysFont(cls,*,font="BMDOHYEON_ttf.ttf",size=15,buttonFontSize=25):
+    def setSysFont(cls,*,font="korean_button.ttf",size=15,buttonFontSize=25):
         Rs.__sysFontName = font
         Rs.__sysSize = size
         Rs._buttonFontSize = buttonFontSize
@@ -1827,7 +1827,7 @@ class textButton(rectObj):
             self.shadow.center = Rs.Point(self.geometryCenter)+RPoint(0,10)
     
     ##ralpha = 버튼을 포함한 직사각형의 alpha값
-    def __init__(self,text="",rect=pygame.Rect(0,0,0,0),*,edge=1,font="BMDOHYEON_ttf.ttf",size=None,color=Cs.tiffanyBlue,func=lambda:None,hoverMode=True,fontColor=Cs.white,alpha=225,ralpha=255):
+    def __init__(self,text="",rect=pygame.Rect(0,0,0,0),*,edge=1,font="korean_button.ttf",size=None,color=Cs.tiffanyBlue,func=lambda:None,hoverMode=True,fontColor=Cs.white,alpha=225,ralpha=255):
         if size==None:
             size = Rs._buttonFontSize
         self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=fontColor)
@@ -2070,7 +2070,7 @@ class scriptRenderLayouts:
         {
             "name-rect":pygame.Rect(300,600,200,60), #이름이 들어갈 사각형 영역
             'name-alpha':200, #이름 영역의 배경 알파값. 입력하지 않을경우 불투명(255)
-            "font":"malgun.ttf", # 폰트
+            "font":"korean_script.ttf", # 폰트. 기본으로 지원되는 한국어 폰트(맑은고딕). 영어 한국어 지원 가능
             "font-size":40, # 폰트 크기
             "script-rect":pygame.Rect(100,680,1700,380), ##스크립트가 들어갈 사각형 영역
             "script-pos":RPoint(200,710), ##스크립트 텍스트의 위치
@@ -2171,6 +2171,9 @@ class scriptRenderer():
         return self.data[self.index]
     
 
+    def setFont(self,font):
+        self.scriptObj.font = font
+        self.nameObj.textObj.font = font
 
     def updateScript(self):
 
@@ -2416,7 +2419,7 @@ class sliderObj(rectObj):
 class buttonLayout(layoutObj):
     def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=10,
                  isVertical=True,buttonSize=RPoint(200,50),buttonColor = Cs.tiffanyBlue,
-                 fontSize=None,fontColor=Cs.white,font="BMDOHYEON_ttf.ttf",
+                 fontSize=None,fontColor=Cs.white,font="korean_button.ttf",
                  buttonAlpha=225):
         self.buttons = {}
         buttonSize = Rs.Point(buttonSize)
