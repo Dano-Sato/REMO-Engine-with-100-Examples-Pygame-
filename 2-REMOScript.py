@@ -33,7 +33,7 @@ class mainScene(Scene):
         REMODatabase.loadScripts("2-scripts")
 
         def test():
-            self.runScript("2-script1")
+            self.runScript("2-script2")
 
         self.menus["미소녀와 대화하기"].connect(test)
 

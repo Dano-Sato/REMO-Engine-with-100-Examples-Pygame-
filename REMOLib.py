@@ -2072,7 +2072,7 @@ class scriptRenderLayouts:
             "font-size":40, # 폰트 크기
             "script-rect":pygame.Rect(100,680,1700,380), ##스크립트가 들어갈 사각형 영역
             "script-pos":RPoint(200,710), ##스크립트 텍스트의 위치
-            "script-text-width":1200, ##스크립트의 좌우 텍스트 최대길이
+            "script-text-width":1500, ##스크립트의 좌우 텍스트 최대길이
             "script-alpha":200 ## 스크립트 영역의 배경 알파값. 입력하지 않을경우 255(완전 불투명)
             ### 추가 옵션들
             ##"name-image":이름 영역의 이미지를 지정할 수 있습니다.
@@ -2112,6 +2112,7 @@ class scriptRenderer():
         self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
         self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
         self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
+        self.nameObj = textButton()
 
         ##스크립트 텍스트 오브젝트
         self.scriptObj = longTextObj("",pos=self.layout["script-pos"],font=self.font,size=self.layout["font-size"],textWidth=self.layout["script-text-width"])
