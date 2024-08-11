@@ -227,10 +227,13 @@ class Rs:
                 
         ##animation 처리
         for animation in Rs.__animationPipeline:
-            if animation.isEnded():
-                Rs.__animationPipeline.remove(animation)
+            if animation["obj"].isEnded():
+                if animation["stay"]>time.time():
+                    continue
+                else:
+                    Rs.__animationPipeline.remove(animation)
             else:
-                animation.update()
+                animation["obj"].update()
         for obj in Rs.__fadeAnimationPipeline:
             if obj["Time"]==0:
                 Rs.__fadeAnimationPipeline.remove(obj)
@@ -256,7 +259,7 @@ class Rs:
         Rs.window.fill(Cs.black)
         ##등록된 애니메이션들을 재생한다.
         for animation in Rs.__animationPipeline:
-            animation.draw()
+            animation["obj"].draw()
         for obj in Rs.__fadeAnimationPipeline:
             obj["Obj"].draw()
 
@@ -616,14 +619,16 @@ class Rs:
     ##애니메이션 재생을 위한 함수
     ##애니메이션이 한번 재생되고 꺼진다.
     ##애니메이션은 기본적으로 화면 맨 위에서 재생된다.
+
+    #stay: 애니메이션이 화면에 남아있는 시간.(단위:ms)
     __animationPipeline=[]
     @classmethod
-    def playAnimation(cls,sprite,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,tick=1,angle=0,fromSprite=0,toSprite=None,alpha=255):
+    def playAnimation(cls,sprite,stay=0,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,tick=1,angle=0,fromSprite=0,toSprite=None,alpha=255):
         obj = spriteObj(sprite,rect,pos=pos,tick=tick,scale=scale,angle=0,sheetMatrix=sheetMatrix,fromSprite=fromSprite,toSprite=toSprite,mode=AnimationMode.PlayOnce)
         obj.alpha = alpha
         if center!=None:
             obj.center = center
-        Rs.__animationPipeline.append(obj)
+        Rs.__animationPipeline.append({"obj":obj,"stay":time.time()+stay/1000.0})
         
         
     ##페이드아웃 애니메이션 재생을 위한 함수.
@@ -2087,6 +2092,10 @@ class scriptRenderLayouts:
 
 ##작성한 비주얼노벨 스크립트를 화면에 그려주는 오브젝트 클래스.
 class scriptRenderer():
+    ##감정 벌룬 스프라이트(emotion-ballon.png)에 담겨진 감정의 순서를 나열한다.
+    emotions = ["awkward","depressed","love","excited","joyful","angry","surprised","curious","sad","idea","ok","zzz","no"]
+    emotionSpriteFile = "emotion-ballon.png" # 감정 벌룬 스프라이트의 파일 이름
+    emotionTime = 1700 ##2000ms동안 감정 벌룬이 재생된다.
 
 
     ##렌더러를 초기화한다. (clear의 역할을 함)
@@ -2095,6 +2104,7 @@ class scriptRenderer():
         self.imageObjs = [] #화면에 출력될 이미지들
         self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
         self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
+        self.emotionTimer = time.time() ## 감정 출력될 때 스크립트를 멈추는 타이머
         self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
         self.nameObj = textButton()
 
@@ -2202,15 +2212,17 @@ class scriptRenderer():
                 self.index+=1
                 continue
 
-            fileName = l[1]
-
+            fileName = None # 파일명
             parameters = {} # parameters : 태그와 파일명을 제외한 인자들.
             
             #예를 들면, 'volume=1' 인자는 parameters에 {'volume':'1'}로 저장된다.
-            for nibble in l[2:]:
+            for nibble in l[1:]:
                 if '=' in nibble:
                     param_name,param_value = nibble.split("=")
                     parameters[param_name]=param_value
+                else:
+                    #'='가 포함되어 있지 않은 인자는 파일명이다.
+                    fileName = nibble
 
 
 
@@ -2242,7 +2254,20 @@ class scriptRenderer():
                     else:
                         _scale = 1
 
-                    self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
+                    if fileName:
+                        self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
+
+                    if 'emotion' in parameters:
+                        try:
+                            emotion = parameters['emotion']
+                            i = scriptRenderer.emotions.index(emotion)
+                            e_pos = RPoint(self.charaObjs[num].rect.centerx,30)
+                            Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,tick=12,scale=2)
+                            self.emotionTimer = time.time()+scriptRenderer.emotionTime/1000.0
+                        except:
+
+                            raise Exception("Emotion not Supported: "+emotion+", currently supported are:"+str(scriptRenderer.emotions))
+
             elif tag=='#image':
                 if 'pos' in parameters:
                     _pos = eval(parameters['pos'])
@@ -2285,8 +2310,16 @@ class scriptRenderer():
 
         
     def update(self):
+
+        ##감정 애니메이션이 재생중일 땐 스크립트를 재생하지 않는다.
+        if self.emotionTimer>time.time():
+            if self.scriptObj.text != "":
+                self.scriptObj.text = ""
+            return
+
         self.scriptBgObj.update()
         self.__textFrameTimer+=1
+
         #Script를 화면에 읽어들이는 함수.
         if self.__textFrameTimer == self.textSpeed:
             temp = False

@@ -1,7 +1,7 @@
 #bg testBg.jpg
 #bgm piano_calm.mp3
 (カフェを出る途中で、見覚えのある顔に出会った。)
-#chara1 schoolGirl1_default.png
+#chara1 schoolGirl1_default.png emotion=surprised
 ミライ: こんにちは、おじさん。また会いましたね。
 こんにちは、ミライ。
 (昨日会った女子高生だ。)
@@ -24,7 +24,7 @@
 (...それまで言う必要があったのか...?)
 ...確かに若いね。
 (17歳と言っていたから、ミライと私の年齢差は12歳。叔父さんくらいの年齢だな...)
-#chara1 schoolGirl1_smile.png
+#chara1 schoolGirl1_smile.png emotion=joyful
 ミライ: ごめんなさい、おじさん... 私の中の女子高生ギャグ本能を抑えきれなくてつい。
 (何の本能だろう、それは。)
 (話せば話すほど、ミライは理解しがたい子だと思う...)
@@ -32,7 +32,7 @@
 ミライ: ...みかんコーヒーと言えば、おじさんはみかんに似ていますね。
 ほ、褒め言葉だよね...?
 (みかん...? ミライの意図を理解するのは難しい。)
-#chara1 schoolGirl1_love.png
+#chara1 schoolGirl1_love.png emotion=love
 ミライ: ...さあ、どうでしょうね? 褒め言葉でしょうか~?
 (ミライはにこにこと笑っている。)
 (...どういう意味か全然分からない。ちょっと聞いてみようか。)
