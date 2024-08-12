@@ -2,6 +2,7 @@
 #bgm piano_calm.mp3
 (카페를 나오는 길에, 익숙한 얼굴과 마주쳤다.)
 #chara1 schoolGirl1_default.png emotion=surprised
+#sound testEffect.wav volume=0.3
 미라이: 안녕하세요 아저씨. 또 뵙네요.
 안녕 미라이.
 (어제 본 여고생이다.)

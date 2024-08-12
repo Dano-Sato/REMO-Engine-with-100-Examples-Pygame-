@@ -11,6 +11,7 @@
 #topleft,topright 등 다양한 포지션 편집 기능
 #fullScreen 관련 버그 픽스
 #REMOScript에 감정표현(emotion) 기능 추가, 13개의 감정 지원
+#Script Renderer에 스크립트 재생 종료를 의미하는 마커 추가
 ###
 
 
@@ -2238,7 +2239,7 @@ class scriptRenderer():
 
 
             ###태그 처리 분기문## 
-            ##TODO: #sound(효과음 처리) #action(캐릭터가 가볍게 통 점프)
+            ##배경음악 재생
             if tag=='#bgm':
                 if 'volume' in parameters:
                     _volume = float(parameters['volume'])
@@ -2246,6 +2247,15 @@ class scriptRenderer():
                     _volume = 1.0
                 
                 Rs.changeMusic(fileName,volume=_volume)
+            ##효과음 재생                
+            elif tag=='#sound':
+                if 'volume' in parameters:
+                    _volume = float(parameters['volume'])
+                else:
+                    _volume = 1.0
+                
+                Rs.playSound(fileName,volume=_volume)
+
             elif tag=='#bg':
                 self.bgObj = imageObj(fileName,Rs.screen.get_rect())
             elif '#chara' in tag: ## #chara1 #chara2 #chara3 #chara(=#chara1)
