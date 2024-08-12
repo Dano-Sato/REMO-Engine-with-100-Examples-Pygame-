@@ -10,6 +10,7 @@
 #REMODatabase (File I/O) 클래스
 #topleft,topright 등 다양한 포지션 편집 기능
 #fullScreen 관련 버그 픽스
+#REMOScript에 감정표현(emotion) 기능 추가, 13개의 감정 지원
 ###
 
 
@@ -2095,7 +2096,7 @@ class scriptRenderer():
     ##감정 벌룬 스프라이트(emotion-ballon.png)에 담겨진 감정의 순서를 나열한다.
     emotions = ["awkward","depressed","love","excited","joyful","angry","surprised","curious","sad","idea","ok","zzz","no"]
     emotionSpriteFile = "emotion-ballon.png" # 감정 벌룬 스프라이트의 파일 이름
-    emotionTime = 1700 ##2000ms동안 감정 벌룬이 재생된다.
+    emotionTime = 1700 ##1700ms동안 감정 벌룬이 재생된다.
 
 
     ##렌더러를 초기화한다. (clear의 역할을 함)
@@ -2136,6 +2137,13 @@ class scriptRenderer():
 
         self._init()
 
+        self.endMarker = rectObj(pygame.Rect(0,0,10,10)) ##스크립트 재생이 끝났음을 알려주는 점멸 마커
+
+        ##점멸을 위한 내부 인자들.
+        self.endMarker.switch = True
+        self.endMarker.timer = time.time()
+        self.endMarker.tick = 0.5 ##0.5초마다 점멸 
+
         ##스크립트 영역 배경 오브젝트
         if "script-image" in self.layout:
             ##TODO: 이미지를 불러온다.
@@ -2153,8 +2161,10 @@ class scriptRenderer():
             if not self.scriptLoaded():
                 self.scriptObj.text = self.currentScript
             elif not self.isEnded():
+                ##다음 스크립트를 불러온다.
                 self.index+=1
                 self.updateScript()
+                self.endMarker.switch = False
             else:
                 ##파일의 재생이 끝남.
                 self._init() ## 초기화(오브젝트를 비운다)
@@ -2180,7 +2190,7 @@ class scriptRenderer():
     def currentLine(self):
         return self.data[self.index]
     
-
+    ##렌더러의 폰트 변경.
     def setFont(self,font):
         self.scriptObj.font = font
         self.nameObj.textObj.font = font
@@ -2222,7 +2232,8 @@ class scriptRenderer():
                     parameters[param_name]=param_value
                 else:
                     #'='가 포함되어 있지 않은 인자는 파일명이다.
-                    fileName = nibble
+                    if nibble.strip()!="":
+                        fileName = nibble
 
 
 
@@ -2343,6 +2354,17 @@ class scriptRenderer():
                     self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
             self.__textFrameTimer = 0
 
+        ##점멸 마커 업데이트
+        if self.scriptLoaded():
+            ##점멸 표시
+            if time.time()>self.endMarker.timer:
+                self.endMarker.timer = time.time()+self.endMarker.tick 
+                self.endMarker.switch = not self.endMarker.switch
+            
+            markerPos = RPoint(self.scriptObj.childs[-1].geometry.bottomright)+RPoint(20,0)
+            if self.endMarker.bottomleft != markerPos:
+                self.endMarker.bottomleft = markerPos
+
     def draw(self):
         self.bgObj.draw()
         for imageObj in self.imageObjs:
@@ -2352,6 +2374,8 @@ class scriptRenderer():
                 chara.draw()
         self.scriptBgObj.draw()
         self.scriptObj.draw()
+        if self.scriptLoaded() and self.endMarker.switch:
+            self.endMarker.draw()
         if self.nameObj.textObj.text!="":
             self.nameObj.draw()
         for emotion in self.emotionObjs:
