@@ -2105,6 +2105,7 @@ class scriptRenderer():
         ##기본 이미지 초기화
         self.imageObjs = [] #화면에 출력될 이미지들
         self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
+        self.moveInstructions = [[],[],[]] #캐릭터들의 움직임에 대한 지시문
         self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
         self.emotionTimer = time.time() ## 감정 출력될 때 스크립트를 멈추는 타이머
         self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
@@ -2138,7 +2139,7 @@ class scriptRenderer():
 
         self._init()
 
-        self.endMarker = rectObj(pygame.Rect(0,0,10,10)) ##스크립트 재생이 끝났음을 알려주는 점멸 마커
+        self.endMarker = rectObj(pygame.Rect(0,0,7,10)) ##스크립트 재생이 끝났음을 알려주는 점멸 마커
 
         ##점멸을 위한 내부 인자들.
         self.endMarker.switch = True
@@ -2220,6 +2221,7 @@ class scriptRenderer():
                 ##이미지들을 지운다.
                 self.imageObjs=[]
                 self.charaObjs=[None,None,None]
+                self.moveInstructions = [[],[],[]] ## 움직임 초기화
                 self.index+=1
                 continue
 
@@ -2263,31 +2265,56 @@ class scriptRenderer():
                     num=0
                 else:
                     num = int(tag[-1])-1
-                if parameters == {} and self.charaObjs[num]!=None: ## 이미지 교체
-                    self.charaObjs[num].setImage(fileName)
+                if 'pos' in parameters:
+                    _pos = eval(parameters['pos'])
                 else:
-                    if 'pos' in parameters:
-                        _pos = eval(parameters['pos'])
-                    else:
-                        _pos = RPoint(0,0)            
-                    if 'scale' in parameters:
-                        _scale = float(parameters['scale'])
-                    else:
-                        _scale = 1
+                    _pos = RPoint(0,0)            
+                if 'scale' in parameters:
+                    _scale = float(parameters['scale'])
+                else:
+                    _scale = 1
 
-                    if fileName:
+                if fileName:
+                    if self.charaObjs[num]:
+                        self.charaObjs[num].setImage(fileName)
+                    else:
                         self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
 
-                    if 'emotion' in parameters:
-                        try:
-                            emotion = parameters['emotion']
-                            i = scriptRenderer.emotions.index(emotion)
-                            e_pos = RPoint(self.charaObjs[num].rect.centerx,30)
-                            Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,tick=12,scale=2)
-                            self.emotionTimer = time.time()+scriptRenderer.emotionTime/1000.0
-                        except:
+                if 'emotion' in parameters:
+                    try:
+                        emotion = parameters['emotion']
+                        i = scriptRenderer.emotions.index(emotion)
+                        e_pos = RPoint(self.charaObjs[num].rect.centerx,30)
+                        Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,tick=12,scale=2)
+                        self.emotionTimer = time.time()+scriptRenderer.emotionTime/1000.0
+                    except:
 
-                            raise Exception("Emotion not Supported: "+emotion+", currently supported are:"+str(scriptRenderer.emotions))
+                        raise Exception("Emotion not Supported: "+emotion+", currently supported are:"+str(scriptRenderer.emotions))
+                if 'jump' in parameters:
+
+                    ##점프 지시를 넣는다.
+                    j_pos = -int(parameters['jump'])
+                    jumpInstruction = []
+                    if j_pos>0:
+                        d=-1
+                    else:
+                        d=1
+                    temp = j_pos
+                    sum = temp
+                    while sum != 0:
+                        jumpInstruction.append(RPoint(0,temp))
+                        temp+=d
+                        sum += temp                        
+                    jumpInstruction.append(RPoint(0,temp))
+
+
+                    moveInst = self.moveInstructions[num]
+                    for j,jump in enumerate(jumpInstruction):
+                        if j<len(moveInst):
+                            moveInst[j]=moveInst[j]+jump
+                        else:
+                            moveInst.append(jump)
+
 
             elif tag=='#image':
                 if 'pos' in parameters:
@@ -2332,6 +2359,13 @@ class scriptRenderer():
         
     def update(self):
 
+        ##캐릭터의 움직임 업데이트
+        for i,moveInst in enumerate(self.moveInstructions):
+            if moveInst != []:
+                move = moveInst.pop(0)
+                self.charaObjs[i].pos += move
+
+
         ##감정 애니메이션이 재생중일 땐 스크립트를 재생하지 않는다.
         if self.emotionTimer>time.time():
             if self.scriptObj.text != "":
@@ -2374,6 +2408,9 @@ class scriptRenderer():
             markerPos = RPoint(self.scriptObj.childs[-1].geometry.bottomright)+RPoint(20,0)
             if self.endMarker.bottomleft != markerPos:
                 self.endMarker.bottomleft = markerPos
+
+
+
 
     def draw(self):
         self.bgObj.draw()
