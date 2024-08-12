@@ -1,19 +1,19 @@
 #bg testBg.jpg
 #bgm piano_calm.mp3
 (카페를 나오는 길에, 익숙한 얼굴과 마주쳤다.)
-#chara1 schoolGirl1_default.png pos=(0,50) emotion=surprised jump=10
+#chara1 schoolGirl1_default.png pos=(0,50) emotion=surprised jump
 #sound testEffect.wav volume=0.1
 미라이: 안녕하세요 아저씨. 또 뵙네요.
 안녕 미라이.
 (어제 본 여고생이다.)
-#chara1 schoolGirl1_smile.png
+#chara1 schoolGirl1_smile.png move=300
 미라이: ...이 가게는 맘에 드셨나요?
 응. 커피가 아주 맛이 끝내줘.
 (여기서라면 좋은 코딩을 할 수 있을 것 같다.) 
 앞으로도 자주 올 생각이야.
 (프로그래머에게 맛있는 커피는 복음과 같은 것.)
 (다시 말하면 좋은 카페를 찾아내는 것은 성지순례와 같다는 것이다.)
-#chara1 schoolGirl1_default.png
+#chara1 schoolGirl1_default.png move=-300
 미라이: 그렇군요... 아저씨는 여기 특제 귤 커피도 드셔보셨나요?
 그건... 아직 먹어본 적이 없는데.
 (귤 커피라니, 어떤 맛일지 도저히 상상이 가질 않는다...)
@@ -36,13 +36,13 @@
 (귤...? 미라이의 의도를 파악하기 어렵다.)
 #chara1 schoolGirl1_love.png 
 미라이: ...글쎄요...? 어떨까요? 칭찬일까요~?
-#chara1 emotion=love jump=-10
+#chara1 emotion=love jump
 (미라이는 빙글빙글 웃고 있다.)
 (...무슨 뜻인지 전혀 모르겠다. 한번 떠볼까...)
 너도 귤을 닮았단다. 미라이.
 #chara1 schoolGirl1_angry.png 
 미라이: ...이렇게 싱싱한 여고생에게 귤이라니, 어떻게 그런 심한 말씀을!
-#chara1 emotion=angry jump=10
+#chara1 emotion=angry jump
 역시 욕이잖아...
 (이번에 만난 걸로 두 번째인데, 상당히 도발적인 여고생이다.)
 #chara1 schoolGirl1_blush.png emotion=awkward
@@ -54,7 +54,7 @@
 (나, 여고생에게 인기 있는 체질인가? 29살 독신 프로그래머 인생에 봄이 왔나?)
 #chara1 schoolGirl1_default.png 
 미라이: 거짓말이지만요.
-#chara1 emotion=excited jump=10
+#chara1 emotion=excited jump
 뭐시라?
 자꾸 어른을 놀리면 혼난다?
 #chara1 schoolGirl1_cry.png emotion=sad

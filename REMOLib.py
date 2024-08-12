@@ -2197,6 +2197,18 @@ class scriptRenderer():
         self.scriptObj.font = font
         self.nameObj.textObj.font = font
 
+    ##캐릭터에게 움직임을 지시한다.
+    ##num:캐릭터 번호
+    def makeMove(self,num,moves):
+        moveInst = self.moveInstructions[num]
+        for j,move in enumerate(moves):
+            if j<len(moveInst):
+                moveInst[j]=moveInst[j]+move
+            else:
+                moveInst.append(move)
+
+
+
     def updateScript(self):
 
         Rs.acquireDrawLock()
@@ -2228,15 +2240,19 @@ class scriptRenderer():
             fileName = None # 파일명
             parameters = {} # parameters : 태그와 파일명을 제외한 인자들.
             
+            ##각 니블 분석
             #예를 들면, 'volume=1' 인자는 parameters에 {'volume':'1'}로 저장된다.
             for nibble in l[1:]:
                 if '=' in nibble:
                     param_name,param_value = nibble.split("=")
                     parameters[param_name]=param_value
                 else:
-                    #'='가 포함되어 있지 않은 인자는 파일명이다.
-                    if nibble.strip()!="":
+                    #'.'가 들어있는 니블은 파일명 ex)"test.png"
+                    if '.' in nibble:
                         fileName = nibble
+                    else: ##기타 명령어
+                        if nibble=='jump': ##점프한다.
+                            parameters['jump']=10
 
 
 
@@ -2257,9 +2273,11 @@ class scriptRenderer():
                     _volume = 1.0
                 
                 Rs.playSound(fileName,volume=_volume)
-
+            ##배경 교체
             elif tag=='#bg':
                 self.bgObj = imageObj(fileName,Rs.screen.get_rect())
+
+            ##캐릭터 관련 태그                
             elif '#chara' in tag: ## #chara1 #chara2 #chara3 #chara(=#chara1)
                 if tag=='#chara':
                     num=0
@@ -2274,12 +2292,14 @@ class scriptRenderer():
                 else:
                     _scale = 1
 
+                ##캐릭터 스프라이트 처리
                 if fileName:
                     if self.charaObjs[num]:
                         self.charaObjs[num].setImage(fileName)
                     else:
                         self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
 
+                ##감정 표현 처리
                 if 'emotion' in parameters:
                     try:
                         emotion = parameters['emotion']
@@ -2290,6 +2310,8 @@ class scriptRenderer():
                     except:
 
                         raise Exception("Emotion not Supported: "+emotion+", currently supported are:"+str(scriptRenderer.emotions))
+
+                ##캐릭터 점프
                 if 'jump' in parameters:
 
                     ##점프 지시를 넣는다.
@@ -2307,13 +2329,28 @@ class scriptRenderer():
                         sum += temp                        
                     jumpInstruction.append(RPoint(0,temp))
 
-
-                    moveInst = self.moveInstructions[num]
-                    for j,jump in enumerate(jumpInstruction):
-                        if j<len(moveInst):
-                            moveInst[j]=moveInst[j]+jump
+                    self.makeMove(num,jumpInstruction)
+                
+                ##캐릭터 수평이동
+                if 'move' in parameters:
+                    m_pos = int(parameters['move'])
+                    moveInstruction = []
+                    temp = m_pos
+                    while temp!=0:
+                        if abs(temp)<=2:
+                            d = temp
                         else:
-                            moveInst.append(jump)
+                            d =temp*0.05
+                            if 0<d<1:
+                                d=1
+                            elif -1<d<0:
+                                d=-1
+                            d= int(d)
+                        temp-=d
+                        moveInstruction.append(RPoint(d,0))
+                    
+                    self.makeMove(num,moveInstruction)
+
 
 
             elif tag=='#image':
