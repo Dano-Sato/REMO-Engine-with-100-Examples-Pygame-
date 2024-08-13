@@ -1489,11 +1489,10 @@ class spriteObj(imageObj):
 #spacing : 오브젝트간 간격
 #pad : layout.pos와 첫 오브젝트간의 간격
 class layoutObj(graphicObj):
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,pad=RPoint(0,0),
-                 childs=[],isVertical=True):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,childs=[],isVertical=True):
         super().__init__()
         self.spacing = spacing
-        self.pad = pad
+        self.pad = RPoint(0,0) ## 레이아웃 오프셋
 
 
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
