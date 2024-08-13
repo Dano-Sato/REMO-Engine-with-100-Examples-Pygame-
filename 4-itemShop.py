@@ -6,10 +6,8 @@ from REMOLib import *
 
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
-##Bug: 누군가의 차일드가 됐을 때 버그가 발생한다. 이건 근본적으로 getCache를 다시 짜야할 것 같다.
-#하지만 그러면 진짜 무슨 이유인지 알 수 없는 버그가 발생..
 class scrollLayout(layoutObj):
-
+    scrollbar_offset = 10
 
     #object의 차일드들의 영역을 포함한 전체 영역을 계산
     @property
@@ -37,32 +35,46 @@ class scrollLayout(layoutObj):
             ccache,cpos = c._getCache()
             p = cpos-bp+self.pad
             cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+        
+        ##스크롤바 그리기
+        ccache,cpos = self.scrollBar._getCache()
+        p = cpos-self.geometryPos
+        cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
         cache.set_alpha(self.alpha)
 
 
         return [cache,self.geometryPos]
 
+
+    def getScrollbarPos(self):
+        if self.isVertical:
+            s_pos = RPoint(self.rect.w-2*self.scrollBar.thickness,scrollLayout.scrollbar_offset)            
+        else:
+            s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h-2*self.scrollBar.thickness)
+        return s_pos
+
     ##스크롤바의 위치를 레이아웃에 맞게 조정합니다.
     def adjustScrollbar(self):
-        if self.isVertical:
-            s_pos = RPoint(self.rect.w,0)            
-        else:
-            s_pos = RPoint(0,self.rect.h)
         
-        self.scrollBar.pos = s_pos+self.geometryPos
+        self.scrollBar.pos = self.getScrollbarPos()+self.geometryPos
 
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,pad=RPoint(0,0),
-                 childs=[],isVertical=True,scrollColor = Cs.white):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white):
 
         super().__init__(rect=rect,pos=pos,spacing=spacing,childs=childs,isVertical=isVertical)
         if isVertical:
             s_length = self.rect.h
         else:
             s_length = self.rect.w
-        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
         self.adjustScrollbar()
         self.curValue = self.scrollBar.value
 
+
+    ##setParent 함수 오버로드
+    def setParent(self,p):
+        super().setParent(p)
+        self.adjustLayout()
 
     ##스크롤 영역이 마우스와 충돌하는지 확인합니다.
     def collideMouse(self):
@@ -95,10 +107,6 @@ class scrollLayout(layoutObj):
                 self.curValue = self.scrollBar.value
 
         return
-
-    def draw(self):
-        super().draw()  
-        self.scrollBar.draw()
 
 
 #게임 오브젝트들을 선언하는 곳입니다.
@@ -137,8 +145,9 @@ class mainScene(Scene):
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
         ##스크롤레이아웃이 무엇인가의 자식 객체가 되었을 때
-        self.testlayout = scrollLayout(pygame.Rect(30,30,200,500),isVertical=True)
-        self.testBg = rectObj(pygame.Rect(100,100,300,600),color=Cs.dark(Cs.grey))
+        self.testlayout = scrollLayout(pygame.Rect(30,130,200,500),isVertical=True)
+        self.testBg = rectObj(pygame.Rect(100,100,300,700),color=Cs.dark(Cs.grey))
+        self.testDrag = rectObj(pygame.Rect(0,0,300,50),color=Cs.grey)
         for i in range(20):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30)
             def func(i):
@@ -150,23 +159,27 @@ class mainScene(Scene):
             testObj.setParent(self.testlayout)
         self.testlayout.setParent(self.testBg)
         self.testlayout.adjustLayout()
+        self.testDrag.setParent(self.testBg)
         print(self.item_db)
         return
     def init(self):
         return
     def update(self):
+        Rs.acquireDrawLock()
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
         if Rs.userJustPressed(pygame.K_a):
             self.testlayout.pos += RPoint(10,0)
+        Rs.dragEventHandler(self.testDrag,self.testBg)
         self.testlayout.update()
+        Rs.releaseDrawLock()
         return
     def draw(self):
         self.clerk.draw()
         self.label.draw()
         self.moneyBg.draw()
         self.testBg.draw()
-        self.testlayout.draw()
+        #self.testlayout.scrollBar.draw()
         return
 
 

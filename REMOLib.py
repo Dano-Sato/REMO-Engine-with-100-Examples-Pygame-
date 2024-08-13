@@ -193,6 +193,7 @@ class Rs:
 
     __fullScreen = False # 풀스크린 여부를 체크하는 인자
     draggedObj = None # 드래깅되는 오브젝트를 추적하는 인자
+    dropFunc = lambda:None # 드래깅이 끝났을 때 실행되는 함수
     __toggleTimer = 0 # 풀스크린 토글할 때 연속토글이 일어나지 않도록 시간을 재주는 타이머.
     
     __lastState=(False,False,False)
@@ -216,6 +217,7 @@ class Rs:
         for i,_ in enumerate(state):
             if i==0 and (Rs.__lastState[i],state[i])==(True,False): # Drag 해제.
                 Rs.draggedObj=None
+                Rs.dropFunc()
             #버튼 클릭 여부를 확인.
             if (Rs.__lastState[i],state[i])==(False,True):
                Rs.__justClicked[i]=True
@@ -696,7 +698,33 @@ class Rs:
     
     @classmethod
     def userPressing(cls,key):
+        '''
+        키가 눌려져 있는지를 체크하는 함수
+        key: ex) pygame.K_LEFT        
+        '''
         return pygame.key.get_pressed()[key]
+    
+
+    ##Drag and Drop Handler##
+    @classmethod
+    def dragEventHandler(cls,triggerObj,draggedObj=None,draggingFunc=lambda:None,dropFunc=lambda:None):
+        '''
+        Drag & Drop Event Handler
+        triggerObj : 드래그를 시작할 객체
+        draggedObj : 드래그되는 객체
+        draggingFunc : 드래깅 중 실행되는 함수
+        dropFunc : 드래그가 끝날 때 실행되는 함수
+        '''
+        if draggedObj==None:
+            draggedObj = triggerObj
+        if Rs.userJustLeftClicked() and triggerObj.collideMouse():
+            Rs.draggedObj = draggedObj
+            Rs.dragOffset = Rs.mousePos()-draggedObj.pos
+            Rs.dropFunc = dropFunc
+        if Rs.userIsLeftClicking() and Rs.draggedObj == draggedObj:
+            draggedObj.pos = Rs.mousePos()-Rs.dragOffset
+            draggingFunc()
+
 
 
     ##Draw Function##
@@ -1187,11 +1215,13 @@ class graphicObj():
         if self.parent !=None:
             self.parent.childs.remove(self)
             self.parent._clearGraphicCache()
+            if hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
+                _parent.adjustLayout()
 
         self.parent = _parent
         if _parent != None:
             _parent.childs.append(self)
-            if hasattr(_parent,'adjustLayout'):
+            if hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 _parent.adjustLayout()
         self._clearGraphicCache()
 
