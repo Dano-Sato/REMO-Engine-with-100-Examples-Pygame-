@@ -68,6 +68,19 @@ class scrollLayout(layoutObj):
         else:
             s_length = self.rect.w
         self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+
+        ##스크롤바를 조작했을 때 레이아웃을 조정합니다.
+        def __ScrollHandle():
+            if self.isVertical:
+                l = -self.boundary.h+self.rect.h
+                self.pad = RPoint(0,self.scrollBar.value*l)
+                self.adjustLayout()
+            else:
+                l = -self.boundary.w+self.rect.w
+                self.pad = RPoint(self.scrollBar.value*l,0)
+                self.adjustLayout()
+        self.scrollBar.connect(__ScrollHandle)
+
         self.adjustScrollbar()
         self.curValue = self.scrollBar.value
 
@@ -92,20 +105,12 @@ class scrollLayout(layoutObj):
             # child가 update function이 있을 경우 실행한다.
             if hasattr(child, 'update') and callable(getattr(child, 'update')) and viewport.colliderect(child.rect):
                 child.update()
+        
+        ##스크롤바에 대한 업데이트
         if hasattr(self,"scrollBar"):
             self.adjustScrollbar()
             self.scrollBar.update()
-            ##스크롤바를 움직일 때, 레이아웃의 위치를 조정해야 합니다. (self.pad 조정)
-            if self.curValue != self.scrollBar.value:
-                if self.isVertical:
-                    l = -self.boundary.h+self.rect.h
-                    self.pad = RPoint(0,self.scrollBar.value*l)
-                    self.adjustLayout()
-                else:
-                    l = -self.boundary.w+self.rect.w
-                    self.pad = RPoint(self.scrollBar.value*l,0)
-                    self.adjustLayout()
-                self.curValue = self.scrollBar.value
+
 
         return
 
@@ -146,10 +151,10 @@ class mainScene(Scene):
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
         ##스크롤레이아웃이 무엇인가의 자식 객체가 되었을 때
-        self.testlayout = scrollLayout(pygame.Rect(30,130,200,500),isVertical=True)
+        self.testlayout = scrollLayout(pygame.Rect(30,130,250,500),isVertical=True)
         self.testBg = rectObj(pygame.Rect(100,100,300,700),color=Cs.dark(Cs.grey))
         self.testDrag = rectObj(pygame.Rect(0,0,300,50),color=Cs.grey)
-        for i in range(2):
+        for i in range(20):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30)
             def func(i):
                 def _():

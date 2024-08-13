@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.2 (24-08-08 Update)
+##version 0.2.2 (24-08-14 Update)
 #업데이트 내용
 #스크린샷 버그 개선(깨진 스크린샷 버그)
 #longTextObj 관련 버그 픽스(layoutObj 고침)
@@ -13,6 +13,7 @@
 #REMOScript에 감정표현(emotion) 기능 추가, 13개의 감정 지원
 #Script Renderer에 스크립트 재생 종료를 의미하는 마커 추가
 #스크립트에서 jump, move,sound 재생 지원
+#scrollLayout 제작(70%, 아직 불명의 버그와 버벅임 등이 있음)
 ###
 
 
@@ -2562,7 +2563,6 @@ class sliderObj(rectObj):
         else:
             self.button.center = RPoint(l,self.thickness//2)
             self.gauge.rect = pygame.Rect(0,0,l,self.thickness)
-        self.__function()
 
     def update(self):
         if Rs.userJustLeftClicked() and (self.collideMouse() or self.button.collideMouse()):
@@ -2576,15 +2576,17 @@ class sliderObj(rectObj):
             d = max(0,d)
             d = min(1,d)
             self.value = d
-            ##TODO: Value 조정
             self.adjustObj()
+            self.__function()
 
         None
         
         
-##버튼들을 간편하게 생성할 수 있는 버튼용 레이아웃
-##example: buttonLayout(["Play Game","Config","Exit"],RPoint(50,50))
 class buttonLayout(layoutObj):
+    '''
+    버튼들을 간편하게 생성할 수 있는 버튼용 레이아웃 \n
+    example: buttonLayout(["Play Game","Config","Exit"],RPoint(50,50))    
+    '''
     def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=10,
                  isVertical=True,buttonSize=RPoint(200,50),buttonColor = Cs.tiffanyBlue,
                  fontSize=None,fontColor=Cs.white,font="korean_button.ttf",
@@ -2606,6 +2608,116 @@ class buttonLayout(layoutObj):
         self.adjustLayout()
         
 
+##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
+##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
+##Bug: 아주 간헐적으로 내용물이 제대로 그려지지 않는 버그가 있다. 원인불명
+##미완성이고 차일드가 많아지면 버벅인다. 적절하게 활용할 것
+class scrollLayout(layoutObj):
+    scrollbar_offset = 10
+
+    #object의 차일드들의 영역을 포함한 전체 영역을 계산
+    @property
+    def boundary(self):
+        r = self.geometry
+        for c in self.childs:
+            r = r.union(c.boundary)
+        return r
+    #오브젝트의 캐시 이미지를 만든다.
+    ##뷰포트를 벗어나는 이미지는 그리지 않는다.
+    def _getCache(self):
+        if id(self) in Rs.graphicCache:
+            try:
+                return Rs.graphicCache[id(self)]
+            except:
+                pass
+
+        r = self.boundary
+        bp = RPoint(r.x,r.y) #position of boundary
+        cache = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
+        viewport = cache.get_rect()
+        for c in self.childs:
+            if not c.rect.colliderect(viewport):
+                continue
+            ccache,cpos = c._getCache()
+            p = cpos-bp+self.pad
+            cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+        
+        ##스크롤바 그리기
+        ccache,cpos = self.scrollBar._getCache()
+        p = cpos-self.geometryPos
+        cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
+        cache.set_alpha(self.alpha)
+
+
+        return [cache,self.geometryPos]
+
+
+    def getScrollbarPos(self):
+        if self.isVertical:
+            s_pos = RPoint(self.rect.w-2*self.scrollBar.thickness,scrollLayout.scrollbar_offset)            
+        else:
+            s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h-2*self.scrollBar.thickness)
+        return s_pos
+
+    ##스크롤바의 위치를 레이아웃에 맞게 조정합니다.
+    def adjustScrollbar(self):
+        
+        self.scrollBar.pos = self.getScrollbarPos()+self.geometryPos
+
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white):
+
+        super().__init__(rect=rect,pos=pos,spacing=spacing,childs=childs,isVertical=isVertical)
+        if isVertical:
+            s_length = self.rect.h
+        else:
+            s_length = self.rect.w
+        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+
+        ##스크롤바를 조작했을 때 레이아웃을 조정합니다.
+        def __ScrollHandle():
+            if self.isVertical:
+                l = -self.boundary.h+self.rect.h
+                self.pad = RPoint(0,self.scrollBar.value*l)
+                self.adjustLayout()
+            else:
+                l = -self.boundary.w+self.rect.w
+                self.pad = RPoint(self.scrollBar.value*l,0)
+                self.adjustLayout()
+        self.scrollBar.connect(__ScrollHandle)
+
+        self.adjustScrollbar()
+        self.curValue = self.scrollBar.value
+
+
+    ##setParent 함수 오버로드
+    def setParent(self,p):
+        super().setParent(p)
+        self.adjustLayout()
+
+    ##스크롤 영역이 마우스와 충돌하는지 확인합니다.
+    def collideMouse(self):
+        return pygame.Rect(self.geometryPos.x(),self.geometryPos.y(),self.rect.w,self.rect.h).collidepoint(Rs.mousePos().toTuple())
+
+    def update(self):
+        viewport = pygame.Rect(0,0,self.rect.w,self.rect.h)
+
+        if Rs.userJustLeftClicked() and self.collideMouse():
+            print("DEBUG")
+
+        ##마우스 클릭에 대한 업데이트
+        for child in self.childs:
+            # child가 update function이 있을 경우 실행한다.
+            if hasattr(child, 'update') and callable(getattr(child, 'update')) and viewport.colliderect(child.rect):
+                child.update()
+        
+        ##스크롤바에 대한 업데이트
+        if hasattr(self,"scrollBar"):
+            self.adjustScrollbar()
+            self.scrollBar.update()
+
+
+        return
 
 
 
