@@ -699,7 +699,7 @@ class Rs:
     @classmethod
     def userPressing(cls,key):
         '''
-        키가 눌려져 있는지를 체크하는 함수
+        키가 눌려져 있는지를 체크하는 함수 \n
         key: ex) pygame.K_LEFT        
         '''
         return pygame.key.get_pressed()[key]
@@ -709,10 +709,10 @@ class Rs:
     @classmethod
     def dragEventHandler(cls,triggerObj,draggedObj=None,draggingFunc=lambda:None,dropFunc=lambda:None):
         '''
-        Drag & Drop Event Handler
-        triggerObj : 드래그를 시작할 객체
-        draggedObj : 드래그되는 객체
-        draggingFunc : 드래깅 중 실행되는 함수
+        Drag & Drop Event Handler \n
+        triggerObj : 드래그가 촉발되는 객체 \n
+        draggedObj : 드래그되는 객체 \n
+        draggingFunc : 드래깅 중 실행되는 함수 \n
         dropFunc : 드래그가 끝날 때 실행되는 함수
         '''
         if draggedObj==None:
@@ -1215,8 +1215,8 @@ class graphicObj():
         if self.parent !=None:
             self.parent.childs.remove(self)
             self.parent._clearGraphicCache()
-            if hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
-                _parent.adjustLayout()
+            if hasattr(self.parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
+                self.parent.adjustLayout()
 
         self.parent = _parent
         if _parent != None:
@@ -1569,7 +1569,6 @@ class layoutObj(graphicObj):
                 child.pos = self.pad
             lastChild = child
         self._clearGraphicCache()
-            
 
     def update(self):
         for child in self.childs:

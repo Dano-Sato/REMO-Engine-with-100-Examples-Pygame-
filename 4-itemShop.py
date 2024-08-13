@@ -6,6 +6,7 @@ from REMOLib import *
 
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
+##Bug: 객체 추가시 물체가 이동한다.
 class scrollLayout(layoutObj):
     scrollbar_offset = 10
 
@@ -169,7 +170,14 @@ class mainScene(Scene):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
         if Rs.userJustPressed(pygame.K_a):
-            self.testlayout.pos += RPoint(10,0)
+            obj = textButton("Good good",rect=pygame.Rect(0,0,100,50),size=30)
+            obj.setParent(self.testlayout)
+
+
+        if Rs.userJustPressed(pygame.K_s):
+            obj = self.testlayout.childs[0]
+            obj.setParent(None)
+
         Rs.dragEventHandler(self.testDrag,self.testBg)
         self.testlayout.update()
         Rs.releaseDrawLock()
