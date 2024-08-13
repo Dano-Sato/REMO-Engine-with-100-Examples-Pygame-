@@ -1583,8 +1583,7 @@ class layoutObj(graphicObj):
     
     def __setitem__(self, key, value):
         self.childs[key] = value
-        self.childs[key].parent = self
-        self.adjustLayout()
+        self.childs[key].setParent(self)
 
          
 #긴 텍스트를 처리하기 위한 오브젝트.
