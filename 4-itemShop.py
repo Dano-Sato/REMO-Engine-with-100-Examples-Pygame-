@@ -5,11 +5,19 @@ from REMOLib import *
 
 
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
-##TODO: 스크롤바를 움직일 때 클릭이 망가지는 버그가 있음.(pos 처리가 이상해졌다.)
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
-##TODO: cacheGraphic에서 지정된 rect 영역과 충돌하지 않는 차일드는 그리지 않는다.
+##Bug: 누군가의 차일드가 됐을 때 버그가 발생한다. 이건 근본적으로 getCache를 다시 짜야할 것 같다.
+#하지만 그러면 진짜 무슨 이유인지 알 수 없는 버그가 발생..
 class scrollLayout(layoutObj):
 
+
+    #object의 차일드들의 영역을 포함한 전체 영역을 계산
+    @property
+    def boundary(self):
+        r = self.geometry
+        for c in self.childs:
+            r = r.union(c.boundary)
+        return r
     #오브젝트의 캐시 이미지를 만든다.
     ##뷰포트를 벗어나는 이미지는 그리지 않는다.
     def _getCache(self):
@@ -21,17 +29,18 @@ class scrollLayout(layoutObj):
 
         r = self.boundary
         bp = RPoint(r.x,r.y) #position of boundary
-        cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
-        cache.blit(self.graphic,(self.geometryPos-bp).toTuple())
-        viewport = pygame.Rect(0,0,self.rect.w,self.rect.h)
+        cache = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
+        viewport = cache.get_rect()
         for c in self.childs:
             if not c.rect.colliderect(viewport):
                 continue
             ccache,cpos = c._getCache()
-            p = cpos-bp
+            p = cpos-bp+self.pad
             cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
         cache.set_alpha(self.alpha)
-        return [cache,bp]
+
+
+        return [cache,self.geometryPos]
 
     ##스크롤바의 위치를 레이아웃에 맞게 조정합니다.
     def adjustScrollbar(self):
@@ -54,8 +63,18 @@ class scrollLayout(layoutObj):
         self.adjustScrollbar()
         self.curValue = self.scrollBar.value
 
+
+    ##스크롤 영역이 마우스와 충돌하는지 확인합니다.
+    def collideMouse(self):
+        return pygame.Rect(self.geometryPos.x(),self.geometryPos.y(),self.rect.w,self.rect.h).collidepoint(Rs.mousePos().toTuple())
+
     def update(self):
         viewport = pygame.Rect(0,0,self.rect.w,self.rect.h)
+
+        if Rs.userJustLeftClicked() and self.collideMouse():
+            print("DEBUG")
+
+        ##마우스 클릭에 대한 업데이트
         for child in self.childs:
             # child가 update function이 있을 경우 실행한다.
             if hasattr(child, 'update') and callable(getattr(child, 'update')) and viewport.colliderect(child.rect):
@@ -73,20 +92,12 @@ class scrollLayout(layoutObj):
                     l = -self.boundary.w+self.rect.w
                     self.pad = RPoint(self.scrollBar.value*l,0)
                     self.adjustLayout()
+                self.curValue = self.scrollBar.value
 
         return
 
     def draw(self):
-
-        ##레이아웃을 rect 영역 안에 그린다.
-        if self.alpha==0: ## 알파값이 0일경우는 그리지 않는다
-            return
-        if id(self) not in Rs.graphicCache:
-            self._cacheGraphic()
-        cache,_ = self._getCache()
-        buffer = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
-        buffer.blit(cache,self.pad.toTuple())
-        Rs.screen.blit(buffer,self.geometryPos.toTuple())
+        super().draw()  
         self.scrollBar.draw()
 
 
@@ -122,21 +133,23 @@ class mainScene(Scene):
         self.label = textObj("Mirai's Shop",size=40,pos=(0,0))
         self.label.midtop = (960,20)
 
-        Rs.playMusic("piano_calm.mp3")
 
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
         ##스크롤레이아웃이 무엇인가의 자식 객체가 되었을 때
-        self.testlayout = scrollLayout(pygame.Rect(100,100,500,500),isVertical=True)
-        self.testBg = rectObj(self.testlayout.rect,color=Cs.dark(Cs.grey))
+        self.testlayout = scrollLayout(pygame.Rect(30,30,200,500),isVertical=True)
+        self.testBg = rectObj(pygame.Rect(100,100,300,600),color=Cs.dark(Cs.grey))
         for i in range(20):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30)
             def func(i):
                 def _():
-                    print("Yeah",i)
+                    if self.testlayout.collideMouse():
+                        print("Yeah",i)
                 return _
             testObj.connect(func(i))
             testObj.setParent(self.testlayout)
+        self.testlayout.setParent(self.testBg)
+        self.testlayout.adjustLayout()
         print(self.item_db)
         return
     def init(self):
@@ -144,6 +157,8 @@ class mainScene(Scene):
     def update(self):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
+        if Rs.userJustPressed(pygame.K_a):
+            self.testlayout.pos += RPoint(10,0)
         self.testlayout.update()
         return
     def draw(self):

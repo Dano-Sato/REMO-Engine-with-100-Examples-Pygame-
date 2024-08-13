@@ -1521,7 +1521,6 @@ class layoutObj(graphicObj):
 
     #레이아웃 내부 객체들의 위치를 조정한다.
     def adjustLayout(self):
-        lastChild = None
         if self.isVertical:
             def delta(c):
                 d = c.rect.h
@@ -1531,6 +1530,7 @@ class layoutObj(graphicObj):
                 d = c.rect.w
                 return RPoint(d+self.spacing,0)
 
+        lastChild = None
         for child in self.childs:
 
             if lastChild != None:
