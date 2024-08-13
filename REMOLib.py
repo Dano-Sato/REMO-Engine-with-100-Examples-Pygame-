@@ -12,6 +12,7 @@
 #fullScreen 관련 버그 픽스
 #REMOScript에 감정표현(emotion) 기능 추가, 13개의 감정 지원
 #Script Renderer에 스크립트 재생 종료를 의미하는 마커 추가
+#스크립트에서 jump, move,sound 재생 지원
 ###
 
 
@@ -1173,7 +1174,6 @@ class graphicObj():
     ###
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
-        self.graphic = pygame.Surface((0,0))
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
         self.graphic = self.graphic_n.copy()
         self._pos = RPoint(0,0)

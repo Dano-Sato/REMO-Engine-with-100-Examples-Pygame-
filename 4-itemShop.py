@@ -3,6 +3,62 @@
 from REMOLib import *
 
 
+
+##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
+##TODO: 스크롤바를 움직일 때 클릭이 망가지는 버그가 있음.(pos 처리가 이상해졌다.)
+##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
+##TODO: cacheGraphic에서 지정된 rect 영역과 충돌하지 않는 차일드는 그리지 않는다.
+class scrollLayout(layoutObj):
+
+    ##스크롤바의 위치를 레이아웃에 맞게 조정합니다.
+    def adjustScrollbar(self):
+        if self.isVertical:
+            s_pos = RPoint(self.rect.w,0)            
+        else:
+            s_pos = RPoint(0,self.rect.h)
+        
+        self.scrollBar.pos = s_pos+self.geometryPos
+
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,pad=RPoint(0,0),
+                 childs=[],isVertical=True,scrollColor = Cs.white):
+
+        super().__init__(rect=rect,pos=pos,spacing=spacing,pad=pad,childs=childs,isVertical=isVertical)
+        if isVertical:
+            s_length = self.rect.h
+        else:
+            s_length = self.rect.w
+        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+        self.scrollOffset = RPoint(0,0) ##스크롤바에 따른 레이아웃의 위치를 나타내는 변수
+        self.adjustScrollbar()
+
+    def update(self):
+        super().update()
+        if hasattr(self,"scrollBar"):
+            self.adjustScrollbar()
+            self.scrollBar.update()
+            ##TODO: 스크롤바를 움직일 때, 레이아웃의 위치를 조정해야 합니다. (self.scrollOffset 조정)
+            if self.isVertical:
+                l = -self.boundary.h+self.rect.h
+                self.scrollOffset = RPoint(0,self.scrollBar.value*l)
+            else:
+                l = -self.boundary.w+self.rect.w
+                self.scrollOffset = RPoint(self.scrollBar.value*l,0)
+        return
+
+    def draw(self):
+
+        ##레이아웃을 rect 영역 안에 그린다.
+        if self.alpha==0: ## 알파값이 0일경우는 그리지 않는다
+            return
+        if id(self) not in Rs.graphicCache:
+            self._cacheGraphic()
+        cache,p = self._getCache()
+        buffer = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
+        buffer.blit(cache,(self.pad+self.scrollOffset).toTuple())
+        Rs.screen.blit(buffer,p.toTuple())
+        self.scrollBar.draw()
+
+
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
     None
@@ -36,6 +92,12 @@ class mainScene(Scene):
         self.label.midtop = (960,20)
 
         Rs.playMusic("piano_calm.mp3")
+
+        ##DEBUG
+        self.testlayout = scrollLayout(pygame.Rect(100,100,500,500),isVertical=False)
+        for _ in range(3):
+            testObj = textButton("Yeah",rect=pygame.Rect(0,0,100,50),size=30)
+            testObj.setParent(self.testlayout)
         print(self.item_db)
         return
     def init(self):
@@ -43,11 +105,13 @@ class mainScene(Scene):
     def update(self):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
+        self.testlayout.update()
         return
     def draw(self):
         self.clerk.draw()
         self.label.draw()
         self.moneyBg.draw()
+        self.testlayout.draw()
         return
 
 
