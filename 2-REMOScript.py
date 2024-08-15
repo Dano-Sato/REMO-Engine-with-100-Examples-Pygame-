@@ -63,16 +63,37 @@ class mainScene(Scene):
 class scriptScene(Scene):
     currentScript = ""
     def initOnce(self):
+        ##게임 종료 다이얼로그 선언
+        self.escDialog = dialogObj(pygame.Rect(200,200,800,250),"","대화를 종료하고 메인 화면으로 돌아가시겠습니까?",["네","아니오"],color=Cs.dark(Cs.grey),spacing=20)
+        self.escDialog.update()
+        def goMain():
+            REMOGame.setCurrentScene(Scenes.mainScene)
+            self.escDialog.hide()
+            self.renderer.clear()
+            Rs.clearAnimation()
+        self.escDialog["네"].connect(goMain) ##네를 누르면 메인화면으로 돌아간다.
+        self.escDialog["네"].color = Cs.dark(Cs.red)
+        self.escDialog["아니오"].connect(lambda:self.escDialog.hide())
+        ###
+
         return
     def init(self):
         self.renderer = scriptRenderer(scriptScene.currentScript)
-        def goBackToMain():
-            REMOGame.setCurrentScene(Scenes.mainScene)
-        self.renderer.endFunc = goBackToMain
+        self.renderer.endFunc = lambda:REMOGame.setCurrentScene(Scenes.mainScene) ##스크립트가 끝나면 메인화면으로 돌아간다.
         #self.renderer.setFont("japanese_script.ttf")
         return
     def update(self):
+        ##ESC키를 누르면 대화를 종료하는 다이얼로그가 나타난다.
+        if Rs.userJustPressed(pygame.K_ESCAPE):
+            if not self.escDialog.isShown():
+                self.escDialog.center = Rs.Point(Rs.screen.get_rect().center)
+                self.escDialog.show()
+            else:
+                self.escDialog.hide()
+
+        Rs.acquireDrawLock()
         self.renderer.update()
+        Rs.releaseDrawLock()
         return
     def draw(self):
         if hasattr(self,"renderer"):
