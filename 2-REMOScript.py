@@ -65,7 +65,6 @@ class scriptScene(Scene):
     def initOnce(self):
         ##게임 종료 다이얼로그 선언
         self.escDialog = dialogObj(pygame.Rect(200,200,800,250),"","대화를 종료하고 메인 화면으로 돌아가시겠습니까?",["네","아니오"],color=Cs.dark(Cs.grey),spacing=20)
-        self.escDialog.update()
         def goMain():
             REMOGame.setCurrentScene(Scenes.mainScene)
             self.escDialog.hide()
@@ -88,6 +87,7 @@ class scriptScene(Scene):
             if not self.escDialog.isShown():
                 self.escDialog.center = Rs.Point(Rs.screen.get_rect().center)
                 self.escDialog.show()
+                self.escDialog.update()
             else:
                 self.escDialog.hide()
 

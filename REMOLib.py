@@ -2080,7 +2080,7 @@ class textButton(rectObj):
 
 ##실제로 대사를 한 글자씩 출력하기 위한 오브젝트.        
 ##npc의 대사 출력 등에 활용하면 좋다.
-class scriptObj(longTextObj):
+class textBubbleObj(longTextObj):
     def __init__(self,text="",pos=RPoint(0,0),*,font=None,size=None,color=Cs.white,textWidth=100,alpha=255, bgExist=True, bgColor = Cs.black, liveTimer=None,speed=2):
         '''
         NPC 대사 출력 등에 활용할 수 있는 말풍선 오브젝트. \n
