@@ -1,11 +1,14 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-15 Update)
+##version 0.2.3 (24-08-20 13:37 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
 #dialogObj의 추가 및 기타 엔진 개선(08-16 00:00)
+#copyImage 함수 추가(08-17 10:25)
+#Rs.padRect 함수 제거(pygame.Rect.inflate 함수를 사용하면 됨) (08-20 13:37)
+#근본적인 버그를 발생시키는 불쾌한 Threading 관련 함수 제거 (08-20 13:59)
 ###
 
 
@@ -103,6 +106,10 @@ class RPoint():
 
 #colorSheet
 class Cs():
+    '''
+    Colors의 약자. 색상을 나타내는 클래스\n
+    각종 색상의 RGB값 혹은 hexColor를 rgb 튜플로 만들어준다.\n
+    '''
     white=(255, 255, 255)
     grey=(128,128,128)
     black=(0,0,0)
@@ -167,6 +174,9 @@ class Rs:
     __window_resolution = (800,600) # 게임 윈도우 해상도
 
     def getWindowRes():
+        '''
+        윈도우 해상도를 반환한다.\n
+        '''
         if Rs.isFullScreen():
             return Rs.fullScreenRes
         else:
@@ -174,6 +184,11 @@ class Rs:
 
     #윈도우 해상도를 변화시킨다.    
     def setWindowRes(res:tuple):
+        '''
+        윈도우 해상도를 설정한다.\n
+        res : (가로,세로) 튜플\n
+        주 모니터의 최대 해상도보다 클 경우 강제로 조정된다.
+        '''
         ##주 모니터의 최대 해상도보다 클 경우 강제 조정
         ##Test
         max_res = Rs.fullScreenRes
@@ -214,6 +229,7 @@ class Rs:
         state = pygame.mouse.get_pressed()
         for i,_ in enumerate(state):
             if i==0 and (Rs.__lastState[i],state[i])==(True,False): # Drag 해제.
+                ##드래그 해제 이벤트 처리
                 Rs.draggedObj=None
                 Rs.dropFunc()
             #버튼 클릭 여부를 확인.
@@ -314,10 +330,26 @@ class Rs:
     @classmethod
     #Return copied graphics object
     def copy(cls,obj):
+        '''
+        그래픽 객체를 복사. (graphicObj)
+        '''
         new_obj = graphicObj()
         new_obj.pos = obj.geometryPos
         new_obj.graphic = copy.copy(obj.graphic)
         new_obj.graphic_n = copy.copy(obj.graphic_n)
+        return new_obj
+
+    @classmethod
+    def copyImage(cls,obj):
+        '''
+        이미지 객체를 복사. (imageObj)
+        '''
+        new_obj = imageObj()
+        new_obj.pos = obj.geometryPos
+        new_obj.graphic = copy.copy(obj.graphic)
+        new_obj.graphic_n = copy.copy(obj.graphic_n)
+        new_obj.scale = obj.scale
+        new_obj.angle = obj.angle
         return new_obj
 
     #__init__을 호출하지 않고 해당 객체를 생성한다.
@@ -463,19 +495,8 @@ class Rs:
 
     #Fill Rectangle with color
     @classmethod
-    def fillRect(cls,color,rect,*,pad=0,special_flags=0):
-        Rs.screen.fill(color,Rs.padRect(rect,pad),special_flags)
-
-    #가장자리를 pad만큼 늘린 사각형 리턴
-    #Pad 음수일 경우 줄인다.
-    #Pad는 숫자일 수도 있고 (3,5)와 같은 튜플일수도 있다.
-    @classmethod
-    def padRect(cls,rect,pad):
-        if type(pad)==int:
-            return pygame.Rect(rect[0]-pad,rect[1]-pad,rect[2]+2*pad,rect[3]+2*pad)
-        else:
-            #pad[0]->pad_width, pad[1]->pad_height
-            return pygame.Rect(rect[0]-pad[0],rect[1]-pad[1],rect[2]+2*pad[0],rect[3]+2*pad[1])          
+    def fillRect(cls,color,rect,*,special_flags=0):
+        Rs.screen.fill(color,rect,special_flags)
 
     #폰트 파이프라인(Font Pipeline)
     __fontPipeline ={}
@@ -746,7 +767,7 @@ class Rs:
         '''
         Drag & Drop Event Handler \n
         triggerObj : 드래그가 촉발되는 객체 \n
-        draggedObj : 드래그되는 객체 \n
+        draggedObj : 드래그되는 객체. 설정하지 않을 경우 triggerObj와 같다. \n
         draggingFunc : 드래깅 중 실행되는 함수 \n
         dropFunc : 드래그가 끝날 때 실행되는 함수 \n
         Scene의 update 함수 안에 넣어야 동작합니다.
@@ -809,6 +830,9 @@ class Rs:
     ##현재 신을 교체해준다.
     @classmethod
     def setCurrentScene(cls,scene,skipInit=False):
+        '''
+        현재 Scene을 교체한다.\n
+        '''
         REMOGame.drawLock = True
         REMOGame.setCurrentScene(scene,skipInit)
         REMOGame.drawLock = False
@@ -920,39 +944,9 @@ class Scene(ABC):
 
 
 
-#target_fps에 맞게 그리기 함수를 호출하는 스레드
-
-class drawThread():
-
-    def __init__(self):
-        super().__init__()
-    def run(self):
-        prev_time = time.time()
-        benchmarkTimer = time.time()
-        while REMOGame._lastStartedWindow.running:
-            if not REMOGame.drawLock:
-                try:
-                    REMOGame._lastStartedWindow.draw()
-                    REMOGame._lastStartedWindow.paint()
-                except Exception as err:
-                    import traceback
-                    traceback.print_exc()
-                    continue
-                ##Timing code, set frame to target_fps(60fps)
-                curr_time = time.time()#so now we have time after processing
-                diff = curr_time - prev_time#frame took this much time to process and render
-                delay = max(1.0/Rs.draw_fps - diff, 0)#if we finished early, wait the remaining time to desired fps, else wait 0 ms!
-                time.sleep(delay)
-                if time.time()-benchmarkTimer>0.5:
-                    ##현재 나오는 프레임(fps)을 벤치마크한다.
-                    REMOGame.benchmark_fps["Draw"] = 1.0/(delay + diff)#fps is based on total time ("processing" diff time + "wasted" delay time)
-                    benchmarkTimer = time.time()
-                prev_time = curr_time
-
 ## Base Game class
 class REMOGame:
     currentScene = Scene()
-    __drawThread = drawThread()
     benchmark_fps = {"Draw":0,"Update":0}
     drawLock = False ## 신 교체 중임을 알리는 인자
     __showBenchmark = False
@@ -1023,15 +1017,11 @@ class REMOGame:
     @classmethod
     def exit(cls):
         REMOGame._lastStartedWindow.running = False
-        REMOGame.__drawThread.join()
         #pygame.quit()
 
     #Game Running Method
     def run(self):
         self.running = True
-        import threading
-        REMOGame.__drawThread = threading.Thread(target=drawThread().run)
-        REMOGame.__drawThread.start()
 
         prev_time = time.time()
         benchmarkTimer = time.time()
@@ -1044,6 +1034,7 @@ class REMOGame:
                     if event.type == pygame.QUIT:
                         REMOGame.exit()
                 self.update()
+                self.draw()
 
                 Rs._updateState()
 
@@ -2000,7 +1991,7 @@ class textButton(rectObj):
 
         self.shadow1 = rectObj(rect,color=Cs.black)
         self.shadow1.alpha = 30
-        self.shadow.rect = Rs.padRect(self.rect,10)
+        self.shadow.rect = self.rect.inflate(10,10)
         self.func = func #clicked function
         self.alpha = alpha
         self.textObj.setParent(self)
@@ -2103,7 +2094,7 @@ class textBubbleObj(longTextObj):
         self.liveTimer = liveTimer ## 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미
         
         if bgExist:
-            self.bg = textButton("",Rs.padRect(self.fullBoundary,20),color=bgColor,hoverMode=False)
+            self.bg = textButton("",self.fullBoundary.inflate(20,20),color=bgColor,hoverMode=False)
         else:
             self.bg = None
 
