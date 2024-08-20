@@ -8,6 +8,8 @@ from REMOLib import *
 ##애플 게임은, 땅에 놓여진 사과를 먹는 게임입니다.
 ##이 예제를 통해 기본적인 게임의 그래픽 객체와 User I/O 처리 등을 확인할 수 있습니다!
 
+#Test
+
 class mainScene(Scene):
     def initOnce(self):
         ### 플레이어 객체.(사각형 오브젝트) radius->모서리의 둥글기. edge-모서리의 살짝 어두운 부분의 굵기(미적인 요소)
