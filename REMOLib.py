@@ -12,9 +12,10 @@
 #딱히 근본 원인이 아니라서 Threading 함수 원복 (08-20 17:33)
 #RTimer 클래스 추가, spriteObj의 애니메이션 기능 RTimer에 연동(버그 픽스) (08-20 23:48)
 #Type Hint 추가, buttonLayout 객체의 버튼을 속성처럼 접근 가능. RPoint.x,y 프로퍼티화 (08-21 05:35)
-#scriptRenderer 클래스의 타이머 또한 RTimer를 사용. (08-21 06:22)
+#scriptRenderer 클래스의 타이머 또한 RTimer를 사용. 점프 관련 미세 변경 (08-21 06:22)
 ###
 
+from __future__ import annotations
 
 
 from os import environ
@@ -369,7 +370,7 @@ class Rs:
 
     
     @classmethod
-    def setFullScreen(cls,t=True):
+    def setFullScreen(cls,t:bool=True):
         Rs.__fullScreen = t
         Rs.__updateWindow()
     @classmethod
@@ -389,7 +390,7 @@ class Rs:
     ##기타 함수
     @classmethod
     #Return copied graphics object
-    def copy(cls,obj):
+    def copy(cls,obj) -> graphicObj:
         '''
         그래픽 객체를 복사. (graphicObj)
         '''
@@ -400,7 +401,7 @@ class Rs:
         return new_obj
 
     @classmethod
-    def copyImage(cls,obj):
+    def copyImage(cls,obj) -> imageObj:
         '''
         이미지 객체를 복사. (imageObj)
         '''
@@ -2411,6 +2412,7 @@ class scriptRenderer():
     def __init__(self,fileName,*,textSpeed:float = 5.0,layout="default_1920_1080",endFunc = lambda :None):
         '''
         textSpeed: 값이 클수록 느리게 재생된다.
+        target_fps가 60보다 낮을 경우 캐릭터의 움직임이 느려질 수 있다.
         '''
         if not fileName.endswith('.scr'):
             fileName += '.scr'
@@ -2545,7 +2547,7 @@ class scriptRenderer():
                         fileName = nibble
                     else: ##기타 명령어
                         if nibble=='jump': ##점프한다.
-                            parameters['jump']=8
+                            parameters['jump']=12
 
 
 
@@ -2611,9 +2613,9 @@ class scriptRenderer():
                     j_pos = -int(parameters['jump'])
                     jumpInstruction = []
                     if j_pos>0:
-                        d=-1
+                        d=-2
                     else:
-                        d=1
+                        d=2
                     temp = j_pos
                     sum = temp
                     while sum != 0:
