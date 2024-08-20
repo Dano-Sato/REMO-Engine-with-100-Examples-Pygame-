@@ -18,7 +18,7 @@ class mainScene(Scene):
         self.image = imageObj("vampire1_default.png",pos=RPoint(1100,200))
         self.text = textObj("Vampire Radia",pos=(300,-20),size=40,color=Cs.red)
         self.text.setParent(self.image)
-        self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=10,alpha=225)
+        self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=5,alpha=225)
         self.name = textObj("Name: Radia",size=50)
         self.description = longTextObj("Radia is so cute, but she is 500 years old. She loves chess. 에라 모르겠다 그냥 아무글이나 좀 써보자 내가 아는 사람 얘기해 줄게 며칠전 사랑하던 그녀와 헤어진 그냥 아는 사람",
                                        textWidth=850,size=25)
@@ -28,6 +28,9 @@ class mainScene(Scene):
 
         self.buttons = buttonLayout(["싸운다","도망친다","쓰다듬는다","게임 종료"],pos=RPoint(120,600),isVertical=False)
         self.buttons.setParent(self.longTextBg)
+        self.buttons["싸운다"].connect(lambda:print("싸운다"))
+        self.buttons.싸운다.color = Cs.red
+        self.buttons.게임_종료.connect(lambda:REMOGame.exit())
         return
     def init(self):
         return

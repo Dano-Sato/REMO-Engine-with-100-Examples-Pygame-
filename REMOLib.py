@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-20 17:33 Update)
+##version 0.2.3 (24-08-21 05:35 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -10,6 +10,9 @@
 #Rs.padRect 함수 제거(pygame.Rect.inflate 함수를 사용하면 됨) (08-20 13:37)
 #근본적인 버그를 발생시키는 불쾌한 Threading 관련 함수 제거 (08-20 13:59)
 #딱히 근본 원인이 아니라서 Threading 함수 원복 (08-20 17:33)
+#RTimer 클래스 추가, spriteObj의 애니메이션 기능 RTimer에 연동(버그 픽스) (08-20 23:48)
+#Type Hint 추가, buttonLayout 객체의 버튼을 속성처럼 접근 가능. RPoint.x,y 프로퍼티화 (08-21 05:35)
+#scriptRenderer 클래스의 타이머 또한 RTimer를 사용. (08-21 06:22)
 ###
 
 
@@ -29,6 +32,7 @@ except ImportError:
 
 from abc import *
 from enum import Enum
+import typing
 
 
 ## Idea from Pyside2.QPoint
@@ -47,47 +51,51 @@ class RPoint():
         else:
             self.__x=int(x)
             self.__y=int(y)
-            
-    def x(self):
+
+    @property            
+    def x(self) -> int:
         return self.__x
-    def y(self):
+    @property
+    def y(self) -> int:
         return self.__y
-    
-    def setX(self,x):
+
+    @x.setter    
+    def x(self,x:int):
         self.__x = x
-    def setY(self,x):
+    @y.setter
+    def y(self,x:int):
         self.__y = x
     
     def __add__(self,p2):
-        return RPoint(self.x()+p2.x(),self.y()+p2.y())
+        return RPoint(self.x+p2.x,self.y+p2.y)
     def __sub__(self,p2):
-        return RPoint(self.x()-p2.x(),self.y()-p2.y())
+        return RPoint(self.x-p2.x,self.y-p2.y)
     def __mul__(self,m):
-        return RPoint(int(self.x()*m),int(self.y()*m))
+        return RPoint(int(self.x*m),int(self.y*m))
     def __rmul__(self,m):
-        return RPoint(int(self.x()*m),int(self.y()*m))
+        return RPoint(int(self.x*m),int(self.y*m))
     def __truediv__(self,m):
-        return RPoint(int(self.x()/m),int(self.y()/m))
+        return RPoint(int(self.x/m),int(self.y/m))
     def __floordiv__(self,m):
         return self/m 
     def __eq__(self,p2):
         if type(p2) != RPoint:
             return False
-        if self.x()==p2.x() and self.y()==p2.y():
+        if self.x==p2.x and self.y==p2.y:
             return True
         return False
     
-    def toTuple(self):
+    def toTuple(self) -> typing.Tuple[int,int]:
         return (self.__x,self.__y)
     def transposed(self):
-        return RPoint(self.y(),self.x())
+        return RPoint(self.y,self.x)
             
     def __repr__(self):
-        return "REMOGame.RPoint({0},{1})".format(self.x(),self.y())
+        return "REMOGame.RPoint({0},{1})".format(self.x,self.y)
     
     
     ##2차원 거리 출력
-    def distance(self,p2):
+    def distance(self,p2) -> float:
         return math.dist(self.toTuple(),p2.toTuple())
     ## 포인트 p2로 speed값만큼 이동한 결과를 반환한다. 
     def moveTo(self,p2,speed=None):
@@ -182,24 +190,24 @@ class Cs():
     __hexCodePipeline = {}
 
     @classmethod
-    def apply(cls,color,r):
+    def apply(cls,color,r) -> typing.Tuple[int,int,int]:
         f = lambda x: min(255,x*r)
         return tuple([f(x) for x in color])
     @classmethod
-    def dark(cls,color):
+    def dark(cls,color) -> typing.Tuple[int,int,int]:
         return Cs.apply(color,0.4)
     @classmethod
-    def dim(cls,color):
+    def dim(cls,color)-> typing.Tuple[int,int,int]:
         return Cs.apply(color,0.8)
     @classmethod
-    def light(cls,color):
+    def light(cls,color)-> typing.Tuple[int,int,int]:
         return Cs.apply(color,1.2)
     @classmethod
-    def bright(cls,color):
+    def bright(cls,color)-> typing.Tuple[int,int,int]:
         return Cs.apply(color,1.6)
     
     @classmethod
-    def hexColor(cls,hex:str):
+    def hexColor(cls,hex:str)-> typing.Tuple[int,int,int]:
         hex = hex.upper()
         if hex in list(Cs.__hexCodePipeline):
             return Cs.__hexCodePipeline[hex]
@@ -219,7 +227,7 @@ class Rs:
     draw_fps = 144
     __window_resolution = (800,600) # 게임 윈도우 해상도
 
-    def getWindowRes():
+    def getWindowRes() -> typing.Tuple[int,int]:
         '''
         윈도우 해상도를 반환한다.\n
         '''
@@ -229,7 +237,7 @@ class Rs:
             return Rs.__window_resolution
 
     #윈도우 해상도를 변화시킨다.    
-    def setWindowRes(res:tuple):
+    def setWindowRes(res:typing.Tuple[int,int]):
         '''
         윈도우 해상도를 설정한다.\n
         res : (가로,세로) 튜플\n
@@ -345,11 +353,17 @@ class Rs:
 
     ##FullScreen 관련 함수
     @classmethod
-    def isFullScreen(cls):
+    def isFullScreen(cls) -> bool:
+        '''
+        풀스크린 여부를 반환한다.\n
+        '''
         return Rs.__fullScreen
 
     @classmethod
     def toggleFullScreen(cls):
+        '''
+        풀스크린 모드를 토글한다.\n
+        '''
         Rs.__fullScreen = not Rs.isFullScreen()
         Rs.__updateWindow()
 
@@ -406,7 +420,7 @@ class Rs:
     
     @classmethod
     #Tuple to Point
-    def Point(cls,tuple,y=None):
+    def Point(cls,tuple,y=None) -> RPoint:
         if y==None:
             if type(tuple)==RPoint:
                 return tuple
@@ -423,7 +437,7 @@ class Rs:
     __masterVolume = 1
     __curVoice = None ##현재 재생된 음성파일을 저장한다.
     @classmethod
-    def playSound(cls,fileName,*,loops=0,maxtime=0,fade_ms=0,volume=1):
+    def playSound(cls,fileName:str,*,loops=0,maxtime=0,fade_ms=0,volume=1):
         '''
         사운드 재생. wav와 ogg파일을 지원한다. 중복재생이 가능하다. \n
         loops=-1 인자를 넣을 경우 무한 반복재생.   
@@ -436,14 +450,14 @@ class Rs:
         mixer.play(loops,maxtime,fade_ms)
         return mixer
     @classmethod
-    def stopSound(cls,fileName):
+    def stopSound(cls,fileName:str):
         fileName = Rs.getPath(fileName)
         if fileName not in list(Rs.__soundPipeline):
             return
         mixer = Rs.__soundPipeline[fileName]
         mixer.stop()        
     @classmethod
-    def playVoice(cls,fileName,*,volume=1):
+    def playVoice(cls,fileName:str,*,volume=1):
         '''
         음성 재생. wav와 ogg파일을 지원한다. 효과음(특히 음성)이 중복재생 되는 것을 막아준다. \n
         '''
@@ -456,11 +470,12 @@ class Rs:
     __changeMusic = None
     #여기서의 volume값은 마스터값이 아니라 음원 자체의 볼륨을 조절하기 위한 것이다. 음원이 너무 시끄럽거나 할 때 값을 낮춰잡는 용도
     @classmethod
-    def playMusic(cls,fileName,*,loops=-1,start=0.0,volume=1.0):
+    def playMusic(cls,fileName:str,*,loops=-1,start=0.0,volume=1.0):
         '''
         음악 재생. mp3, wav, ogg파일을 지원한다. 중복 스트리밍은 불가능. \n
         loops=-1 인자를 넣을 경우 무한 반복재생. 0을 넣을 경우 반복 안됨
-        볼륨은 0~1 사이의 float값으로, 음원의 자체 볼륨이 너무 크거나 작거나 할 때 조정할 수 있다.
+        볼륨은 0~1 사이의 float이다.
+        음원의 자체 볼륨이 너무 크거나 작거나 할 때 조정할 수 있다. 실제론 __masterVolume과 곱해진다.
         '''
         pygame.mixer.music.load(Rs.getPath(fileName))
         pygame.mixer.music.set_volume(volume*Rs.__masterVolume)
@@ -479,7 +494,7 @@ class Rs:
 
     ##페이드아웃을 통해 자연스럽게 음악을 전환하는 기능        
     @classmethod
-    def changeMusic(cls,fileName,_time=500,volume=1):
+    def changeMusic(cls,fileName:str,_time=500,volume=1):
         Rs.fadeoutMusic(_time)
         Rs.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume}
 
@@ -488,20 +503,20 @@ class Rs:
         return Rs.__currentMusic       
     ##음악의 볼륨 값을 정한다.##
     @classmethod
-    def setVolume(cls,volume):
+    def setVolume(cls,volume:float):
         Rs.__masterVolume = volume
         if Rs.currentMusic() in Rs.__musicVolumePipeline:
             pygame.mixer.music.set_volume(volume*Rs.__musicVolumePipeline[Rs.currentMusic()])
         else:
             pygame.mixer.music.set_volume(volume)
     @classmethod
-    def getVolume(cls):
+    def getVolume(cls) -> float:
         return Rs.__masterVolume
     @classmethod
-    def setSEVolume(cls,volume):
+    def setSEVolume(cls,volume:float):
         Rs.__masterSEVolume = volume
     @classmethod
-    def getSEVolume(cls):
+    def getSEVolume(cls) -> float:
         return Rs.__masterSEVolume
         
 
@@ -519,6 +534,11 @@ class Rs:
     ##볼륨 슬라이더##
     @classmethod
     def musicVolumeSlider(cls,pos=RPoint(0,0),length=300,thickness=13,color=Cs.white,isVertical=False):
+        '''
+        음악 볼륨 슬라이더 객체를 반환한다.\n
+        '''
+
+
         slider=sliderObj(pos=pos,length=length,thickness=thickness,color=color,isVertical=isVertical,value=1)
         def volumeUpdate():
             Rs.setVolume(slider.value)
@@ -526,6 +546,9 @@ class Rs:
         return slider
     @classmethod
     def SEVolumeSlider(cls,pos=RPoint(0,0),length=300,thickness=13,color=Cs.white,isVertical=False):
+        '''
+        효과음 볼륨 슬라이더 객체를 반환한다.\n
+        '''
         slider=sliderObj(pos=pos,length=length,thickness=thickness,color=color,isVertical=isVertical,value=1)
         def SEVolumeUpdate():
             Rs.setSEVolume(slider.value)
@@ -564,9 +587,12 @@ class Rs:
         return (Rs.__sysFontName,Rs.__sysSize)
 
 
-    #폰트 문자열을 입력하면 폰트 객체를 반환하는 함수.
     @classmethod    
-    def getFont(cls, font):
+    def getFont(cls, font:str) -> freetype.Font:
+        '''
+        폰트 문자열을 입력하면 폰트 객체를 반환하는 함수.\n
+        '''
+
         if '.ttf' in font:
             font = Rs.getPath(font)
 
@@ -590,7 +616,11 @@ class Rs:
     #color : Font color, font: Name of Font, size : size of font, bcolor: background color
     #Returns the boundary of text
     @classmethod
-    def drawString(cls,text,pos,*,color=(0,0,0),font=None,size=None,bcolor=None,rotation=0,style=freetype.STYLE_DEFAULT):
+    def drawString(cls,text,pos,*,color=(0,0,0),font=None,size=None,bcolor=None,rotation=0,style=freetype.STYLE_DEFAULT) -> pygame.Rect:
+        '''
+        textObj 선언할 필요 없이 화면에 문자열을 그린다. \n
+        텍스트의 경계를 반환한다.\n
+        '''
         if font == None:
             font = Rs.__sysFontName
         if size == None:
@@ -599,22 +629,12 @@ class Rs:
             pos = pos.toTuple()
         if type(text) != str:
             text = str(text)
-
-        '''
-        if font in list(Rs.__fontPipeline):
-            fontObj = Rs.__fontPipeline[font]
-            return fontObj.render_to(Rs.screen, pos, text, color,bcolor,size=size,rotation=rotation,style=style)
-        else:
-            try:
-                fontObj = freetype.SysFont(font,0)
-            except:
-                fontObj = freetype.SysFont('comicsansms',0)
-            cls.__fontPipeline[font] = fontObj
-        '''
         return Rs.getFont(font).render_to(Rs.screen, pos, text, color,bcolor,size=size,rotation=rotation,style=style)
 
 
     ##벤치마크 관련##
+    ##현재 잘 안써서 제거하거나 수정할 예정
+    
     @classmethod
     def drawBenchmark(cls,pos=RPoint(0,0),color=Cs.white):
         p1 = RPoint(20,10)+pos
@@ -642,6 +662,9 @@ class Rs:
     __pathException=[".git",".pyc",".py"] ##해당 글자가 들어있으면 파이프라인에서 제외된다.
     @classmethod
     def _buildPath(cls):
+        '''
+        현재 파일이 포함된 경로의 내부 폴더들을 전부 참조하여 경로 파이프라인을 빌드하는 함수. 내부적으로 사용된다.\n
+        '''
         Rs.__pathData={}
         Rs.__pathPipeline={}
         import os
@@ -672,6 +695,11 @@ class Rs:
     #testGirl.png만 해도 찾아내준다.
     @classmethod
     def getPath(cls,path):
+        '''
+        파일명을 입력하면 실제 경로를 반환하는 함수.\n
+        가령 실제 파일 경로가 /Resources/sprites/testGirl.png 여도 \n
+        testGirl.png만 해도 찾아내준다. \n
+        '''
         if path in list(Rs.__pathPipeline):
             return Rs.__pathPipeline[path]
 
@@ -691,7 +719,7 @@ class Rs:
     
     ##해당 파일이 실제로 존재하는지를 체크하는 함수
     @classmethod    
-    def assetExist(cls,path):
+    def assetExist(cls,path) -> bool:
         if path in list(Rs.__pathPipeline):
             return True
         return False
@@ -699,6 +727,9 @@ class Rs:
     __imagePipeline={}
     @classmethod
     def getImage(cls,path):
+        '''
+        이미지를 로드하여 캐싱하는 함수.\n
+        '''
         path = Rs.getPath(path)
         if path not in Rs.__imagePipeline:
             Rs.__imagePipeline[path]=pygame.image.load(path).convert_alpha()            
@@ -708,6 +739,10 @@ class Rs:
     __spritePipeline={}
     @classmethod
     def getSprite(cls,path,rect):
+        '''
+        이미지 스프라이트에서 rect영역만큼 잘라내어 반환하는 함수.\n
+        해당 과정에서 캐싱이 일어난다. \n
+        '''
         key = (path,str(rect))
         if key not in Rs.__spritePipeline:
             sprite = pygame.Surface(rect.size,pygame.SRCALPHA)
@@ -723,8 +758,8 @@ class Rs:
     #stay: 애니메이션이 화면에 남아있는 시간.(단위:ms)
     __animationPipeline=[]
     @classmethod
-    def playAnimation(cls,sprite,stay=0,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,tick=1,angle=0,fromSprite=0,toSprite=None,alpha=255):
-        obj = spriteObj(sprite,rect,pos=pos,tick=tick,scale=scale,angle=0,sheetMatrix=sheetMatrix,fromSprite=fromSprite,toSprite=toSprite,mode=AnimationMode.PlayOnce)
+    def playAnimation(cls,sprite,stay=0,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,frameDuration=1000/60,angle=0,fromSprite=0,toSprite=None,alpha=255):
+        obj = spriteObj(sprite,rect,pos=pos,frameDuration=frameDuration,scale=scale,angle=0,sheetMatrix=sheetMatrix,fromSprite=fromSprite,toSprite=toSprite,mode=AnimationMode.PlayOnce)
         obj.alpha = alpha
         if center!=None:
             obj.center = center
@@ -761,35 +796,35 @@ class Rs:
     
     #Mouse Click Detector
     @classmethod
-    def mousePos(cls):
+    def mousePos(cls) -> RPoint:
         return Rs.__mousePos
     @classmethod
-    def userJustLeftClicked(cls):
+    def userJustLeftClicked(cls) -> bool:
         return Rs.__justClicked[0]
     
     @classmethod
-    def userJustReleasedMouseLeft(cls):
+    def userJustReleasedMouseLeft(cls) -> bool:
         return Rs.__justReleased[0]
 
     @classmethod
-    def userJustReleasedMouseRight(cls):
+    def userJustReleasedMouseRight(cls) -> bool:
         return Rs.__justReleased[2]
 
     @classmethod
-    def userIsLeftClicking(cls):
+    def userIsLeftClicking(cls) -> bool:
         return pygame.mouse.get_pressed()[0]
 
     @classmethod
-    def userIsRightClicking(cls):
+    def userIsRightClicking(cls) -> bool:
         return pygame.mouse.get_pressed()[2]
 
     @classmethod
-    def userJustRightClicked(cls):
+    def userJustRightClicked(cls) -> bool:
         return Rs.__justClicked[2]
 
     #Key Push Detector
     @classmethod
-    def userJustPressed(cls,key):
+    def userJustPressed(cls,key) -> bool:
         if Rs.__lastKeyState == None:
             return False
         keyState = pygame.key.get_pressed()
@@ -799,7 +834,7 @@ class Rs:
             return False
     
     @classmethod
-    def userPressing(cls,key):
+    def userPressing(cls,key) -> bool:
         '''
         키가 눌려져 있는지를 체크하는 함수 \n
         key: ex) pygame.K_LEFT        
@@ -995,8 +1030,6 @@ class drawThread():
     def __init__(self):
         super().__init__()
     def run(self):
-        prev_time = time.time()
-        benchmarkTimer = time.time()
         while REMOGame._lastStartedWindow.running:
             if not REMOGame.drawLock:
                 try:
@@ -1006,16 +1039,8 @@ class drawThread():
                     import traceback
                     traceback.print_exc()
                     continue
-                ##Timing code, set frame to target_fps(60fps)
-                curr_time = time.time()#so now we have time after processing
-                diff = curr_time - prev_time#frame took this much time to process and render
-                delay = max(1.0/Rs.draw_fps - diff, 0)#if we finished early, wait the remaining time to desired fps, else wait 0 ms!
-                time.sleep(delay)
-                if time.time()-benchmarkTimer>0.5:
-                    ##현재 나오는 프레임(fps)을 벤치마크한다.
-                    REMOGame.benchmark_fps["Draw"] = 1.0/(delay + diff)#fps is based on total time ("processing" diff time + "wasted" delay time)
-                    benchmarkTimer = time.time()
-                prev_time = curr_time
+                REMOGame.drawClock.tick(REMOGame.target_fps)
+
 
 
 
@@ -1024,8 +1049,10 @@ class REMOGame:
     currentScene = Scene()
     __drawThread = drawThread()
     benchmark_fps = {"Draw":0,"Update":0}
+    target_fps = 60
     drawLock = False ## 신 교체 중임을 알리는 인자
-    clock = pygame.time.Clock()
+    clock = pygame.time.Clock() ##프레임 제한을 위한 클락
+    drawClock = pygame.time.Clock() ##드로우 쓰레드의 클락
     __showBenchmark = False
     _lastStartedWindow = None
     def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window"):
@@ -1117,7 +1144,7 @@ class REMOGame:
 
                 Rs._updateState()
 
-                REMOGame.clock.tick(60)
+                REMOGame.clock.tick(REMOGame.target_fps)
             except:
                 import traceback
                 traceback.print_exc()
@@ -1138,7 +1165,7 @@ class graphicObj():
     #(pos, rect)는 실제론 obj의 parent의 pos를 원점(0,0)으로 하였을 때의 object의 위치와 영역을 의미합니다.
 
     @property
-    def pos(self):
+    def pos(self) -> RPoint:
         return self._pos
     @pos.setter
     def pos(self,pos):
@@ -1234,34 +1261,34 @@ class graphicObj():
         self.__adjustPosBy("midbottom",_midbottom)
 
     @property
-    def centerx(self):
-        return RPoint(self.rect.centerx)
+    def centerx(self) -> int:
+        return self.rect.centerx
     @centerx.setter
-    def centerx(self,_p):
+    def centerx(self,_p:int):
         self.__adjustPosBy("centerx",_p)
 
     @property
-    def centery(self):
-        return RPoint(self.rect.centery)
+    def centery(self) -> int:
+        return self.rect.centery
     @centery.setter
-    def centery(self,_p):
+    def centery(self,_p:int):
         self.__adjustPosBy("centery",_p)
 
     ##Rect is combination of (pos,size)
     ##pos : position of the object, size : size of the object
     @property
-    def rect(self):
-        return pygame.Rect(self.pos.x(),self.pos.y(),self.graphic.get_rect().w,self.graphic.get_rect().h)
+    def rect(self) -> pygame.Rect:
+        return pygame.Rect(self.pos.x,self.pos.y,self.graphic.get_rect().w,self.graphic.get_rect().h)
 
     #could be replaced
     @rect.setter
-    def rect(self,rect):
+    def rect(self,rect:pygame.Rect):
         self.graphic = pygame.transform.smoothscale(self.graphic_n,(rect[2],rect[3]))
         self._pos = RPoint(rect[0],rect[1])
         self._clearGraphicCache()
 
     @property
-    def offset_rect(self):
+    def offsetRect(self) -> pygame.Rect:
         ''' 
         pos를 (0,0)으로 처리한 rect를 반환합니다.
         '''
@@ -1271,31 +1298,31 @@ class graphicObj():
     #geometry란 object가 실제로 screen상에서 차지하는 영역을 의미합니다.
     #getter only입니다.
     @property
-    def geometry(self):
+    def geometry(self) -> pygame.Rect:
         if self.parent:
-            return pygame.Rect(self.parent.geometry.x+self.pos.x(),self.parent.geometry.y+self.pos.y(),self.rect.width,self.rect.height)
+            return pygame.Rect(self.parent.geometry.x+self.pos.x,self.parent.geometry.y+self.pos.y,self.rect.width,self.rect.height)
         return self.rect
     
     #object의 실제 스크린 상의 위치 
     @property
-    def geometryPos(self):
+    def geometryPos(self) -> RPoint:
         if self.parent:
-            return RPoint(self.parent.geometry.x+self.pos.x(),self.parent.geometry.y+self.pos.y())
+            return RPoint(self.parent.geometry.x+self.pos.x,self.parent.geometry.y+self.pos.y)
         return self.pos
     
     #object의 스크린상에서의 실제 중심 위치
     @property
-    def geometryCenter(self):
+    def geometryCenter(self) -> RPoint:
         if self.parent:
             return self.geometryPos+RPoint(self.rect.w,self.rect.h)*0.5
         return self.center
     
     #object의 차일드들의 영역을 포함한 전체 영역을 계산 (캐싱에 활용)
     @property
-    def boundary(self):
+    def boundary(self) -> pygame.Rect:
         if id(self) in Rs.graphicCache:
             cache,pos = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x(),pos.y(),cache.get_rect().w,cache.get_rect().h)
+            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
 
         r = self.geometry
         for c in self.childs:
@@ -1303,21 +1330,27 @@ class graphicObj():
         return r
     
     @property
-    def alpha(self):
+    def alpha(self) -> int:
+        '''
+        0~255 사이의 알파값을 반환합니다. 255:완전 불투명 0: 투명
+        '''
         return self._alpha
     
     @alpha.setter
-    def alpha(self,alpha):
+    def alpha(self,alpha:int):
+        '''
+        0~255 사이의 알파값을 설정합니다. 255:완전 불투명 0: 투명
+        '''
         self._alpha = alpha
         self._clearGraphicCache()
 
     @property
-    def graphic(self):
+    def graphic(self) -> pygame.Surface:
         return self._graphic
     
     ##그래픽이 변경되면 캐시를 청소한다.
     @graphic.setter
-    def graphic(self,graphic):
+    def graphic(self,graphic:pygame.Surface):
         self._graphic = graphic
         self._clearGraphicCache()
 
@@ -1484,6 +1517,7 @@ class rectObj(graphicObj):
         '''
         radius: 사각형의 모서리의 둥근 정도
         edge: 테두리의 두께
+        radius 값을 넣지 않을 경우 적당히 둥글게 만들어진다. radius=0을 넣을 경우 완전한 사각형이 된다.
         '''
                 
         super().__init__()
@@ -1498,25 +1532,25 @@ class rectObj(graphicObj):
         self._edge = edge
 
     @property
-    def edge(self):
+    def edge(self) -> int:
         return self._edge
 
     @property
-    def radius(self):
+    def radius(self) -> int:
         return self._radius
 
     @radius.setter
-    def radius(self,radius):
+    def radius(self,radius:int):
         temp = self.rect.copy()
         self._radius = radius
         self._makeRect(temp,self.color,self.edge,radius)
 
     @property
-    def color(self):
+    def color(self) -> typing.Tuple[int,int,int]:
         return self._color
 
     @color.setter
-    def color(self,color):
+    def color(self,color:typing.Tuple[int,int,int]):
         temp = self.rect.copy()
         self._color = color
         self._makeRect(temp,color,self.edge,self.radius)
@@ -1543,12 +1577,12 @@ class textObj(graphicObj):
         self.__text = text
         self.pos = Rs.Point(pos)
     @property
-    def color(self):
+    def color(self) -> typing.Tuple[int,int,int]:
         return self.__color
 
     #컬러값을 변경할 때는 영역이 바뀌지 않는다.
     @color.setter
-    def color(self,_color):
+    def color(self,_color:typing.Tuple[int,int,int]):
         temp = copy.copy(self.rect)
         self.__color = _color
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
@@ -1556,37 +1590,37 @@ class textObj(graphicObj):
         self._clearGraphicCache()
 
     @property
-    def size(self):
+    def size(self) -> float:
         return self.__size
     @size.setter
-    def size(self,_size):
+    def size(self,_size:float):
         self.__size = _size
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
 
     @property
-    def angle(self):
+    def angle(self) -> int:
         return self.__angle
     @angle.setter
-    def angle(self,_angle):
+    def angle(self,_angle:int):
         self.__angle = _angle
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
 
     @property
-    def font(self):
+    def font(self) -> str:
         return self.__font
     @font.setter
-    def font(self,_font):
+    def font(self,_font:str):
         self.__font = _font
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
 
     @property
-    def text(self):
+    def text(self) ->str:
         return self.__text
     @text.setter
-    def text(self,_text):
+    def text(self,_text:str):
         self.__text = _text
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle)[0].convert_alpha()
@@ -1892,7 +1926,7 @@ class imageButton(imageObj):
     def center(self,_center):
         if type(_center)==tuple:
             _center = RPoint(_center[0],_center[1])
-        self.pos = RPoint(_center.x()-self.rect.w//2,_center.y()-self.rect.h//2)
+        self.pos = RPoint(_center.x-self.rect.w//2,_center.y-self.rect.h//2)
         self._updateShadow()
 
     #object의 차일드들의 영역을 포함한 전체 영역을 계산 (캐싱에 활용)
@@ -1900,7 +1934,7 @@ class imageButton(imageObj):
     def boundary(self):
         if id(self) in Rs.graphicCache:
             cache,pos = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x(),pos.y(),cache.get_rect().w,cache.get_rect().h)
+            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
 
         r = self.geometry
         if self.shadow:
@@ -1996,7 +2030,7 @@ class textButton(rectObj):
     def center(self,_center):
         if type(_center)==tuple:
             _center = RPoint(_center[0],_center[1])
-        self.pos = RPoint(_center.x()-self.rect.w//2,_center.y()-self.rect.h//2)
+        self.pos = RPoint(_center.x-self.rect.w//2,_center.y-self.rect.h//2)
         self._updateShadow()
 
     #object의 차일드들의 영역을 포함한 전체 영역을 계산 (캐싱에 활용)
@@ -2004,7 +2038,7 @@ class textButton(rectObj):
     def boundary(self):
         if id(self) in Rs.graphicCache:
             cache,pos = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x(),pos.y(),cache.get_rect().w,cache.get_rect().h)
+            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
 
         r = self.geometry
         r = r.union(self.shadow.boundary)
@@ -2367,12 +2401,17 @@ class scriptRenderer():
         ##스크립트 텍스트 오브젝트
         self.scriptObj = longTextObj("",pos=self.layout["script-pos"],font=self.font,size=self.layout["font-size"],textWidth=self.layout["script-text-width"])
 
+        self.frameTimer = RTimer(1000/60) ##프레임 타이머
+
     def clear(self):
         self._init()
 
 
     #textSpeed:값이 클수록 느리게 재생된다.
-    def __init__(self,fileName,*,textSpeed=5,layout="default_1920_1080",endFunc = lambda :None):
+    def __init__(self,fileName,*,textSpeed:float = 5.0,layout="default_1920_1080",endFunc = lambda :None):
+        '''
+        textSpeed: 값이 클수록 느리게 재생된다.
+        '''
         if not fileName.endswith('.scr'):
             fileName += '.scr'
         if fileName in REMODatabase.scriptPipeline:
@@ -2390,7 +2429,7 @@ class scriptRenderer():
         self.endFunc = endFunc #스크립트가 끝날 경우 실행되는 함수.
 
         self.textSpeed=textSpeed
-        self.__textFrameTimer = 0
+        self.textFrameTimer = RTimer((1000/60)*self.textSpeed) ##텍스트 출력 속도를 조절하는 타이머
 
         self._init()
 
@@ -2506,7 +2545,7 @@ class scriptRenderer():
                         fileName = nibble
                     else: ##기타 명령어
                         if nibble=='jump': ##점프한다.
-                            parameters['jump']=10
+                            parameters['jump']=8
 
 
 
@@ -2559,7 +2598,7 @@ class scriptRenderer():
                         emotion = parameters['emotion']
                         i = scriptRenderer.emotions.index(emotion)
                         e_pos = RPoint(self.charaObjs[num].rect.centerx,30)
-                        Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,tick=12,scale=2)
+                        Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,frameDuration=125,scale=2)
                         self.emotionTimer = time.time()+scriptRenderer.emotionTime/1000.0
                     except:
 
@@ -2653,10 +2692,12 @@ class scriptRenderer():
         '''
 
         ##캐릭터의 움직임 업데이트
-        for i,moveInst in enumerate(self.moveInstructions):
-            if moveInst != []:
-                move = moveInst.pop(0)
-                self.charaObjs[i].pos += move
+        if self.frameTimer.isOver():
+            for i,moveInst in enumerate(self.moveInstructions):
+                if moveInst != []:
+                    move = moveInst.pop(0)
+                    self.charaObjs[i].pos += move
+            self.frameTimer.reset()
 
 
         ##감정 애니메이션이 재생중일 땐 스크립트를 재생하지 않는다.
@@ -2666,10 +2707,9 @@ class scriptRenderer():
             return
 
         self.scriptBgObj.update()
-        self.__textFrameTimer+=1
 
         #Script를 화면에 읽어들이는 함수.
-        if self.__textFrameTimer == self.textSpeed:
+        if self.textFrameTimer.isOver():
             temp = False
             if not self.scriptLoaded():
                 ##미세조정: 스크립트가 위아래로 왔다리 갔다리 하는 것을 막기 위한 조정임.
@@ -2689,7 +2729,7 @@ class scriptRenderer():
                     pass
                 if not temp:
                     self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
-            self.__textFrameTimer = 0
+            self.textFrameTimer.reset()
 
         ##점멸 마커 업데이트
         if self.scriptLoaded():
@@ -2739,7 +2779,7 @@ class gridObj(layoutObj):
                 tileObj = rectObj(pygame.Rect(0,0,tileSize[0],tileSize[1]),radius=radius,color=color)
                 tileObj.setParent(rowObj)
             temp.append(rowObj)
-        super().__init__(rect=pygame.Rect(pos.x(),pos.y(),0,0),spacing=spacing[1],childs=temp)
+        super().__init__(rect=pygame.Rect(pos.x,pos.y,0,0),spacing=spacing[1],childs=temp)
         self.grid = grid
         self.tileSize = tileSize
 
@@ -2760,9 +2800,9 @@ class sliderObj(rectObj):
     def __init__(self,pos=RPoint(0,0),length=50,*,thickness=10,color=Cs.white,isVertical=True,value=0.0,function = lambda:None):
         pos=Rs.Point(pos)
         if isVertical:
-            rect = pygame.Rect(pos.x(),pos.y(),thickness,length)
+            rect = pygame.Rect(pos.x,pos.y,thickness,length)
         else:
-            rect = pygame.Rect(pos.x(),pos.y(),length,thickness)
+            rect = pygame.Rect(pos.x,pos.y,length,thickness)
 
         super().__init__(rect,color=Cs.dark(color)) ## BUG
 
@@ -2797,9 +2837,9 @@ class sliderObj(rectObj):
             Rs.draggedObj = self
         if Rs.userIsLeftClicking() and Rs.draggedObj == self:
             if self.isVertical:
-                d = Rs.mousePos().y()-self.geometryPos.y()
+                d = Rs.mousePos().y-self.geometryPos.y
             else:
-                d = Rs.mousePos().x()-self.geometryPos.x()
+                d = Rs.mousePos().x-self.geometryPos.x
             d /= float(self.length)
             d = max(0,d)
             d = min(1,d)
@@ -2821,12 +2861,12 @@ class buttonLayout(layoutObj):
                  buttonAlpha=225):
         self.buttons = {}
         buttonSize = Rs.Point(buttonSize)
-        buttonRect = pygame.Rect(0,0,buttonSize.x(),buttonSize.y())
+        buttonRect = pygame.Rect(0,0,buttonSize.x,buttonSize.y)
         for name in buttonNames:
             self.buttons[name]=textButton(name,buttonRect,font=font,size=fontSize,color=buttonColor,fontColor=fontColor,alpha=buttonAlpha)            
             setattr(self,name,self.buttons[name])
         super().__init__(pos=pos,spacing=spacing,isVertical=isVertical,childs=list(self.buttons.values()))
-    def __getitem__(self,key):
+    def __getitem__(self,key) -> textButton:
         return self.buttons[key]
     def __setitem__(self, key, value):
         if key in self.buttons:
@@ -2834,7 +2874,21 @@ class buttonLayout(layoutObj):
         self.buttons[key]=value
         self.buttons[key].setParent(self)
         self.adjustLayout()
-        
+    def __getattr__(self, key) -> typing.Union[textButton,typing.Any]:
+        '''
+        버튼을 객체의 속성처럼 접근할 수 있게 해준다.
+        띄어쓰기가 존재할 경우 _로 대체하여 쓰면 된다.
+        '''
+        key = key.replace('_', ' ')  # 키에서 _를 띄어쓰기로 변환
+        try:
+            # 다른 속성에 접근할 수 없는 경우에만 데이터 딕셔너리에서 찾기
+            return self.__dict__[key]
+        except KeyError:
+            # 속성으로 접근할 수 없을 경우, 데이터 딕셔너리에서 찾기
+            key = key.replace('_', ' ')  # 속성 이름에 _를 띄어쓰기로 변환 (선택사항)
+            if key in self.buttons:
+                return self.buttons[key]
+            raise AttributeError(f"'{self.__class__.__name__}' object has no button '{key}'")        
 
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
@@ -2929,7 +2983,7 @@ class scrollLayout(layoutObj):
 
     ##스크롤 영역이 마우스와 충돌하는지 확인합니다.
     def collideMouse(self):
-        return pygame.Rect(self.geometryPos.x(),self.geometryPos.y(),self.rect.w,self.rect.h).collidepoint(Rs.mousePos().toTuple())
+        return pygame.Rect(self.geometryPos.x,self.geometryPos.y,self.rect.w,self.rect.h).collidepoint(Rs.mousePos().toTuple())
 
     def update(self):
         viewport = pygame.Rect(0,0,self.rect.w,self.rect.h)
