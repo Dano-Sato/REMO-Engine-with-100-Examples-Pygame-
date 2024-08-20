@@ -77,7 +77,7 @@ class scriptScene(Scene):
 
         return
     def init(self):
-        self.renderer = scriptRenderer(scriptScene.currentScript)
+        self.renderer = scriptRenderer(scriptScene.currentScript,textSpeed=3)
         self.renderer.endFunc = lambda:REMOGame.setCurrentScene(Scenes.mainScene) ##스크립트가 끝나면 메인화면으로 돌아간다.
         #self.renderer.setFont("japanese_script.ttf")
         return

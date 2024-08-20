@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-20 13:37 Update)
+##version 0.2.3 (24-08-20 17:33 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -9,6 +9,7 @@
 #copyImage 함수 추가(08-17 10:25)
 #Rs.padRect 함수 제거(pygame.Rect.inflate 함수를 사용하면 됨) (08-20 13:37)
 #근본적인 버그를 발생시키는 불쾌한 Threading 관련 함수 제거 (08-20 13:59)
+#딱히 근본 원인이 아니라서 Threading 함수 원복 (08-20 17:33)
 ###
 
 
@@ -942,11 +943,41 @@ class Scene(ABC):
         #draw childs
         return
 
+#target_fps에 맞게 그리기 함수를 호출하는 스레드
+
+class drawThread():
+
+    def __init__(self):
+        super().__init__()
+    def run(self):
+        prev_time = time.time()
+        benchmarkTimer = time.time()
+        while REMOGame._lastStartedWindow.running:
+            if not REMOGame.drawLock:
+                try:
+                    REMOGame._lastStartedWindow.draw()
+                    REMOGame._lastStartedWindow.paint()
+                except Exception as err:
+                    import traceback
+                    traceback.print_exc()
+                    continue
+                ##Timing code, set frame to target_fps(60fps)
+                curr_time = time.time()#so now we have time after processing
+                diff = curr_time - prev_time#frame took this much time to process and render
+                delay = max(1.0/Rs.draw_fps - diff, 0)#if we finished early, wait the remaining time to desired fps, else wait 0 ms!
+                time.sleep(delay)
+                if time.time()-benchmarkTimer>0.5:
+                    ##현재 나오는 프레임(fps)을 벤치마크한다.
+                    REMOGame.benchmark_fps["Draw"] = 1.0/(delay + diff)#fps is based on total time ("processing" diff time + "wasted" delay time)
+                    benchmarkTimer = time.time()
+                prev_time = curr_time
+
 
 
 ## Base Game class
 class REMOGame:
     currentScene = Scene()
+    __drawThread = drawThread()
     benchmark_fps = {"Draw":0,"Update":0}
     drawLock = False ## 신 교체 중임을 알리는 인자
     clock = pygame.time.Clock()
@@ -1019,14 +1050,16 @@ class REMOGame:
     @classmethod
     def exit(cls):
         REMOGame._lastStartedWindow.running = False
+        REMOGame.__drawThread.join()
+
         #pygame.quit()
 
     #Game Running Method
     def run(self):
         self.running = True
-
-        prev_time = time.time()
-        benchmarkTimer = time.time()
+        import threading
+        REMOGame.__drawThread = threading.Thread(target=drawThread().run)
+        REMOGame.__drawThread.start()
 
         while self.running:
             try:
@@ -1036,7 +1069,6 @@ class REMOGame:
                     if event.type == pygame.QUIT:
                         REMOGame.exit()
                 self.update()
-                self.draw()
 
                 Rs._updateState()
 
