@@ -105,6 +105,51 @@ class RPoint():
 
 
 
+class RTimer:
+    '''
+    타이머 클래스\n
+    정해진 시간이 지나면 True를 반환한다.\n
+    '''
+    def __init__(self, duration, startNow=True):
+        """
+        :param duration: 타이머의 기간(밀리초 단위)
+        :param start_now: 즉시 타이머를 시작할지 여부
+        """
+        self.duration = duration
+        self.startTime = pygame.time.get_ticks() if startNow else None
+
+    def start(self):
+        """타이머를 시작합니다."""
+        self.startTime = pygame.time.get_ticks()
+
+    def reset(self):
+        """타이머를 리셋하고 다시 시작합니다."""
+        self.start()
+
+    def stop(self):
+        """타이머를 중지합니다."""
+        self.startTime = None
+
+    def isOver(self):
+        """타이머가 완료되었는지 확인합니다."""
+        if self.startTime is None:
+            return False
+        return pygame.time.get_ticks() - self.startTime >= self.duration
+
+    def timeLeft(self):
+        """남은 시간을 반환합니다. (밀리초 단위)"""
+        if self.startTime is None:
+            return self.duration
+        elapsed = pygame.time.get_ticks() - self.startTime
+        return max(0, self.duration - elapsed)
+
+    def timeElapsed(self):
+        """경과된 시간을 반환합니다. (밀리초 단위)"""
+        if self.startTime is None:
+            return 0
+        return pygame.time.get_ticks() - self.startTime
+
+
 #colorSheet
 class Cs():
     '''
@@ -1553,10 +1598,24 @@ class textObj(graphicObj):
 #(애니메이션)움직이게 할 수 있다.
 class spriteObj(imageObj):
     #sheetMatrix : sprite sheet의 행렬값. 예를 들어 3*5(3행5열) 스프라이트 시트일 경우 (3,5) 입력
-    def __init__(self,_imageSource=None,_rect=None,*,pos=RPoint(0,0),sheetMatrix=(1,1),startFrame=None,tick=1,angle=0,scale=1,fromSprite=0,toSprite=None,mode=AnimationMode.Looped):
+    def __init__(self,_imageSource=None,_rect=None,*,pos=RPoint(0,0),sheetMatrix=(1,1),startFrame=None,frameDuration=1000/60,angle=0,scale=1,fromSprite=0,toSprite=None,mode=AnimationMode.Looped):
+        '''
+        _imageSource : 이미지 경로 혹은 이미지 리스트 \n
+        _rect : 이미지의 위치와 크기 \n
+        pos : 이미지의 위치 \n
+        sheetMatrix : 스프라이트 시트의 행렬값 (행 개수, 열 개수) \n
+        startFrame : 시작 프레임 \n  
+        frameDuration : 프레임 간격 \n
+        angle : 이미지의 각도 \n
+        scale : 이미지의 크기 \n
+        fromSprite : 시작 스프라이트 \n
+        toSprite : 끝 스프라이트 \n
+        mode : 애니메이션 모드 \n
+        간혹 첫 프레임이 씹힐 수 있는데, 이 때는 frameTimer.reset()을 하고 시작하면 됩니다. \n
+
+        '''
         super(imageObj,self).__init__()
-        self.tick = tick # 스프라이트 교환주기. 1프레임마다 다음프레임으로 교체
-        self.curTick = 0 # 스프라이트의 현재 틱
+        self.frameTimer = RTimer(frameDuration,False) #프레임 타이머
         self._frame = 0
         self.mode = mode # 기본 애니메이션 모드 세팅은 루프를 하도록.
         self.sprites = [] #스프라이트들의 집합
@@ -1574,14 +1633,6 @@ class spriteObj(imageObj):
             else:
                 for image in _imageSource:
                     self.sprites.append(Rs.getImage(image))
-        '''
-        if _rect:
-            self.rect = _rect
-            if _images:
-                for i,_ in enumerate(self.img):
-                    self.img[i] = pygame.transform.scale(self.img[i],(self.rect.w,self.rect.h))
-                    self._img_n[i] = pygame.transform.scale(self._img_n[i],(self.rect.w,self.rect.h))
-        '''
 
         self._angle = 0
         self._scale = 1 
@@ -1600,6 +1651,7 @@ class spriteObj(imageObj):
         else:
             self.frame = startFrame
 
+        self.frameTimer.start()
     @property
     def frame(self):
         return self._frame
@@ -1611,6 +1663,7 @@ class spriteObj(imageObj):
         self._frame=frame
         self.graphic_n = self.sprites[self.frame]
         self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
+        self.frameTimer.reset()
 
 
     ##스프라이트 재생이 끝났는지 확인한다.
@@ -1620,14 +1673,11 @@ class spriteObj(imageObj):
             return True
         return False
 
-    #스프라이트를 교체한다.
+    #스프라이트를 재생한다.
     def update(self):
         max = self.toSprite
             
-        if self.curTick < self.tick-1:
-            self.curTick+=1
-        else:
-            self.curTick=0
+        if self.frameTimer.isOver():
             if self.mode == AnimationMode.Looped:
                 self.frame+=1
             else:
@@ -2014,7 +2064,7 @@ class textButton(rectObj):
 
         self.shadow1 = rectObj(rect,color=Cs.black)
         self.shadow1.alpha = 30
-        self.shadow.rect = self.rect.inflate(10,10)
+        self.shadow.rect = self.rect.inflate(20,20)
         self.func = func #clicked function
         self.alpha = alpha
         self.textObj.setParent(self)
@@ -2117,7 +2167,7 @@ class textBubbleObj(longTextObj):
         self.liveTimer = liveTimer ## 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미
         
         if bgExist:
-            self.bg = textButton("",self.fullBoundary.inflate(20,20),color=bgColor,hoverMode=False)
+            self.bg = textButton("",self.fullBoundary.inflate(40,40),color=bgColor,hoverMode=False)
         else:
             self.bg = None
 

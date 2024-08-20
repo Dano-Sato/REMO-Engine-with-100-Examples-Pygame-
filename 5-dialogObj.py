@@ -8,6 +8,12 @@ from REMOLib import *
 class Obj:
     None
 
+class charaMode(Enum):
+    idle = 0
+    walkRight = 1
+    walkLeft = 2
+    attack = 3
+
 class mainScene(Scene):
     def initOnce(self):
 
@@ -19,12 +25,35 @@ class mainScene(Scene):
             self.escDialog.hide()
         self.escDialog["No"].connect(No)        
 
-
+        self.charaSprite = spriteObj("Idle_KG_2.png",pos=(50,50),sheetMatrix=(1,4),scale=3,frameDuration=1000/10)
+        self.charaSprite.center = Rs.screen.get_rect().center
+        self.charaMode = charaMode.idle
 
         return
     def init(self):
         return
     def update(self):
+        speed = 5
+        if Rs.userPressing(pygame.K_z):
+            if self.charaMode != charaMode.attack:
+                self.charaSprite = spriteObj("Attack_KG_2.png",pos=self.charaSprite.pos,sheetMatrix=(1,6),scale=3,frameDuration=1000/10)
+                self.charaMode = charaMode.attack
+        elif Rs.userPressing(pygame.K_RIGHT):
+            self.charaSprite.pos += Rs.Point(speed,0)
+            if self.charaMode != charaMode.walkRight:
+                self.charaSprite = spriteObj("Walking_KG_2.png",pos=self.charaSprite.pos ,sheetMatrix=(1,7),scale=3,frameDuration=1000/10)
+                self.charaMode = charaMode.walkRight
+        elif Rs.userPressing(pygame.K_LEFT):
+            self.charaSprite.pos -= Rs.Point(speed,0)
+            if self.charaMode != charaMode.walkLeft:
+                self.charaSprite = spriteObj("Walking_KG_2.png",pos=self.charaSprite.pos,sheetMatrix=(1,7),scale=3,frameDuration=1000/10)
+                self.charaMode = charaMode.walkLeft
+        else:
+            if self.charaMode != charaMode.idle:
+                self.charaSprite = spriteObj("Idle_KG_2.png",pos=self.charaSprite.pos,sheetMatrix=(1,4),scale=3,frameDuration=1000/10)
+                self.charaMode = charaMode.idle
+
+        self.charaSprite.update()
 
         #ESC키를 누르면 게임 종료 다이얼로그가 나타난다.
         if Rs.userJustPressed(pygame.K_ESCAPE):
@@ -40,6 +69,7 @@ class mainScene(Scene):
 
         return
     def draw(self):
+        self.charaSprite.draw()
         return
 
 
