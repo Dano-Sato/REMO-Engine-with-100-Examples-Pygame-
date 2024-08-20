@@ -55,13 +55,16 @@ class mainScene(Scene):
                 return _
             testObj.connect(func(i))
             testObj.setParent(self.testlayout)
-        self.testlayout.setParent(self.testBg)
-        self.testlayout.adjustLayout()
+        self.attachLayout()
         self.testDrag.setParent(self.testBg)
         print(self.item_db)
         return
     def init(self):
         return
+    
+    def attachLayout(self):
+        self.testlayout.pos = self.testBg.pos+RPoint(20,80)
+        self.testlayout.adjustLayout()
     def update(self):
         Rs.acquireDrawLock()
         if Rs.userJustLeftClicked():
@@ -75,7 +78,7 @@ class mainScene(Scene):
             obj = self.testlayout.childs[0]
             obj.setParent(None)
 
-        Rs.dragEventHandler(self.testDrag,self.testBg)
+        Rs.dragEventHandler(self.testDrag,self.testBg,self.attachLayout)
         self.testlayout.update()
         Rs.releaseDrawLock()
         return
@@ -84,6 +87,7 @@ class mainScene(Scene):
         self.label.draw()
         self.moneyBg.draw()
         self.testBg.draw()
+        self.testlayout.draw()
         #self.testlayout.scrollBar.draw()
         return
 

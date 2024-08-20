@@ -949,6 +949,7 @@ class REMOGame:
     currentScene = Scene()
     benchmark_fps = {"Draw":0,"Update":0}
     drawLock = False ## 신 교체 중임을 알리는 인자
+    clock = pygame.time.Clock()
     __showBenchmark = False
     _lastStartedWindow = None
     def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window"):
@@ -962,6 +963,7 @@ class REMOGame:
                 ctypes.windll.user32.SetProcessDPIAware()
             except AttributeError:
                 pass # Windows XP doesn't support monitor scaling, so just do nothing.
+
         pygame.init()
         info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
         Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
@@ -1038,18 +1040,7 @@ class REMOGame:
 
                 Rs._updateState()
 
-
-                ##Timing code, set frame to target_fps(60fps)
-                curr_time = time.time()#so now we have time after processing
-                diff = curr_time - prev_time#frame took this much time to process and render
-                delay = max(1.0/Rs.update_fps - diff, 0)#if we finished early, wait the remaining time to desired fps, else wait 0 ms!
-                time.sleep(delay)
-                if time.time()-benchmarkTimer>0.5:
-                    ##현재 나오는 프레임(fps)을 벤치마크한다.
-                    REMOGame.benchmark_fps["Update"] = 1.0/(delay + diff)#fps is based on total time ("processing" diff time + "wasted" delay time)
-                    benchmarkTimer = time.time()
-
-                prev_time = curr_time
+                REMOGame.clock.tick(60)
             except:
                 import traceback
                 traceback.print_exc()
@@ -2766,6 +2757,7 @@ class buttonLayout(layoutObj):
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
 ##Bug: 아주 간헐적으로 내용물이 제대로 그려지지 않는 버그가 있다. 원인불명
+###현재로선 누군가의 차일드로 들어갔을 때 버벅대는 것으로 보임.
 ##미완성이고 차일드가 많아지면 버벅인다. 적절하게 활용할 것
 class scrollLayout(layoutObj):
     scrollbar_offset = 10
@@ -2785,6 +2777,9 @@ class scrollLayout(layoutObj):
                 return Rs.graphicCache[id(self)]
             except:
                 pass
+
+
+        ##캐시 이미지 생성
 
         r = self.boundary
         bp = RPoint(r.x,r.y) #position of boundary
