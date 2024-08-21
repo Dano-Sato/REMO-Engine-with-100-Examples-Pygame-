@@ -775,13 +775,14 @@ class Rs:
     #stay: 애니메이션이 화면에 남아있는 시간.(단위:ms)
     __animationPipeline=[]
     @classmethod
-    def playAnimation(cls,sprite,stay=0,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,frameDuration=1000/60,angle=0,fromSprite=0,toSprite=None,alpha=255):
+    def playAnimation(cls,sprite,stay=0,*,rect=None,pos=RPoint(0,0),sheetMatrix=(1,1),center=None,scale=1.0,frameDuration=1000/60,angle=0,fromSprite=0,toSprite=None,alpha=255) -> spriteObj:
         obj = spriteObj(sprite,rect,pos=pos,frameDuration=frameDuration,scale=scale,angle=0,sheetMatrix=sheetMatrix,fromSprite=fromSprite,toSprite=toSprite,mode=AnimationMode.PlayOnce)
         obj.alpha = alpha
         if center!=None:
             obj.center = center
         Rs.__animationPipeline.append({"obj":obj,"stay":time.time()+stay/1000.0})
         
+        return obj
         
     ##페이드아웃 애니메이션 재생을 위한 함수.
     __fadeAnimationPipeline=[]
@@ -1501,11 +1502,15 @@ class graphicObj():
 
     #Fill object with Color
     def fill(self,color,*,special_flags=pygame.BLEND_MAX):
+        self.graphic_n = self.graphic_n.copy() # 파이프라인을 망가뜨리지 않기 위해 복사본을 만든다.
         self.graphic_n.fill(color,special_flags=special_flags)
         self.graphic.fill(color,special_flags=special_flags)
         self._clearGraphicCache()
         
     def colorize(self,color,alpha=255):
+        '''
+        Bug: 현재로선 spriteObj와는 호환이 안됨.
+        '''
         self.fill((0,0,0,alpha),special_flags=pygame.BLEND_RGBA_MULT)
         self.fill(color[0:3]+(0,),special_flags=pygame.BLEND_RGBA_ADD)
         self._clearGraphicCache()
@@ -1769,7 +1774,6 @@ class spriteObj(imageObj):
         self.graphic_n = self.sprites[self.frame]
         self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
         self.frameTimer.reset()
-
 
     ##스프라이트 재생이 끝났는지 확인한다.
     #루프모드일 경우 항상 거짓 반환

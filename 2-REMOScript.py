@@ -38,8 +38,6 @@ class mainScene(Scene):
 
         self.menus["미소녀와 대화하기"].connect(test)
 
-        Rs.setDefaultTransition("inkSpill")
-
         
 
         return

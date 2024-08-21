@@ -16,7 +16,11 @@ class Obj:
 class mainScene(Scene):
     def initOnce(self):
         self.image = imageObj("vampire1_default.png",pos=RPoint(1100,200))
+        self.imageShadow = Rs.copyImage(self.image)
+        self.imageShadow.colorize(Cs.grey,alpha=150)
+        self.imageShadow.pos = self.image.pos+RPoint(10,10)
         self.text = textObj("Vampire Radia",pos=(300,-20),size=40,color=Cs.red)
+        self.text.colorize(Cs.dark(Cs.grey))
         self.text.setParent(self.image)
         self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=5,alpha=225)
         self.name = textObj("Name: Radia",size=50)
@@ -40,6 +44,7 @@ class mainScene(Scene):
         self.buttons.update()
         return
     def draw(self):
+        self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
         return
