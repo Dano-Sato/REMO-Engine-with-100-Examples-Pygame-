@@ -1397,8 +1397,10 @@ class graphicObj():
             return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
 
         r = self.geometry
-        for c in self.childs:
-            r = r.union(c.boundary)
+        ## 모든 차일드의 경계를 합친다.
+        for l in self.childs.values():
+            for c in l:
+                r = r.union(c.boundary)
         return r
     
     @property
