@@ -1,5 +1,6 @@
 
 ##게임 메뉴로부터 비주얼노벨 스크립트에 진입하고, 다시 되돌아오는 가장 간단한 형식의 비주얼노벨
+##장면 전환(트랜지션), 다이얼로그, 스크립트렌더러 등을 활용하는 예제입니다.
 
 from REMOLib import *
 
@@ -37,6 +38,8 @@ class mainScene(Scene):
 
         self.menus["미소녀와 대화하기"].connect(test)
 
+        Rs.setDefaultTransition("inkSpill")
+
         
 
         return
@@ -44,41 +47,48 @@ class mainScene(Scene):
 ##해당 비주얼노벨 스크립트를 실행한다.
     def runScript(self,scriptName):
         scriptScene.currentScript=scriptName
-        REMOGame.setCurrentScene(Scenes.scriptScene)
+        Rs.transition(Scenes.scriptScene)
         None
 
     def init(self):
         return
     def update(self):
+
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
         self.menus.update()
         return
     def draw(self):
+        Rs.fillScreen(Cs.tiffanyBlue)
         self.menus.draw()
         return
 
 
 ##비주얼 노벨 스크립트를 출력하는 신
 class scriptScene(Scene):
+
+
     currentScript = ""
     def initOnce(self):
         ##게임 종료 다이얼로그 선언
         self.escDialog = dialogObj(pygame.Rect(200,200,800,250),"","대화를 종료하고 메인 화면으로 돌아가시겠습니까?",["네","아니오"],color=Cs.dark(Cs.grey),spacing=20)
         def goMain():
-            REMOGame.setCurrentScene(Scenes.mainScene)
-            self.escDialog.hide()
-            self.renderer.clear()
             Rs.clearAnimation()
+            self.escDialog.hide()
+            Rs.transition(Scenes.mainScene)
+            self.renderer.clear()
+
         self.escDialog["네"].connect(goMain) ##네를 누르면 메인화면으로 돌아간다.
         self.escDialog["네"].color = Cs.dark(Cs.red)
         self.escDialog["아니오"].connect(lambda:self.escDialog.hide())
+
         ###
 
         return
     def init(self):
         self.renderer = scriptRenderer(scriptScene.currentScript,textSpeed=4)
         self.renderer.endFunc = lambda:REMOGame.setCurrentScene(Scenes.mainScene) ##스크립트가 끝나면 메인화면으로 돌아간다.
+
         #self.renderer.setFont("japanese_script.ttf")
         return
     def update(self):

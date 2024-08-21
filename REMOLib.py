@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-21 05:35 Update)
+##version 0.2.3 (24-08-21 16:49 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -13,6 +13,7 @@
 #RTimer 클래스 추가, spriteObj의 애니메이션 기능 RTimer에 연동(버그 픽스) (08-20 23:48)
 #Type Hint 추가, buttonLayout 객체의 버튼을 속성처럼 접근 가능. RPoint.x,y 프로퍼티화 (08-21 05:35)
 #scriptRenderer 클래스의 타이머 또한 RTimer를 사용. 점프 관련 미세 변경 (08-21 06:22)
+#장면 전환(transition) 기능 추가 (08-21 16:49)
 ###
 
 from __future__ import annotations
@@ -127,8 +128,10 @@ class RTimer:
         self.duration = duration
         self.startTime = pygame.time.get_ticks() if startNow else None
 
-    def start(self):
+    def start(self, duration=None):
         """타이머를 시작합니다."""
+        if duration:
+            self.duration = duration
         self.startTime = pygame.time.get_ticks()
 
     def reset(self):
@@ -144,6 +147,12 @@ class RTimer:
         if self.startTime is None:
             return False
         return pygame.time.get_ticks() - self.startTime >= self.duration
+    
+    def isRunning(self):
+        '''타이머가 활성화되어 있는지 확인합니다.'''
+        if self.startTime is None:
+            return False
+        return True
 
     def timeLeft(self):
         """남은 시간을 반환합니다. (밀리초 단위)"""
@@ -262,7 +271,6 @@ class Rs:
     __fullScreen = False # 풀스크린 여부를 체크하는 인자
     draggedObj = None # 드래깅되는 오브젝트를 추적하는 인자
     dropFunc = lambda:None # 드래깅이 끝났을 때 실행되는 함수
-    __toggleTimer = 0 # 풀스크린 토글할 때 연속토글이 일어나지 않도록 시간을 재주는 타이머.
     
     __lastState=(False,False,False)
     __justClicked = [False,False,False] # 유저가 클릭하는 행위를 했을 때의 시점을 포착하는 인자.
@@ -273,8 +281,6 @@ class Rs:
     @classmethod
     #internal update function
     def _update(cls):
-        if Rs.__toggleTimer>0:
-            Rs.__toggleTimer-=1
 
         ###Mouse Pos Transform 처리
         #윈도우 해상도에서 실제 게임내 픽셀로 마우스 위치를 옮겨오는 역할
@@ -332,6 +338,12 @@ class Rs:
                 Rs.playMusic(Rs.__changeMusic["Name"],volume=Rs.__changeMusic["Volume"])
                 Rs.__changeMusic = None
 
+        ##transition(장면 전환) 처리
+        if Rs.__transitionTimer.isOver():
+            Rs.__transitionCallBack()
+            Rs.__transitionCallBack = None
+            Rs.__transitionTimer.stop()
+
         Rs.__lastState=state
     
     @classmethod
@@ -345,6 +357,10 @@ class Rs:
         ##등록된 팝업들을 그린다.
         for popup in Rs.__popupPipeline:
             Rs.__popupPipeline[popup].draw()
+
+        ##장면 전환 중일 경우, 스크린샷을 대신하여 그린다.
+        if Rs.isTransitioning():
+            Rs.drawScreenShot()
 
         ##등록된 애니메이션들을 재생한다.
         for animation in Rs.__animationPipeline:
@@ -993,7 +1009,60 @@ class Rs:
         현재 팝업이 존재하는지를 체크하는 함수
         '''
         return len(Rs.__popupPipeline)>0
+    
 
+    ##트랜지션 관련 함수
+    ##트랜지션은 화면 전환 효과를 의미한다.
+    ##Scene을 교체할 때 사용된다.
+
+    __defaultTransition = "swipe"
+    __transitionTimer = RTimer(1000,False) ##장면 전환 타이머
+    __transitionCallBack = None ##장면 전환을 실제로 실행할 콜백함수
+
+    __transitionOptions ={
+        "wave":{"fileName":"scene_transition_02.png","sheetMatrix":(6,5),"scale":3.2,"time":500},
+        "inkSpill":{"fileName":"scene_transition_01.png","sheetMatrix":(7,5),"scale":3.2,"time":1000},
+        "curtain":{"fileName":"scene_transition_03.png","sheetMatrix":(4,5),"scale":3.2,"time":500},
+        "swipe":{"fileName":"scene_transition_04.png","sheetMatrix":(4,5),"scale":3.2,"time":500},
+    }
+
+    @classmethod
+    def updateTransitionOption(self,opt):
+        '''
+        장면 전환 옵션을 (추가)업데이트하는 함수.\n
+        opt : 딕셔너리. "fileName", "sheetMatrix", "scale", "time"입력 \n
+        '''
+        Rs.__transitionOptions.update(opt)
+
+    @classmethod
+    def setDefaultTransition(cls,transition:str):
+        '''
+        기본으로 실행될 장면 전환 효과를 설정하는 함수.\n
+        '''
+        Rs.__defaultTransition = transition
+
+    @classmethod
+    def transition(cls,scene,effect:typing.Optional[str]=None):
+        '''
+        장면 전환 효과를 실행하는 함수.\n
+        scene : 전환될 Scene 객체\n
+        effect : 효과의 종류를 지정한다. __transitonOptions 항목을 참조.\n
+        '''
+        if effect==None:
+            effect = Rs.__defaultTransition
+        option = Rs.__transitionOptions[effect]
+        Rs.playAnimation(option["fileName"],sheetMatrix=option["sheetMatrix"],scale=option["scale"])
+        Rs.captureScreenShot()
+        cls.__transitionTimer.start(option["time"])
+        cls.__transitionCallBack = lambda:REMOGame.setCurrentScene(scene)
+
+    ##트랜지션 중인지 확인하는 함수
+    @classmethod
+    def isTransitioning(cls):
+        '''
+        트랜지션 중인지를 체크하는 함수.\n
+        '''
+        return Rs.__transitionTimer.isRunning()
 
 Rs._buildPath() ## 경로 파이프라인을 구성한다.
 
@@ -1141,7 +1210,8 @@ class REMOGame:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         REMOGame.exit()
-                self.update()
+                if not Rs.isTransitioning():
+                    self.update()
 
                 Rs._updateState()
 
@@ -2192,7 +2262,10 @@ class textBubbleObj(longTextObj):
         alpha : 투명도 \n
         bgExist : 말풍선 배경이 존재하는지 여부 \n
         bgColor : 말풍선 배경 색상 \n
-        liveTimer : 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미
+        liveTimer : 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미 \n
+
+        일반적인 업데이트 함수 대신 .updateText() 함수를 통해 업데이트를 해주면 된다.
+        
         '''
         super().__init__(text,pos=pos,font=font,size=size,color=color,textWidth=textWidth,alpha=alpha)
         self.fullBoundary = copy.copy(self.boundary) ## 텍스트가 전부 출력되었을 경우의 경계를 저장.

@@ -39,6 +39,8 @@ class mainScene(Scene):
         self.label = textObj("Mirai's Shop",size=40,pos=(0,0))
         self.label.midtop = (960,20)
 
+        self.clerkTalk = textBubbleObj("어서오세요! 무엇을 도와드릴까요?",pos=(630,200),size=30,liveTimer=200,bgColor=Cs.dark(Cs.grey))
+
 
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
@@ -72,18 +74,22 @@ class mainScene(Scene):
         if Rs.userJustPressed(pygame.K_a):
             obj = textButton("Good good",rect=pygame.Rect(0,0,100,50),size=30)
             obj.setParent(self.testlayout)
+        if Rs.userJustPressed(pygame.K_z):
+            None
 
 
         if Rs.userJustPressed(pygame.K_s):
             obj = self.testlayout.childs[0]
             obj.setParent(None)
 
+        self.clerkTalk.updateText()
         Rs.dragEventHandler(self.testDrag,self.testBg,self.attachLayout)
         self.testlayout.update()
         Rs.releaseDrawLock()
         return
     def draw(self):
         self.clerk.draw()
+        self.clerkTalk.draw()
         self.label.draw()
         self.moneyBg.draw()
         self.testBg.draw()
