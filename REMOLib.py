@@ -2050,106 +2050,48 @@ class longTextObj(layoutObj):
 
 ##이미지를 버튼으로 활용하는 오브젝트
 class imageButton(imageObj):
+    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,func=lambda:None,enabled=True,enableShadow=True):
+        '''
+        이미지를 버튼으로 활용하는 오브젝트
+        '''
 
-
-    @property
-    def pos(self):
-        return super().pos
-    @pos.setter
-    def pos(self,pos):
-        self._pos = Rs.Point(pos)
-        self._clearGraphicCache()
-        self._updateShadow()
-        
-    @property
-    def center(self):
-        return super().center
-    @center.setter
-    def center(self,_center):
-        if type(_center)==tuple:
-            _center = RPoint(_center[0],_center[1])
-        self.pos = RPoint(_center.x-self.rect.w//2,_center.y-self.rect.h//2)
-        self._updateShadow()
-
-    #object의 차일드들의 영역을 포함한 전체 영역을 계산 (캐싱에 활용)
-    @property
-    def boundary(self):
-        if id(self) in Rs.graphicCache:
-            cache,pos = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
-
-        r = self.geometry
-        if self.shadow:
-            r = r.union(self.shadow.boundary)
-        for c in self.childs:
-            r = r.union(c.boundary)
-        return r
-    #오브젝트의 캐시 이미지를 만든다.
-    def _getCache(self):
-        if id(self) in Rs.graphicCache:
-            return Rs.graphicCache[id(self)]
-
-        r = self.boundary
-        bp = RPoint(r.x,r.y) #position of boundary
-        _pos = (self.geometryPos-bp).toTuple()
-        cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
-        if self.shadow:
-            shadow_cache,shadow_pos = self.shadow._getCache() 
-            cache.blit(shadow_cache,(shadow_pos-bp).toTuple())        
-        cache.blit(self.graphic,_pos)
-        if self.isHovering:
-            cache.blit(self.hoverObj._getCache()[0],_pos)
-
-        for c in self.childs:
-            ccache,cpos = c._getCache()
-            p = cpos-bp
-            cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-        cache.set_alpha(self.alpha)
-        return [cache,bp]
-
-
-    def _updateShadow(self):
-        if self.shadow and self.shadow.center != Rs.Point(self.geometryCenter)+RPoint(0,10):
-            self.shadow.center = Rs.Point(self.geometry.center)+RPoint(0,10)
-    
-    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,func=lambda:None,hoverMode=True,enableShadow=True):
         super().__init__(_imgPath,_rect,pos=pos,angle=angle,scale=scale)
-        self.hoverObj = Rs.copy(self)
+        self.hoverObj = Rs.copyImage(self) #마우스가 버튼 위에 있을 때 밝은 효과를 보여줄 이미지
         self.hoverObj.colorize(Cs.white,alpha=60)
-        self.hoverMode = hoverMode
-        self.isHovering = False
+        self.hoverObj.pos = RPoint(0,0)
+        self.hoverObj.setParent(self,depth=0)
+        self.enabled = enabled
         self.func = func
         
         if enableShadow:
-            self.shadow = Rs.copy(self)
+            self.shadow = Rs.copyImage(self) #그림자 효과를 보여줄 이미지
             self.shadow.colorize(Cs.black,alpha=30)
-            print(self.shadow)
+            self.shadow.setParent(self,depth=-1)
+            self.shadow.pos = RPoint(5,5)
         else:
             self.shadow = None
-        self._updateShadow()
+
+   #버튼을 누르면 실행될 함수를 등록한다.
+    def connect(self,func):
+        '''
+        버튼을 눌렀을 때 실행될 함수를 등록한다.
+        '''
+        self.func = func
 
     def update(self):
-        if self.hoverMode:
+        
+        if self.enabled:
             if self.collideMouse():
                 if Rs.userIsLeftClicking():
-                    if self.isHovering:
-                        self.isHovering = False
-                        self._clearGraphicCache()
-                elif not self.isHovering:
-                    self.isHovering = True
-                    self._clearGraphicCache()
-                if Rs.userJustLeftClicked():
-                    self.func()
-            else:
-                if self.isHovering:
-                    self.isHovering = False
-                    self._clearGraphicCache()    
-        self._updateShadow()
+                    self.hideChild(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
+                else:
+                    self.showChild(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
 
-    #버튼을 누르면 실행될 함수를 등록한다.
-    def connect(self,func):
-        self.func = func
-          
+                if Rs.userJustLeftClicked():
+                    self.func() #마우스를 눌렀을 때 등록된 함수를 실행한다.
+            else:
+                self.hideChild(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+
             
 class textButton(rectObj):
     def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
@@ -2894,9 +2836,9 @@ class sliderObj(rectObj):
         super().__init__(rect,color=Cs.dark(color)) ## BUG
 
 
-        self.gauge = rectObj(rect,color=color)
+        self.gauge = rectObj(rect,color=color) # 슬라이더 바의 차오른 정도 표현 (게이지)
         self.gauge.setParent(self)        
-        self.button = rectObj(pygame.Rect(0,0,thickness*2,thickness*2),color=color)
+        self.button = rectObj(pygame.Rect(0,0,thickness*2,thickness*2),color=color) # 슬라이더 바의 버튼
         self.button.setParent(self)
 
         self.isVertical = isVertical
@@ -2920,6 +2862,7 @@ class sliderObj(rectObj):
             self.gauge.rect = pygame.Rect(0,0,l,self.thickness)
 
     def update(self):
+        ## 이 부분 dragEventHandler로 처리 할 수 있을듯 하다.
         if Rs.userJustLeftClicked() and (self.collideMouse() or self.button.collideMouse()):
             Rs.draggedObj = self
         if Rs.userIsLeftClicking() and Rs.draggedObj == self:

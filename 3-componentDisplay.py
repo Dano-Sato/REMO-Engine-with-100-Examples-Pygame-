@@ -1,7 +1,8 @@
-###레모 엔진의 기본적인 컴포넌트들을 보여주는 예제
+###레모 엔진의 기본적인 그래픽 컴포넌트들을 보여주는 예제
 ##주석 작업은 하기 전.
 
 from REMOLib import *
+
 
 
 
@@ -36,6 +37,10 @@ class mainScene(Scene):
         self.buttons["싸운다"].connect(lambda:print("싸운다"))
         self.buttons.싸운다.color = Cs.red
         self.buttons.게임_종료.connect(lambda:REMOGame.exit())
+
+        self.slider = sliderObj(pygame.Rect(70,200,200,50),length=500,color=Cs.orange)
+
+        self.book = imageButton("testIcon.png",pos=(1450,330))
         return
     def init(self):
         return
@@ -44,12 +49,16 @@ class mainScene(Scene):
             print(Rs.mousePos())
         self.button.update()
         self.buttons.update()
+        self.slider.update()
+        self.book.update()
         return
     def draw(self):
         self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
         self.button.draw()
+        self.slider.draw()
+        self.book.draw()
         return
 
 
