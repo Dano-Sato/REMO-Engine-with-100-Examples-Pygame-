@@ -27,7 +27,6 @@ class mainScene(Scene):
 
         self.charaSetting = {"scale":3,"frameDuration":1000/10}
         self.charaSprite = spriteObj("Idle_KG_2.png",pos=(50,50),sheetMatrix=(1,4),scale=3,frameDuration=1000/10)
-        self.charaSprite.rect = pygame.Rect(50,50,50,50)
         self.charaSprite.colorize(Cs.red)
         self.charaSprite.center = Rs.screen.get_rect().center
         self.charaMode = charaMode.idle

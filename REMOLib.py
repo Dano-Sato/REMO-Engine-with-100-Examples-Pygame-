@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-21 23:32 Update)
+##version 0.2.3 (24-08-21 23:58 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -16,6 +16,7 @@
 #장면 전환(transition) 기능 추가 (08-21 16:49)
 #child에 depth를 추가하여 그리는 순서를 조절할 수 있게 함 (08-21 17:24)
 #spriteObj를 rect 기준, 혹은 scale,angle 기준으로 조정할 수 있게 함 (08-21 23:32)
+#colorize 함수를 imageObj에 귀속(textObj, rectObj는 오작동 요소가 더 많고, color 프로퍼티가 존재.) (08-21 23:58)
 ###
 
 from __future__ import annotations
@@ -1571,21 +1572,7 @@ class graphicObj():
         cache,p = self._getCache()
         Rs.screen.blit(cache,p.toTuple())
 
-    #Fill object with Color
-    def fill(self,color,*,special_flags=pygame.BLEND_MAX):
-        self.graphic_n = self.graphic_n.copy() # 파이프라인을 망가뜨리지 않기 위해 복사본을 만든다.
-        self.graphic_n.fill(color,special_flags=special_flags)
-        self.graphic.fill(color,special_flags=special_flags)
-        self._clearGraphicCache()
-        
-    def colorize(self,color,alpha=255):
-        '''
-        Bug: 현재로선 spriteObj와는 호환이 안됨.
-        '''
-        self.fill((0,0,0,alpha),special_flags=pygame.BLEND_RGBA_MULT)
-        self.fill(color[0:3]+(0,),special_flags=pygame.BLEND_RGBA_ADD)
-        self._clearGraphicCache()
-        
+                
     def collidepoint(self,p):
         return self.geometry.collidepoint(Rs.Point(p).toTuple())
     def collideMouse(self):
@@ -1621,6 +1608,24 @@ class imageObj(graphicObj):
         if _rect:
             self.rect = _rect
 
+
+    #Fill object with Color
+    def fill(self,color,*,special_flags=pygame.BLEND_MAX):
+        
+        self.graphic_n = self.graphic_n.copy() # 파이프라인을 망가뜨리지 않기 위해 복사본을 만든다.
+        self.graphic_n.fill(color,special_flags=special_flags)
+        self.graphic.fill(color,special_flags=special_flags)
+        self._clearGraphicCache()
+
+    def colorize(self,color,alpha=255):
+        '''
+        이미지에 단색을 입히는 함수
+        Bug: 현재로선 spriteObj와는 호환이 안됨.
+        '''
+        self.fill((0,0,0,255),special_flags=pygame.BLEND_RGBA_MULT)
+        self.fill(color[0:3]+(0,),special_flags=pygame.BLEND_RGBA_ADD)
+        self.alpha = alpha
+        self._clearGraphicCache()
     #angle = 이미지의 각도 인자
     @property
     def angle(self):
