@@ -1,6 +1,6 @@
 ###레모 엔진의 기본적인 컴포넌트들을 보여주는 예제
 ##주석 작업은 하기 전.
-
+##TEst
 
 from REMOLib import *
 
@@ -20,7 +20,6 @@ class mainScene(Scene):
         self.imageShadow.colorize(Cs.grey,alpha=150)
         self.imageShadow.pos = self.image.pos+RPoint(10,10)
         self.text = textObj("Vampire Radia",pos=(300,-20),size=40,color=Cs.red)
-        self.text.colorize(Cs.dark(Cs.grey))
         self.text.setParent(self.image)
         self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=5,alpha=225)
         self.name = textObj("Name: Radia",size=50)
