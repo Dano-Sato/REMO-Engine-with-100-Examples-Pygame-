@@ -28,9 +28,10 @@ class mainScene(Scene):
         self.textLayout = layoutObj(pos=(120,120),childs=[self.name,self.description,self.stats],spacing=30)
         self.textLayout.setParent(self.longTextBg)
 
-        self.button = textButton("Play Game",pygame.Rect(120,600,200,50),func=lambda:print("싸운다"),radius=20)
+        self.button = textButton("Play Game",pygame.Rect(120,400,200,50),func=lambda:print("싸운다"),radius=20)
         self.button.text = "Test Test"
         self.button.color = Cs.red
+        self.button.setParent(self.longTextBg)
 
         self.buttons = buttonLayout(["싸운다","도망친다","쓰다듬는다","게임 종료"],pos=RPoint(120,600),isVertical=False)
         self.buttons.setParent(self.longTextBg)
@@ -39,14 +40,20 @@ class mainScene(Scene):
         self.buttons.게임_종료.connect(lambda:REMOGame.exit())
 
         self.slider = sliderObj(pygame.Rect(70,200,200,50),length=500,color=Cs.orange)
+        self.slider.setParent(self.longTextBg)
 
         self.book = imageButton("testIcon.png",pos=(1450,330))
+        self.book.setParent(self.longTextBg)
         return
     def init(self):
         return
     def update(self):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
+        if Rs.userIsRightClicking():
+            self.longTextBg.pos = Rs.mousePos()
+            self.book._clearGraphicCache()
+
         self.button.update()
         self.buttons.update()
         self.slider.update()
@@ -56,8 +63,6 @@ class mainScene(Scene):
         self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
-        self.button.draw()
-        self.slider.draw()
         self.book.draw()
         return
 

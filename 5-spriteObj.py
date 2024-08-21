@@ -27,6 +27,7 @@ class mainScene(Scene):
 
         self.charaSetting = {"scale":3,"frameDuration":1000/10}
         self.charaSprite = spriteObj("Idle_KG_2.png",pos=(50,50),sheetMatrix=(1,4),scale=3,frameDuration=1000/10)
+        self.charaSprite.rect = pygame.Rect(50,50,50,50)
         self.charaSprite.colorize(Cs.red)
         self.charaSprite.center = Rs.screen.get_rect().center
         self.charaMode = charaMode.idle
@@ -36,6 +37,14 @@ class mainScene(Scene):
         return
     def update(self):
         speed = 5
+
+        if Rs.userPressing(pygame.K_a):
+            self.charaSprite.scale+=0.1
+        elif Rs.userPressing(pygame.K_s):
+            self.charaSprite.angle+=1
+            print(self.charaSprite.angle)
+
+
         if Rs.userPressing(pygame.K_z):
             if self.charaMode != charaMode.attack:
                 self.charaSprite = spriteObj("Attack_KG_2.png",pos=self.charaSprite.pos,sheetMatrix=(1,6),scale=3,frameDuration=1000/10)

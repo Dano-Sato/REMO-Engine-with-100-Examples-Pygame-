@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-21 17:24 Update)
+##version 0.2.3 (24-08-21 23:32 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -15,6 +15,7 @@
 #scriptRenderer 클래스의 타이머 또한 RTimer를 사용. 점프 관련 미세 변경 (08-21 06:22)
 #장면 전환(transition) 기능 추가 (08-21 16:49)
 #child에 depth를 추가하여 그리는 순서를 조절할 수 있게 함 (08-21 17:24)
+#spriteObj를 rect 기준, 혹은 scale,angle 기준으로 조정할 수 있게 함 (08-21 23:32)
 ###
 
 from __future__ import annotations
@@ -1028,10 +1029,11 @@ class Rs:
     __transitionCallBack = None ##장면 전환을 실제로 실행할 콜백함수
 
     __transitionOptions ={
-        "wave":{"fileName":"scene_transition_02.png","sheetMatrix":(6,5),"scale":3.2,"time":500},
-        "inkSpill":{"fileName":"scene_transition_01.png","sheetMatrix":(7,5),"scale":3.2,"time":1000},
-        "curtain":{"fileName":"scene_transition_03.png","sheetMatrix":(4,5),"scale":3.2,"time":500},
-        "swipe":{"fileName":"scene_transition_04.png","sheetMatrix":(4,5),"scale":3.2,"time":500},
+        "wave":{"fileName":"scene_transition_02.png","sheetMatrix":(6,5),"time":500},
+        "inkSpill":{"fileName":"scene_transition_01.png","sheetMatrix":(7,5),"time":1000},
+        "curtain":{"fileName":"scene_transition_03.png","sheetMatrix":(4,5),"time":500},
+        "swipe":{"fileName":"scene_transition_04.png","sheetMatrix":(4,5),"time":300},
+        "waterFill":{"fileName":"scene_transition_05.png","sheetMatrix":(18,5),"time":1600},
     }
 
     @classmethod
@@ -1059,7 +1061,7 @@ class Rs:
         if effect==None:
             effect = Rs.__defaultTransition
         option = Rs.__transitionOptions[effect]
-        Rs.playAnimation(option["fileName"],sheetMatrix=option["sheetMatrix"],scale=option["scale"])
+        Rs.playAnimation(option["fileName"],sheetMatrix=option["sheetMatrix"],rect=Rs.screen.get_rect(),frameDuration=1000/40,alpha=255)
         Rs.captureScreenShot()
         cls.__transitionTimer.start(option["time"])
         cls.__transitionCallBack = lambda:REMOGame.setCurrentScene(scene)
@@ -1502,7 +1504,7 @@ class graphicObj():
         self._clearGraphicCache()
     ###
 
-    def showChild(self,depth):
+    def showChilds(self,depth):
         '''
         해당 depth를 가진 차일드를 보이게 한다.
         '''
@@ -1510,13 +1512,19 @@ class graphicObj():
             self._hidedDepth.remove(depth)
             self._clearGraphicCache()
         
-    def hideChild(self,depth):
+    def hideChilds(self,depth):
         '''
         해당 depth를 가진 차일드를 숨긴다.
         '''
         if depth not in self._hidedDepth:
             self._hidedDepth.add(depth)
             self._clearGraphicCache()
+
+    def getChilds(self,depth=0):
+        '''
+        해당 depth를 가진 차일드들을 반환한다.
+        '''
+        return self.childs[depth]
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
@@ -1555,7 +1563,7 @@ class graphicObj():
 
 
     #Could be replaced
-    def draw(self):
+    def draw(self):        
         if self.alpha==0: ## 알파값이 0일경우는 그리지 않는다
             return
         if id(self) not in Rs.graphicCache:
@@ -1785,7 +1793,13 @@ class spriteObj(imageObj):
         fromSprite : 시작 스프라이트 \n
         toSprite : 끝 스프라이트 \n
         mode : 애니메이션 모드 \n
+
         간혹 첫 프레임이 씹힐 수 있는데, 이 때는 frameTimer.reset()을 하고 시작하면 됩니다. \n
+        spriteObj는 rect를 명시적으로 전달할 경우, rect를 기준으로 이미지를 조정합니다. \n
+        rect를 전달하지 않을 경우, scale,angle을 기준으로 이미지를 조정합니다. \n
+
+        이후 rect 인자를 수정할 경우, 다시 rect를 기준으로 이미지를 조정합니다. \n
+        이후 scale, angle 인자를 수정할 경우, 다시 scale, angle을 기준으로 이미지를 조정합니다. \n
 
         '''
         super(imageObj,self).__init__()
@@ -1793,6 +1807,7 @@ class spriteObj(imageObj):
         self._frame = 0
         self.mode = mode # 기본 애니메이션 모드 세팅은 루프를 하도록.
         self.sprites = [] #스프라이트들의 집합
+        self.adjustByRect = False
         
 
         ##스프라이트 집합을 만든다.
@@ -1811,7 +1826,8 @@ class spriteObj(imageObj):
         self._angle = 0
         self._scale = 1 
         self.angle = angle
-        self.scale = scale
+        if scale != None:
+            self.scale = scale
         self.pos = Rs.Point(pos)
         self.fromSprite = fromSprite
         if toSprite != None:
@@ -1819,13 +1835,28 @@ class spriteObj(imageObj):
         else:
             self.toSprite = len(self.sprites)-1
         if _rect!=None:
-            self.rect = _rect        
+            self.rect = _rect
+            self.adjustByRect = True       
+        print(self.rect)
         if startFrame==None:
             self.frame = fromSprite # 스프라이트 현재 프레임. 시작 프레임에서부터 시작한다.
         else:
             self.frame = startFrame
 
         self.frameTimer.start()
+
+    @property
+    def rect(self):
+        return super().rect
+    
+    @rect.setter
+    def rect(self,_rect):
+        '''
+        rect를 조정할 경우, 다시 rect 기준으로 sprite를 조정합니다.
+        '''
+        self.adjustByRect=True
+        imageObj.rect.fset(self,_rect)
+    
     @property
     def frame(self):
         return self._frame
@@ -1836,8 +1867,35 @@ class spriteObj(imageObj):
             frame = self.fromSprite
         self._frame=frame
         self.graphic_n = self.sprites[self.frame]
-        self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
+        if self.adjustByRect:
+            self.graphic = pygame.transform.smoothscale(self.graphic_n,(self.rect.w,self.rect.h))
+        else:
+            self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
         self.frameTimer.reset()
+
+    @property
+    def scale(self):
+        return super().scale
+    
+    @scale.setter
+    def scale(self,_scale):
+        '''
+        scale을 조정할 경우, 다시 scale,angle 기준으로 sprite를 조정합니다.
+        '''
+        self.adjustByRect=False
+        imageObj.scale.fset(self,_scale)
+
+    @property
+    def angle(self):
+        return super().angle
+    
+    @angle.setter
+    def angle(self,_angle):
+        '''
+        angle을 조정할 경우, 다시 scale,angle 기준으로 sprite를 조정합니다.
+        '''
+        self.adjustByRect=False
+        imageObj.angle.fset(self,_angle)
 
     ##스프라이트 재생이 끝났는지 확인한다.
     #루프모드일 경우 항상 거짓 반환
@@ -1858,8 +1916,6 @@ class spriteObj(imageObj):
                     return
                 else:
                     self.frame+=1
-        self.graphic_n = self.sprites[self.frame]
-        self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
 
 #spacing : 오브젝트간 간격
 #pad : layout.pos와 첫 오브젝트간의 간격
@@ -2083,14 +2139,14 @@ class imageButton(imageObj):
         if self.enabled:
             if self.collideMouse():
                 if Rs.userIsLeftClicking():
-                    self.hideChild(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
+                    self.hideChilds(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
                 else:
-                    self.showChild(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
+                    self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
 
                 if Rs.userJustLeftClicked():
                     self.func() #마우스를 눌렀을 때 등록된 함수를 실행한다.
             else:
-                self.hideChild(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+                self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
 
             
 class textButton(rectObj):
@@ -2143,7 +2199,7 @@ class textButton(rectObj):
         self.hoverRect.setParent(self,depth=0)
         self.enabled = enabled
         if not self.enabled:
-            self.hideChild(0)
+            self.hideChilds(0)
 
         self.func = func #clicked function
         self.alpha = alpha
@@ -2189,14 +2245,14 @@ class textButton(rectObj):
         if self.enabled:
             if self.collideMouse():
                 if Rs.userIsLeftClicking():
-                    self.hideChild(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
+                    self.hideChilds(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
                 else:
-                    self.showChild(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
+                    self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
 
                 if Rs.userJustLeftClicked():
                     self.func()
             else:
-                self.hideChild(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+                self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
 
 
 
@@ -2402,8 +2458,16 @@ class scriptRenderLayouts:
             ##"script-image" : 스크립트 영역의 이미지를 지정할 수 있습니다.
             ###
         }
-        ##TODO: 유저 커스텀 레이아웃을 이 아래에 추가해 보세요. 네이밍 양식을 지켜서!
+        ##TODO: 유저 커스텀 레이아웃을 추가해 보세요. 네이밍 양식을 지켜서!
     }
+
+    @classmethod
+    def updateLayout(cls,name:str,layout:dict):
+        '''
+        name : 레이아웃의 이름\n
+        layout : 레이아웃의 딕셔너리. 양식은 scriptRenderLayouts.layouts 참고\n
+        '''
+        cls.layouts[name] = layout
 
 
 ##작성한 비주얼노벨 스크립트를 화면에 그려주는 오브젝트 클래스.
