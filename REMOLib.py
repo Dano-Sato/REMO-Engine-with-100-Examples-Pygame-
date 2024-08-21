@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-21 16:49 Update)
+##version 0.2.3 (24-08-21 17:24 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -14,6 +14,7 @@
 #Type Hint 추가, buttonLayout 객체의 버튼을 속성처럼 접근 가능. RPoint.x,y 프로퍼티화 (08-21 05:35)
 #scriptRenderer 클래스의 타이머 또한 RTimer를 사용. 점프 관련 미세 변경 (08-21 06:22)
 #장면 전환(transition) 기능 추가 (08-21 16:49)
+#child에 depth를 추가하여 그리는 순서를 조절할 수 있게 함 (08-21 17:24)
 ###
 
 from __future__ import annotations
@@ -586,22 +587,28 @@ class Rs:
 
     #폰트 파이프라인(Font Pipeline)
     __fontPipeline ={}
-    __sysFontName = "korean_button.ttf"
-    __sysSize = 15
-    _buttonFontSize = 25
 
+    ##기본 폰트 설정
+    __defaultFontPipeline = {
+        "default":{ "font":"korean_button.ttf","size":15},
+        "button":{"font":"korean_button.ttf","size":30},
+    }
     #기본 설정된 폰트를 변경
     @classmethod
-    def setSysFont(cls,*,font="korean_button.ttf",size=15,buttonFontSize=25):
-        Rs.__sysFontName = font
-        Rs.__sysSize = size
-        Rs._buttonFontSize = buttonFontSize
+    def setDefaultFont(cls,key="default",*,font="korean_button.ttf",size=15):
+        '''
+        기본 폰트를 설정한다.\n
+        '''
+        Rs.__defaultFontPipeline[key] = {"font":font,"size":size}
         return
 
     #기본 폰트값을 반환한다.
     @classmethod
-    def getSysFont(cls):
-        return (Rs.__sysFontName,Rs.__sysSize)
+    def getDefaultFont(cls,key="default") -> typing.Dict[str,typing.Union[str,int]]:
+        '''
+        기본 폰트값을 반환한다.\n
+        '''
+        return Rs.__defaultFontPipeline[key]
 
 
     @classmethod    
@@ -1441,11 +1448,38 @@ class graphicObj():
         r = self.boundary
         bp = RPoint(r.x,r.y) #position of boundary
         cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
+
+        depth_excluded = list(set(self.childs.keys())-self._hidedDepth)
+        depth_excluded.sort()
+
+        negative_depths = []
+        positive_depths = []
+        for d in depth_excluded:
+            if d<0:
+                negative_depths.append(d)
+            else:
+                positive_depths.append(d)
+            
+
+
+        ##depth가 음수인 차일드들을 먼저 그린다.
+        for depth in negative_depths:
+            l = self.childs[depth]
+            for c in l:
+                ccache,cpos = c._getCache()
+                p = cpos-bp
+                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
         cache.blit(self.graphic,(self.geometryPos-bp).toTuple())
-        for c in self.childs:
-            ccache,cpos = c._getCache()
-            p = cpos-bp
-            cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
+        ##depth가 양수인 차일드들을 그린다.
+        for depth in positive_depths:
+            l = self.childs[depth]
+            for c in l:
+                ccache,cpos = c._getCache()
+                p = cpos-bp
+                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
         cache.set_alpha(self.alpha)
         return [cache,bp]
 
@@ -1468,28 +1502,55 @@ class graphicObj():
         self._clearGraphicCache()
     ###
 
+    def showChild(self,depth):
+        '''
+        해당 depth를 가진 차일드를 보이게 한다.
+        '''
+        if depth in self._hidedDepth:
+            self._hidedDepth.remove(depth)
+            self._clearGraphicCache()
+        
+    def hideChild(self,depth):
+        '''
+        해당 depth를 가진 차일드를 숨긴다.
+        '''
+        if depth not in self._hidedDepth:
+            self._hidedDepth.add(depth)
+            self._clearGraphicCache()
+
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
         self.graphic = self.graphic_n.copy()
         self._pos = RPoint(0,0)
-        self.childs = []
+        self.childs = {0:[]} ##차일드들을 depth별로 저장한다.
+        self._hidedDepth = set() #숨길 depth를 저장한다.
         self.parent = None
+        self._depth = None #부모에 대한 나의 depth를 저장한다.
         self._alpha = 255
         return
     
     #Parent - Child 연결관계를 만듭니다.
-    def setParent(self,_parent):
+    #depth는 차일드의 레이어를 의미합니다. depth가 음수이면 부모 아래에, 0 이상이면 부모 위에 그려집니다.
+    def setParent(self,_parent,*,depth=0):
+
+        ##기존 부모관계 청산
         if self.parent !=None:
-            self.parent.childs.remove(self)
-            self.parent._clearGraphicCache()
-            if hasattr(self.parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
+            self.parent.childs[self._depth].remove(self)
+            if self._depth == 0 and hasattr(self.parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 self.parent.adjustLayout()
 
+            self._depth = None
+            self.parent._clearGraphicCache()
+
+        ##새로운 부모관계 설정
         self.parent = _parent
         if _parent != None:
-            _parent.childs.append(self)
-            if hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
+            if depth not in _parent.childs:
+                _parent.childs[depth] = []
+            _parent.childs[depth].append(self)
+            if depth == 0 and hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 _parent.adjustLayout()
+            self._depth = depth
         self._clearGraphicCache()
 
 
@@ -1531,9 +1592,10 @@ class graphicObj():
             self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
         else:
             self.graphic = self.graphic_n
-        self.childs = []        
+        self.childs = {0:[]}        
 #image file Object         
 class imageObj(graphicObj):
+    
     def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1):
         super().__init__()
         if _imgPath:
@@ -1642,9 +1704,9 @@ class textObj(graphicObj):
         '''
         super().__init__()
         if font==None:
-            font = Rs.getSysFont()[0]
+            font = Rs.getDefaultFont("default")["font"]
         if size==None:
-            size = Rs.getSysFont()[1]
+            size = Rs.getDefaultFont("default")["size"]
         self.graphic = Rs.getFont(font).render(text,color,None,size=size,rotation=angle)[0].convert_alpha()
         self.graphic_n = Rs.getFont(font).render(text,color,None,size=size,rotation=angle)[0].convert_alpha()
         self._rect = self.graphic.get_rect()
@@ -1844,7 +1906,7 @@ class layoutObj(graphicObj):
                 return RPoint(d+self.spacing,0)
 
         lastChild = None
-        for child in self.childs:
+        for child in self.childs[0]:
 
             if lastChild != None:
                 child.pos = lastChild.pos+delta(lastChild)
@@ -1853,20 +1915,23 @@ class layoutObj(graphicObj):
             lastChild = child
         self._clearGraphicCache()
 
-    def update(self):
-        for child in self.childs:
-            # child가 update function이 있을 경우 실행한다.
-            if hasattr(child, 'update') and callable(getattr(child, 'update')):
-                child.update()
+    ##레이아웃을 업데이트한다.
+    # depths : 업데이트할 depth들을 지정한다. 기본값은 0
+    def update(self,*,depths=[0]):
+        for depth in depths:
+            for child in self.childs[depth]:
+                # child가 update function이 있을 경우 실행한다.
+                if hasattr(child, 'update') and callable(getattr(child, 'update')):
+                    child.update()
 
 
 
     def __getitem__(self, key):
-        return self.childs[key]
+        return self.childs[0][key]
     
     def __setitem__(self, key, value):
-        self.childs[key] = value
-        self.childs[key].setParent(self)
+        self.childs[0][key] = value
+        self.childs[0][key].setParent(self)
 
          
 #긴 텍스트를 처리하기 위한 오브젝트.
@@ -1909,9 +1974,9 @@ class longTextObj(layoutObj):
         alpha : 투명도
         '''
         if font==None:
-            font = Rs.getSysFont()[0]
+            font = Rs.getDefaultFont("default")["font"]
         if size==None:
-            size = Rs.getSysFont()[1]
+            size = Rs.getDefaultFont("default")["size"]
         self.alpha = alpha 
         self._updateTextObj(pos,text,font,size,color,textWidth)
         self._text = text
@@ -2086,117 +2151,71 @@ class imageButton(imageObj):
         self.func = func
           
             
-
-#hoverMode : 마우스 호버링 시 밝게 빛나는 모드.
 class textButton(rectObj):
-    hoverAlpha = 80 ## hoverRect의 알파값.
-
-    @property
-    def pos(self):
-        return super().pos
-    @pos.setter
-    def pos(self,pos):
-        self._pos = Rs.Point(pos)
-        self._clearGraphicCache()
-        self._updateShadow()
-        
-    @property
-    def center(self):
-        return super().center
-    @center.setter
-    def center(self,_center):
-        if type(_center)==tuple:
-            _center = RPoint(_center[0],_center[1])
-        self.pos = RPoint(_center.x-self.rect.w//2,_center.y-self.rect.h//2)
-        self._updateShadow()
-
-    #object의 차일드들의 영역을 포함한 전체 영역을 계산 (캐싱에 활용)
-    @property
-    def boundary(self):
-        if id(self) in Rs.graphicCache:
-            cache,pos = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
-
-        r = self.geometry
-        r = r.union(self.shadow.boundary)
-        for c in self.childs:
-            r = r.union(c.boundary)
-        return r
-    #오브젝트의 캐시 이미지를 만든다.
-    def _getCache(self):
-        if id(self) in Rs.graphicCache:
-            return Rs.graphicCache[id(self)]
-
-        r = self.boundary
-        bp = RPoint(r.x,r.y) #position of boundary
-        _pos = (self.geometryPos-bp).toTuple()
-        cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
-        shadow_cache,shadow_pos = self.shadow._getCache() 
-        cache.blit(shadow_cache,(shadow_pos-bp).toTuple())        
-        cache.blit(self.graphic,_pos)
-        cache.blit(self.shadow1._getCache()[0],_pos)
-        if self.isHovering:
-            cache.blit(self.hoverRect._getCache()[0],_pos)
-
-        for c in self.childs:
-            ccache,cpos = c._getCache()
-            p = cpos-bp
-            cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-        cache.set_alpha(self.alpha)
-        return [cache,bp]
-
-
-    def _updateShadow(self):
-        if self.shadow.center != Rs.Point(self.geometryCenter)+RPoint(0,10):
-            self.shadow.center = Rs.Point(self.geometryCenter)+RPoint(0,10)
-    
-    ##ralpha = 버튼을 포함한 직사각형의 alpha값
-    def __init__(self,text="",rect=pygame.Rect(0,0,0,0),*,edge=1,font="korean_button.ttf",size=None,color=Cs.tiffanyBlue,func=lambda:None,hoverMode=True,fontColor=Cs.white,alpha=225,ralpha=255):
+    def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
+                 font:typing.Optional[str]=None,size:typing.Optional[int]=None,fontColor = Cs.white,
+                 enabled=True,func=lambda:None,alpha=200):
         '''
-        edge : 버튼의 테두리 두께
-        font : 버튼에 사용될 폰트
-        size : 폰트 사이즈
-        color : 버튼의 색상
-        func : 버튼을 눌렀을 때 실행될 함수
+        text: 버튼에 표시될 텍스트 \n
+        rect: 버튼의 위치와 크기 \n
+        edge: 버튼의 모서리 두께 \n
+        radius: 버튼의 모서리 둥글기 \n
+        color: 버튼의 색깔 \n
+        font: 텍스트의 폰트 \n
+        size: 텍스트의 크기 \n
+        fontColor: 텍스트의 색깔 \n
+        enabled: 버튼 활성화 여부 \n
+        func: 버튼 클릭시 실행할 함수 \n
+        alpha: 버튼의 투명도 \n
         '''
+
+        if font==None:
+            font = Rs.getDefaultFont("button")["font"]
         if size==None:
-            size = Rs._buttonFontSize
-        self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=fontColor)
+            size = Rs.getDefaultFont("button")["size"]
+
+
+        ##텍스트 오브젝트 생성
+        self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=fontColor) 
+        
+        ##텍스트 오브젝트의 크기에 따라 버튼의 크기를 조정
         rect.w = max(self.textObj.rect.w+20,rect.w)
         rect.h = max(self.textObj.rect.h+20,rect.h)
+        super().__init__(rect,color=color,edge=edge,radius=radius)
+
+        ##그림자 오브젝트 생성
         self.shadow = imageObj('rectShadow.png')
         self.shadow.alpha = 255
+        self.shadow.rect = self.offsetRect.inflate(28,28)
+        self.shadow.rect.midtop = self.offsetRect.midtop
+        self.shadow.setParent(self,depth=-1)
 
-        super().__init__(rect,color=color,edge=edge)
-        self.hoverRect = rectObj(rect,color=Cs.white)
-        self.hoverRect.alpha = textButton.hoverAlpha
-        self.hoverMode = hoverMode
-        self.isHovering = False
+        self.shadow1 = rectObj(self.offsetRect,color=Cs.black,radius=radius)
+        self.shadow1.pos = RPoint(1,1)
+        self.shadow1.alpha = 100
+        self.shadow1.setParent(self,depth=-1)
 
-        self.shadow1 = rectObj(rect,color=Cs.black)
-        self.shadow1.alpha = 30
-        self.shadow.rect = self.rect.inflate(20,20)
+        ##마우스가 버튼 위에 올라갔을 때의 효과를 위한 오브젝트 생성
+        self.hoverRect = rectObj(self.offsetRect,color=Cs.white,radius=radius)
+        self.hoverRect.alpha = 80
+        self.hoverRect.setParent(self,depth=0)
+        self.enabled = enabled
+        if not self.enabled:
+            self.hideChild(0)
+
         self.func = func #clicked function
         self.alpha = alpha
-        self.textObj.setParent(self)
-        self.textObj.center = self.geometryCenter-self.geometryPos
+        self.textObj.setParent(self,depth=1)
+        self.textObj.center = self.offsetRect.center
 
-        self._updateShadow()
-        self.setRectAlpha(ralpha)
-        self.update()
-
-    ##setParent 함수 오버로드
-    def setParent(self,p):
-        super().setParent(p)
-        self._updateShadow()
     @property
     def text(self):
         return self.textObj.text
     @text.setter
     def text(self,text):
         self.textObj.text = text
-        self.update()
-        
+        self.textObj.center = self.offsetRect.center
+
     @property
     def fontColor(self):
         return self.textObj.color
@@ -2215,43 +2234,29 @@ class textButton(rectObj):
         self._color = color
         self._makeRect(temp,color,self.edge,self.radius)
         self.hoverRect = rectObj(self.rect,color=Cs.white)
-        self.hoverRect.alpha = textButton.hoverAlpha
+        self.hoverRect.alpha = 80
 
-    ##버튼을 포함한 직사각형의 알파값 조절
-    def setRectAlpha(self,alpha):
-        self.graphic = self.graphic_n.copy()
-        self.graphic.set_alpha(alpha)
-        self.shadow.alpha = alpha
-
-    def update(self):
-        if self.hoverMode:
-            if self.collideMouse():
-                if Rs.userIsLeftClicking():
-                    if self.isHovering:
-                        self.isHovering = False
-                        self._clearGraphicCache()
-                elif not self.isHovering:
-                    self.isHovering = True
-                    self._clearGraphicCache()
-                if Rs.userJustLeftClicked():
-                    self.func()
-            else:
-                if self.isHovering:
-                    self.isHovering = False
-                    self._clearGraphicCache()
-        self._updateShadow()
-
-    #버튼을 누르면 실행될 함수를 등록한다.
+   #버튼을 누르면 실행될 함수를 등록한다.
     def connect(self,func):
         '''
         버튼을 눌렀을 때 실행될 함수를 등록한다.
         '''
         self.func = func
-    
-    def setParent(self,parent):
-        super().setParent(parent)
-        self.update()
-        
+
+    def update(self):
+        if self.enabled:
+            if self.collideMouse():
+                if Rs.userIsLeftClicking():
+                    self.hideChild(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
+                else:
+                    self.showChild(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
+
+                if Rs.userJustLeftClicked():
+                    self.func()
+            else:
+                self.hideChild(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+
+
 
 ##실제로 대사를 한 글자씩 출력하기 위한 오브젝트.        
 ##npc의 대사 출력 등에 활용하면 좋다.
@@ -2281,7 +2286,7 @@ class textBubbleObj(longTextObj):
         self.liveTimer = liveTimer ## 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미
         
         if bgExist:
-            self.bg = textButton("",self.fullBoundary.inflate(40,40),color=bgColor,hoverMode=False)
+            self.bg = textButton("",self.fullBoundary.inflate(40,40),color=bgColor,enabled=False)
         else:
             self.bg = None
 
@@ -2754,7 +2759,7 @@ class scriptRenderer():
             name,script = self.currentLine.split(":")
             script = script.strip()
 
-            self.nameObj = textButton(name,rect=self.layout["name-rect"],font=self.font,size=self.layout['font-size'],hoverMode=False,color=Cs.hexColor("222222"))
+            self.nameObj = textButton(name,rect=self.layout["name-rect"],font=self.font,size=self.layout['font-size'],enabled=False,color=Cs.hexColor("222222"))
             if "name-alpha" in self.layout:
                 self.nameObj.alpha = self.layout["name-alpha"]
             self.currentScript = script
@@ -2819,7 +2824,7 @@ class scriptRenderer():
                 self.endMarker.timer = time.time()+self.endMarker.tick 
                 self.endMarker.switch = not self.endMarker.switch
             
-            markerPos = RPoint(self.scriptObj.childs[-1].geometry.bottomright)+RPoint(20,0)
+            markerPos = RPoint(self.scriptObj.childs[0][-1].geometry.bottomright)+RPoint(20,0)
             if self.endMarker.bottomleft != markerPos:
                 self.endMarker.bottomleft = markerPos
 
@@ -2839,6 +2844,7 @@ class scriptRenderer():
             self.endMarker.draw()
         if self.nameObj.textObj.text!="":
             self.nameObj.draw()
+            self.nameObj.textObj.draw()
         for emotion in self.emotionObjs:
             emotion.draw()
 
@@ -2970,7 +2976,6 @@ class buttonLayout(layoutObj):
             if key in self.buttons:
                 return self.buttons[key]
             raise AttributeError(f"'{self.__class__.__name__}' object has no button '{key}'")        
-
 ##스크롤바를 통해 스크롤링이 가능한 레이아웃. rect영역 안에 레이아웃이 그려집니다.
 ##TODO: 지정한 rect 영역보다 객체 길이가 짧으면 스크롤바가 안 보여야 한다.
 ##Bug: 아주 간헐적으로 내용물이 제대로 그려지지 않는 버그가 있다. 원인불명

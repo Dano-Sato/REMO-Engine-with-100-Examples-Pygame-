@@ -7,7 +7,6 @@ from REMOLib import *
 
 
 
-
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
     None
@@ -28,6 +27,10 @@ class mainScene(Scene):
         self.textLayout = layoutObj(pos=(120,120),childs=[self.name,self.description,self.stats],spacing=30)
         self.textLayout.setParent(self.longTextBg)
 
+        self.button = textButton("Play Game",pygame.Rect(120,600,200,50),func=lambda:print("싸운다"),radius=20)
+        self.button.text = "Test Test"
+        self.button.color = Cs.red
+
         self.buttons = buttonLayout(["싸운다","도망친다","쓰다듬는다","게임 종료"],pos=RPoint(120,600),isVertical=False)
         self.buttons.setParent(self.longTextBg)
         self.buttons["싸운다"].connect(lambda:print("싸운다"))
@@ -39,12 +42,14 @@ class mainScene(Scene):
     def update(self):
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
+        self.button.update()
         self.buttons.update()
         return
     def draw(self):
         self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
+        self.button.draw()
         return
 
 
