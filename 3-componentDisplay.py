@@ -1,6 +1,6 @@
 ###레모 엔진의 기본적인 그래픽 컴포넌트들을 보여주는 예제
 ##주석 작업은 하기 전.
-##최대한 많은 컴포넌트를 때려넣고, 그것들을 이동시키거나 하면서 조작 확인해보는 것이 목적.
+##최대한 많은 컴포넌트를 때려넣고, 그것들을 이동시키거나 하면서 버그 여부를 확인해보는 것이 목적.
 
 from REMOLib import *
 
@@ -48,7 +48,7 @@ class mainScene(Scene):
         self.book = imageButton("testIcon.png",pos=(1450,330))
         self.book.setParent(self.longTextBg)
 
-        self.testScrollLayout = scrollLayout(pygame.Rect(100,100,300,700),isVertical=True,isViewport=True)
+        self.testScrollLayout = scrollLayout(pygame.Rect(100,100,300,700),isVertical=True,isViewport=True,pad=30)
         for i in range(50):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30,alpha=225)
             def func(i):

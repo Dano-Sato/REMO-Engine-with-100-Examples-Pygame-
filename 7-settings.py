@@ -6,6 +6,8 @@ from REMOLib import *
 # 설정 변경에 필요한 함수를 이해해 봅시다!
 ## 다국어 지원을 해 봅시다!
 
+#cardLayout, cardObj, inventoryObj, catalogObj 등을 만들어보자.
+
 
 
 #게임 오브젝트들을 선언하는 곳입니다.

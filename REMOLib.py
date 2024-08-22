@@ -1992,9 +1992,7 @@ class layoutObj(graphicObj):
             
         for child in childs:
             child.setParent(self)
-            
-        self.update()
-        
+                    
         ##rect 지정이 안 되어 있을경우 자동으로 경계로 조정한다.
         if rect==pygame.Rect(0,0,0,0):
             self.graphic_n = pygame.Surface((self.boundary.w,self.boundary.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
@@ -3040,7 +3038,7 @@ class buttonLayout(layoutObj):
 
 
 class scrollLayout(layoutObj):
-    scrollbar_offset = 10
+    scrollbar_offset = 10 # 스크롤바의 오프셋
     '''
     스크롤이 가능한 레이아웃입니다.
     '''
@@ -3059,10 +3057,15 @@ class scrollLayout(layoutObj):
         scrollColor: 스크롤바의 색깔\n
         isViewport: 뷰포트로 설정할지 여부\n
         뷰포트로 설정시 rect 영역 안쪽만 그려집니다.\n
+        pad : 스크롤 레이아웃의 패딩값입니다. 스크롤로 조절되지 않는 축의 패딩값입니다.\n
         '''
 
         super().__init__(rect=rect,spacing=spacing,childs=childs,isVertical=isVertical)
-        self.pad = RPoint(pad,pad)
+        if self.isVertical:
+            self.pad = RPoint(pad,0)
+        else:
+            self.pad = RPoint(0,pad)
+
         self.setAsViewport(isViewport)
         if isVertical:
             s_length = self.rect.h
@@ -3085,8 +3088,6 @@ class scrollLayout(layoutObj):
                 self.adjustLayout()
         self.scrollBar.connect(__ScrollHandle)
 
-        self.curValue = self.scrollBar.value
-
     def collideMouse(self):
         return self.geometry.collidepoint(Rs.mousePos().toTuple())
 
@@ -3099,8 +3100,7 @@ class scrollLayout(layoutObj):
                 child.update()
         
         ##스크롤바에 대한 업데이트
-        if hasattr(self,"scrollBar"):
-            self.scrollBar.update()
+        self.scrollBar.update()
 
 
         return
