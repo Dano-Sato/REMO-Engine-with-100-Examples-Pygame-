@@ -7,6 +7,49 @@ from REMOLib import *
 ## 다국어 지원을 해 봅시다!
 
 #cardLayout, cardObj, inventoryObj, catalogObj 등을 만들어보자.
+#excel IO
+
+
+class safeInt:
+    bigNumber = 2147483648
+    '''
+    안전한 정수형 클래스입니다.
+    실제 값을 저장하지 않으며 getter에서만 반환됩니다.
+    '''
+
+    def __makeOffset(self):
+        return random.randint(-safeInt.bigNumber,safeInt.bigNumber)
+
+    def __init__(self,value:int):
+        self.__m = self.__makeOffset()
+        self.__n = value - self.__m
+        print(self.__m,self.__n)
+
+    @property
+    def value(self):
+        return self.__m + self.__n
+    
+    @value.setter
+    def value(self,value):
+        self.__m = self.__makeOffset()
+        self.__n = value - self.__m
+
+    def __add__(self,other):
+        return safeInt(self.value+other)
+    def __sub__(self,other):
+        return safeInt(self.value-other)
+    def __mul__(self,other):
+        return safeInt(self.value*other)
+    def __truediv__(self,other):
+        return safeInt(self.value//other)
+    def __str__(self):
+        return str(self.value)
+    def __int__(self):
+        return self.value
+    def __float__(self):
+        return float(self.value)
+    def __repr__(self) -> str:
+        return "safeInt({0})".format(str(self.value))
 
 
 
@@ -15,17 +58,60 @@ class Obj:
     None
 
 class mainScene(Scene):
+    def scoreUpdate(self):
+        self.showScore.text = "SCORE: {0}".format(str(self.score))
     def initOnce(self):
+        self.score = safeInt(10)
+        self.showScore = textObj("SCORE:",size=30,pos=(0,0),color=Cs.white)
+        self.showScore.center = Rs.screen.get_rect().center
+        self.scoreUpdate()
         return
     def init(self):
         return
     def update(self):
+        if Rs.userPressing(pygame.K_z):
+            self.score += 1
+            self.scoreUpdate()
         return
     def draw(self):
+        self.showScore.draw()
         return
+    
+class settingSheets():
+    '''
+    설정과 관련된 정보를 담고 있는 클래스입니다.
+    '''
+
+    # 각 레이블의 폰트와 크기
+    label = {
+        "font":None,
+        "size":30
+    }
+    language = {
+        "한국어":"ko",
+        "English":"en",
+        "日本語":"jp"
+    }
+    resolution = {
+        "2560x1440":(2560,1440),
+        "1920x1080":(1920,1080),
+        "1280x720":(1280,720),
+    }
+    fullscreen = {
+        "On":True,
+        "Off":False
+    }
+
 
 class settingScene(Scene):
-    def makeButtonLayout(self,sheet,curState,settingFunc,buttonSize=(200,50),buttonColor=Cs.tiffanyBlue):
+    '''
+    게임의 설정을 변경하기 위한 씬입니다.
+    labels, buttons는 
+    '''
+    labels = [] # 레이블들을 담을 리스트
+    buttons = [] # 버튼들을 담을 리스트
+    language = None
+    def makeButtonLayout(self,sheet,curState=None,settingFunc=lambda:None,buttonSize=pygame.Rect(0,0,200,50),buttonColor=Cs.tiffanyBlue):
         '''
         sheet: 버튼에 연결될 옵션 {'옵션명':옵션값}
         curState: 현재 옵션 설정 상태
@@ -34,7 +120,7 @@ class settingScene(Scene):
         '''
 
         ##버튼 레이아웃 생성##
-        layout = layoutObj(isVertical=False)
+        layout = layoutObj(rect=buttonSize,isVertical=False)
             
 
         ##버튼 생성##
@@ -43,31 +129,31 @@ class settingScene(Scene):
             ##선택된 옵션은 색을 진하게, 선택되지 않은 옵션은 밝게
             if sheet[option] == curState:
                 _color = Cs.dark(buttonColor)
-                _hoverMode = False
+                _enabled = False
             else:
                 _color = buttonColor
-                _hoverMode = True
+                _enabled = True
 
-
-            button = textButton(str(option),buttonSize,color=_color,hoverMode=_hoverMode)
+            button = textButton(str(option),buttonSize,color=_color,enabled=_enabled)
                 
             ##함수 제너레이터
             def f(_sheet,_option):
                 def _():
                     Rs.acquireDrawLock()
                     settingFunc(_sheet,_option) ##옵션 설정 함수 실행
-                    for button in layout.childs:
+                    for button in layout.getChilds():
                         ##선택된 버튼은 색을 진하게, 선택되지 않은 버튼은 밝게
                         if button.text == str(_option):
                             button.color = Cs.dark(buttonColor)
-                            button.hoverMode = False
+                            button.enabled = False
                         else:
                             button.color = buttonColor
-                            button.hoverMode = True
+                            button.enabled = True
                     Rs.releaseDrawLock()
                 return _
             button.connect(f(sheet,option))
             button.setParent(layout)
+        
 
         return layout
     def initOnce(self):
@@ -75,14 +161,40 @@ class settingScene(Scene):
         self.bg = rectObj(Rs.screen.get_rect().inflate(-100,-100),color=Cs.dark(Cs.grey),edge=5,alpha=200)
         self.title = textObj("Settings",pos=(0,0),size=40,color=Cs.white)
         self.title.midleft = RPoint(150,150)
+        self.leftLayout = layoutObj(pos=(0,0),isVertical=True,spacing=20)
+        self.leftLayout.pos = self.title.pos + RPoint(0,100)
+
+        self.resolutionLabel = textObj("Resolution",pos=(0,0),size=30,color=Cs.white)
+        self.resolutionLabel.setParent(self.leftLayout)
+        def setResolution(sheet,option):
+            Rs.setWindowRes(sheet[option])
+        self.resolutionButtons = self.makeButtonLayout(settingSheets.resolution,None,setResolution)
+        self.resolutionButtons.setParent(self.leftLayout)
+
+        self.fullscreenLabel = textObj("Fullscreen",pos=(0,0),size=30,color=Cs.white)
+        self.fullscreenLabel.setParent(self.leftLayout)
+        def setFullscreen(sheet,option):
+            Rs.setFullScreen(sheet[option])
+        self.fullscreenButtons = self.makeButtonLayout(settingSheets.fullscreen,None,setFullscreen)
+        self.fullscreenButtons.setParent(self.leftLayout)
+
+        self.musicVolumeLabel = textObj("Music Volume",pos=(0,0),size=30,color=Cs.white)
+        self.musicVolumeLabel.setParent(self.leftLayout)
+        self.musicVolumeSlider = Rs.musicVolumeSlider(length=500,color=Cs.aquamarine)
+        self.musicVolumeSlider.setParent(self.leftLayout)
+        
+        ##DEBUG
+        Rs.playMusic("piano_calm.mp3")
         return
     def init(self):
         return
     def update(self):
+        self.leftLayout.update()
         return
     def draw(self):
         self.bg.draw()
         self.title.draw()
+        self.leftLayout.draw()
         return
 
 class defaultScene(Scene):
@@ -103,7 +215,7 @@ class Scenes:
 if __name__=="__main__":
     #Screen Setting
     window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="DEFAULT")
-    window.setCurrentScene(Scenes.settingScene)
+    window.setCurrentScene(Scenes.mainScene)
     window.run()
 
     # Done! Time to quit.

@@ -20,6 +20,7 @@
 #defaultFont 옵션을 지정할 수 있게 됐다.(08-22 12:05)
 #graphicObj 객체를 뷰포트로 지정할 수 있게 됐다. (08-22 12:20)
 #scrollLayout 객체를 리팩토링 완료. 사용할 수 있는 수준이 됐다. (08-22 13:39)
+#safeInt 객체를 추가. (08-22 11:17)
 ###
 
 from __future__ import annotations
@@ -1995,9 +1996,15 @@ class layoutObj(graphicObj):
                     
         ##rect 지정이 안 되어 있을경우 자동으로 경계로 조정한다.
         if rect==pygame.Rect(0,0,0,0):
-            self.graphic_n = pygame.Surface((self.boundary.w,self.boundary.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
-            self.graphic = self.graphic_n.copy()
-        
+            self.adjustBoundary()
+    
+    def adjustBoundary(self):
+        '''
+        레이아웃의 경계를 차일드에 맞게 조정한다.
+        '''
+        self.graphic_n = pygame.Surface((self.boundary.w,self.boundary.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
+        self.graphic = self.graphic_n.copy()
+
 
 
     #레이아웃 내부 객체들의 위치를 조정한다.
@@ -2202,7 +2209,7 @@ class imageButton(imageObj):
 class textButton(rectObj):
     def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
                  font:typing.Optional[str]=None,size:typing.Optional[int]=None,fontColor = Cs.white,
-                 enabled=True,func=lambda:None,alpha=200):
+                 enabled=True,func=lambda:None,alpha=245):
         '''
         text: 버튼에 표시될 텍스트 \n
         rect: 버튼의 위치와 크기 \n
@@ -3170,3 +3177,46 @@ class dialogObj(rectObj):
         return Rs.isPopup(self)
 
                 
+
+
+
+class safeInt:
+    bigNumber = 2147483648
+    '''
+    안전한 정수형 클래스입니다.
+    실제 값을 저장하지 않으며 getter에서만 반환됩니다.
+    '''
+
+    def __makeOffset(self):
+        return random.randint(-safeInt.bigNumber,safeInt.bigNumber)
+
+    def __init__(self,value:int):
+        self.__m = self.__makeOffset()
+        self.__n = value - self.__m
+        print(self.__m,self.__n)
+
+    @property
+    def value(self):
+        return self.__m + self.__n
+    
+    @value.setter
+    def value(self,value):
+        self.__m = self.__makeOffset()
+        self.__n = value - self.__m
+
+    def __add__(self,other):
+        return safeInt(self.value+other)
+    def __sub__(self,other):
+        return safeInt(self.value-other)
+    def __mul__(self,other):
+        return safeInt(self.value*other)
+    def __truediv__(self,other):
+        return safeInt(self.value//other)
+    def __str__(self):
+        return str(self.value)
+    def __int__(self):
+        return self.value
+    def __float__(self):
+        return float(self.value)
+    def __repr__(self) -> str:
+        return "safeInt({0})".format(str(self.value))
