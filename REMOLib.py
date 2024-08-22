@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-22 12:20 Update)
+##version 0.2.3 (24-08-22 13:39 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -19,6 +19,7 @@
 #colorize 함수를 imageObj에 귀속(textObj, rectObj는 오작동 요소가 더 많고, color 프로퍼티가 별도로 존재.) (08-21 23:58)
 #defaultFont 옵션을 지정할 수 있게 됐다.(08-22 12:05)
 #graphicObj 객체를 뷰포트로 지정할 수 있게 됐다. (08-22 12:20)
+#scrollLayout 객체를 리팩토링 완료. 사용할 수 있는 수준이 됐다. (08-22 13:39)
 ###
 
 from __future__ import annotations
