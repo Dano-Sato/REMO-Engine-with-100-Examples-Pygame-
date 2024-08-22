@@ -23,11 +23,12 @@ class mainScene(Scene):
         self.text = textObj("Vampire Radia",pos=(300,-20),size=40,color=Cs.red)
         self.text.setParent(self.image)
         self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=5,alpha=225)
+        self.longTextBg.setAsViewport()
         self.name = textObj("Name: Radia",size=50)
         self.description = longTextObj("Radia is so cute, but she is 500 years old. She loves chess. 에라 모르겠다 그냥 아무글이나 좀 써보자 내가 아는 사람 얘기해 줄게 며칠전 사랑하던 그녀와 헤어진 그냥 아는 사람",
                                        textWidth=850,size=25)
         self.stats = textObj("공격력:1235,방어력:352,어쩌고 저쩌고",size=25)        
-        self.textLayout = layoutObj(pos=(120,120),childs=[self.name,self.description,self.stats],spacing=30)
+        self.textLayout = layoutObj(pos=(520,120),childs=[self.name,self.description,self.stats],spacing=30)
         self.textLayout.setParent(self.longTextBg)
 
         self.button = textButton("Play Game",pygame.Rect(120,400,200,50),func=lambda:print("싸운다"),radius=20)
@@ -54,7 +55,6 @@ class mainScene(Scene):
             print(Rs.mousePos())
         if Rs.userIsRightClicking():
             self.longTextBg.pos = Rs.mousePos()
-            self.book._clearGraphicCache()
 
         self.button.update()
         self.buttons.update()
@@ -65,7 +65,6 @@ class mainScene(Scene):
         self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
-        self.book.draw()
         return
 
 

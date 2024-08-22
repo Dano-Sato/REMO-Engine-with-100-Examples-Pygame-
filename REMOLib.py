@@ -1449,7 +1449,9 @@ class graphicObj():
             except:
                 pass
 
+        # id가 없으므로 childs의 재귀적 union을 통해 전체 영역을 계산
         r = self.boundary
+        
         bp = RPoint(r.x,r.y) #position of boundary
         cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
 
@@ -1479,10 +1481,22 @@ class graphicObj():
         ##depth가 양수인 차일드들을 그린다.
         for depth in positive_depths:
             l = self.childs[depth]
-            for c in l:
-                ccache,cpos = c._getCache()
-                p = cpos-bp
-                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+            if depth==0 and self.isViewport(): ##뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
+                viewport = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
+                gp = self.geometryPos
+                for c in l:
+                    ccache,cpos = c._getCache()
+                    cache_boundary = pygame.Rect(cpos.x,cpos.y,ccache.get_rect().w,ccache.get_rect().h)
+
+                    if cache_boundary.colliderect(self.geometry):
+                        viewport.blit(ccache,(cpos-gp).toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+
+                cache.blit(viewport,(gp-bp).toTuple())
+            else:
+                for c in l:
+                    ccache,cpos = c._getCache()
+                    p = cpos-bp
+                    cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
 
         cache.set_alpha(self.alpha)
         return [cache,bp]
@@ -1496,6 +1510,7 @@ class graphicObj():
 
     ##캐시 청소 (그래픽을 새로 그리거나 위치를 옮길 때 캐시 청소가 필요)    
     def _clearGraphicCache(self):
+        # print(str(self),"cache cleared") ## for DEBUG
         if hasattr(self,"parent") and self.parent:
             self.parent._clearGraphicCache()
         if id(self) in Rs.graphicCache:
@@ -1537,8 +1552,18 @@ class graphicObj():
         self.parent = None
         self._depth = None #부모에 대한 나의 depth를 저장한다.
         self._alpha = 255
+        self.__isViewport = False # 뷰포트인지 여부를 저장한다. 뷰포트일 경우 depth 0의 차일드는 rect 안쪽에 그려집니다.
         return
     
+    def setAsViewport(self):
+        '''
+        뷰포트로 설정한다. 그래픽 객체가 뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
+        '''
+        self.__isViewport = True
+    
+    def isViewport(self):
+        return self.__isViewport
+
     #Parent - Child 연결관계를 만듭니다.
     #depth는 차일드의 레이어를 의미합니다. depth가 음수이면 부모 아래에, 0 이상이면 부모 위에 그려집니다.
     def setParent(self,_parent,*,depth=0):
@@ -1927,6 +1952,11 @@ class spriteObj(imageObj):
 #pad : layout.pos와 첫 오브젝트간의 간격
 class layoutObj(graphicObj):
     def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,childs=[],isVertical=True):
+        '''
+        그래픽 오브젝트를 일렬로 정렬하는 레이아웃 오브젝트입니다.
+        childs[0] (depth 0)의 오브젝트들이 정렬됩니다.
+        '''
+
         super().__init__()
         self.spacing = spacing
         self.pad = RPoint(0,0) ## 레이아웃 오프셋
@@ -3016,7 +3046,7 @@ class scrollLayout(layoutObj):
 
         ##캐시 이미지 생성
 
-        r = self.boundary
+        r = self.boundary 
         bp = RPoint(r.x,r.y) #position of boundary
         cache = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
         viewport = cache.get_rect()
