@@ -1,5 +1,6 @@
 ###레모 엔진의 기본적인 그래픽 컴포넌트들을 보여주는 예제
 ##주석 작업은 하기 전.
+##최대한 많은 컴포넌트를 때려넣고, 그것들을 이동시키거나 하면서 조작 확인해보는 것이 목적.
 
 from REMOLib import *
 
@@ -19,10 +20,10 @@ class scrollLayout2(layoutObj):
             s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
         return s_pos
 
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True):
 
         super().__init__(rect=rect,spacing=spacing,childs=childs,isVertical=isVertical)
-        self.setAsViewport()
+        self.setAsViewport(isViewport)
         if isVertical:
             s_length = self.rect.h
         else:
@@ -54,8 +55,7 @@ class scrollLayout2(layoutObj):
         ##마우스 클릭에 대한 업데이트
         for child in self.childs[0]:
             # child가 update function이 있을 경우 실행한다.
-            # 마우스가 뷰포트 안에서 child의 rect와 충돌할 경우 실행한다.
-            if hasattr(child, 'update') and callable(getattr(child, 'update'))and self.offsetRect.colliderect(child.rect):
+            if hasattr(child, 'update') and callable(getattr(child, 'update')):
                 child.update()
         
         ##스크롤바에 대한 업데이트
@@ -105,17 +105,19 @@ class mainScene(Scene):
         self.book = imageButton("testIcon.png",pos=(1450,330))
         self.book.setParent(self.longTextBg)
 
-        self.testScrollLayout = scrollLayout2(pygame.Rect(100,100,300,700),isVertical=True)
+        self.testScrollLayout = scrollLayout2(pygame.Rect(100,100,300,700),isVertical=True,isViewport=True)
         for i in range(20):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30,alpha=225)
             def func(i):
                 def _():
-                    if self.testScrollLayout.collideMouse():
-                        print("Yeah",i)
+                    print("Yeah",i)
                 return _
             testObj.connect(func(i))
             testObj.setParent(self.testScrollLayout)
         self.testScrollLayout.setParent(self.longTextBg)
+        self.testScrollLayoutBg = rectObj(self.testScrollLayout.offsetRect.inflate(80,80),color=Cs.dark(Cs.grey),edge=5,alpha=225)
+        self.testScrollLayoutBg.pos += RPoint(20,0)
+        self.testScrollLayoutBg.setParent(self.testScrollLayout,depth=-1)
         return
     def init(self):
         return

@@ -1570,11 +1570,11 @@ class graphicObj():
         self.__isViewport = False # 뷰포트인지 여부를 저장한다. 뷰포트일 경우 depth 0의 차일드는 rect 안쪽에 그려집니다.
         return
     
-    def setAsViewport(self):
+    def setAsViewport(self,to=True):
         '''
         뷰포트로 설정한다. 그래픽 객체가 뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
         '''
-        self.__isViewport = True
+        self.__isViewport = to
     
     def isViewport(self):
         return self.__isViewport
