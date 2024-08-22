@@ -6,7 +6,64 @@ from REMOLib import *
 
 
 
+class scrollLayout2(layoutObj):
+    scrollbar_offset = 10
+    '''
+    스크롤이 가능한 레이아웃입니다.
+    '''
 
+    def getScrollbarPos(self):
+        if self.isVertical:
+            s_pos = RPoint(self.rect.w+2*self.scrollBar.thickness,scrollLayout.scrollbar_offset)            
+        else:
+            s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
+        return s_pos
+
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white):
+
+        super().__init__(rect=rect,spacing=spacing,childs=childs,isVertical=isVertical)
+        self.setAsViewport()
+        if isVertical:
+            s_length = self.rect.h
+        else:
+            s_length = self.rect.w
+        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+
+        self.scrollBar.setParent(self,depth=1) ##스크롤바는 레이아웃의 뎁스 1 자식으로 설정됩니다.
+        self.scrollBar.pos =self.getScrollbarPos()
+
+        ##스크롤바를 조작했을 때 레이아웃을 조정합니다.
+        def __ScrollHandle():
+            if self.isVertical:
+                l = -self.getBoundary().h+self.rect.h
+                self.pad = RPoint(0,self.scrollBar.value*l)
+                self.adjustLayout()
+            else:
+                l = -self.getBoundary().w+self.rect.w
+                self.pad = RPoint(self.scrollBar.value*l,0)
+                self.adjustLayout()
+        self.scrollBar.connect(__ScrollHandle)
+
+        self.curValue = self.scrollBar.value
+
+    def collideMouse(self):
+        return self.geometry.collidepoint(Rs.mousePos().toTuple())
+
+    def update(self):
+
+        ##마우스 클릭에 대한 업데이트
+        for child in self.childs[0]:
+            # child가 update function이 있을 경우 실행한다.
+            # 마우스가 뷰포트 안에서 child의 rect와 충돌할 경우 실행한다.
+            if hasattr(child, 'update') and callable(getattr(child, 'update'))and self.offsetRect.colliderect(child.rect):
+                child.update()
+        
+        ##스크롤바에 대한 업데이트
+        if hasattr(self,"scrollBar"):
+            self.scrollBar.update()
+
+
+        return
 
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
@@ -47,6 +104,18 @@ class mainScene(Scene):
 
         self.book = imageButton("testIcon.png",pos=(1450,330))
         self.book.setParent(self.longTextBg)
+
+        self.testScrollLayout = scrollLayout2(pygame.Rect(100,100,300,700),isVertical=True)
+        for i in range(20):
+            testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30,alpha=225)
+            def func(i):
+                def _():
+                    if self.testScrollLayout.collideMouse():
+                        print("Yeah",i)
+                return _
+            testObj.connect(func(i))
+            testObj.setParent(self.testScrollLayout)
+        self.testScrollLayout.setParent(self.longTextBg)
         return
     def init(self):
         return
@@ -60,6 +129,7 @@ class mainScene(Scene):
         self.buttons.update()
         self.slider.update()
         self.book.update()
+        self.testScrollLayout.update()
         return
     def draw(self):
         self.imageShadow.draw()

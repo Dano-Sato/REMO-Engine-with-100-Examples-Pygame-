@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-22 12:05 Update)
+##version 0.2.3 (24-08-22 12:20 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -16,8 +16,9 @@
 #장면 전환(transition) 기능 추가 (08-21 16:49)
 #child에 depth를 추가하여 그리는 순서를 조절할 수 있게 함 (08-21 17:24)
 #spriteObj를 rect 기준, 혹은 scale,angle 기준으로 조정할 수 있게 함 (08-21 23:32)
-#colorize 함수를 imageObj에 귀속(textObj, rectObj는 오작동 요소가 더 많고, color 프로퍼티가 존재.) (08-21 23:58)
+#colorize 함수를 imageObj에 귀속(textObj, rectObj는 오작동 요소가 더 많고, color 프로퍼티가 별도로 존재.) (08-21 23:58)
 #defaultFont 옵션을 지정할 수 있게 됐다.(08-22 12:05)
+#graphicObj 객체를 뷰포트로 지정할 수 있게 됐다. (08-22 12:20)
 ###
 
 from __future__ import annotations
@@ -1414,6 +1415,20 @@ class graphicObj():
                 r = r.union(c.boundary)
         return r
     
+    def getBoundary(self,depth:int=0):
+        '''
+        해당 depth를 가진 차일드들의 전체 영역을 계산한다.
+        '''
+
+        r = None
+        for c in self.childs[depth]:
+            if r==None:
+                r = c.boundary
+            else:
+                r = r.union(c.boundary)
+        return r
+
+
     @property
     def alpha(self) -> int:
         '''
