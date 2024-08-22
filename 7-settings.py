@@ -10,46 +10,6 @@ from REMOLib import *
 #excel IO
 
 
-class safeInt:
-    bigNumber = 2147483648
-    '''
-    안전한 정수형 클래스입니다.
-    실제 값을 저장하지 않으며 getter에서만 반환됩니다.
-    '''
-
-    def __makeOffset(self):
-        return random.randint(-safeInt.bigNumber,safeInt.bigNumber)
-
-    def __init__(self,value:int):
-        self.__m = self.__makeOffset()
-        self.__n = value - self.__m
-        print(self.__m,self.__n)
-
-    @property
-    def value(self):
-        return self.__m + self.__n
-    
-    @value.setter
-    def value(self,value):
-        self.__m = self.__makeOffset()
-        self.__n = value - self.__m
-
-    def __add__(self,other):
-        return safeInt(self.value+other)
-    def __sub__(self,other):
-        return safeInt(self.value-other)
-    def __mul__(self,other):
-        return safeInt(self.value*other)
-    def __truediv__(self,other):
-        return safeInt(self.value//other)
-    def __str__(self):
-        return str(self.value)
-    def __int__(self):
-        return self.value
-    def __float__(self):
-        return float(self.value)
-    def __repr__(self) -> str:
-        return "safeInt({0})".format(str(self.value))
 
 
 
@@ -57,24 +17,18 @@ class safeInt:
 class Obj:
     None
 
+
+
 class mainScene(Scene):
-    def scoreUpdate(self):
-        self.showScore.text = "SCORE: {0}".format(str(self.score))
     def initOnce(self):
-        self.score = safeInt(10)
-        self.showScore = textObj("SCORE:",size=30,pos=(0,0),color=Cs.white)
-        self.showScore.center = Rs.screen.get_rect().center
-        self.scoreUpdate()
+        self.read = REMODatabase.loadExcel('db.xlsx')
+        print(self.read)
         return
     def init(self):
         return
     def update(self):
-        if Rs.userPressing(pygame.K_z):
-            self.score += 1
-            self.scoreUpdate()
         return
     def draw(self):
-        self.showScore.draw()
         return
     
 class settingSheets():
@@ -106,10 +60,20 @@ class settingSheets():
 class settingScene(Scene):
     '''
     게임의 설정을 변경하기 위한 씬입니다.
-    labels, buttons는 
     '''
-    labels = [] # 레이블들을 담을 리스트
-    buttons = [] # 버튼들을 담을 리스트
+    __settingPipeline = {}
+
+    @classmethod
+    def appendObj(cls,obj,font='default'):
+        '''
+        언어 변경시 레이블의 폰트와 텍스트를 변경하기 위한 함수입니다.
+        '''
+        if font in cls.__settingPipeline:
+            cls.__settingPipeline[font].append(obj)
+        else:
+            cls.__settingPipeline[font] = [obj]
+
+
     language = None
     def makeButtonLayout(self,sheet,curState=None,settingFunc=lambda:None,buttonSize=pygame.Rect(0,0,200,50),buttonColor=Cs.tiffanyBlue):
         '''

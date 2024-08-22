@@ -2485,14 +2485,29 @@ class REMODatabase:
 
 
     ##.xlsx 파일을 불러와 dictionary의 list 형태로 저장한다.    
-    def loadExcel(fileName):
+    def loadExcel(fileName,orient='index',indexNum=0):
+        '''
+        fileName : 불러올 .xlsx 파일의 이름\n
+        orient: dictionary의 방향. 'index'로 지정할 경우 indexNum의 열을 key로 사용한다.\n
+        'records'로 지정할 경우 각 시트를 dictionary list로 불러옵니다.\n
+        '''
         path = Rs.getPath(fileName)
         excel_data = pandas.read_excel(path, None)  # None loads all sheets
 
         # Convert each sheet in the Excel file to a list of dictionaries
         sheets_dict = {}
-        for sheet_name, data in excel_data.items():
-            sheets_dict[sheet_name] = data.to_dict(orient='records')
+        if orient=='records':
+            for sheet_name, data in excel_data.items():
+                sheets_dict[sheet_name] = data.to_dict(orient='records')
+        elif orient=='index':
+            for sheet_name, data in excel_data.items():
+                # Assuming the first column is to be used as the key
+                if not data.empty:
+                    sheets_dict[sheet_name] = data.set_index(data.columns[indexNum]).to_dict(orient='index')
+        else:
+            raise ValueError("orient must be 'records' or 'index'")
+
+
         return sheets_dict
 
 
