@@ -7,63 +7,6 @@ from REMOLib import *
 
 
 
-class scrollLayout2(layoutObj):
-    scrollbar_offset = 10
-    '''
-    스크롤이 가능한 레이아웃입니다.
-    '''
-
-    def getScrollbarPos(self):
-        if self.isVertical:
-            s_pos = RPoint(self.rect.w+2*self.scrollBar.thickness,scrollLayout.scrollbar_offset)            
-        else:
-            s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
-        return s_pos
-
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True):
-
-        super().__init__(rect=rect,spacing=spacing,childs=childs,isVertical=isVertical)
-        self.setAsViewport(isViewport)
-        if isVertical:
-            s_length = self.rect.h
-        else:
-            s_length = self.rect.w
-        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
-
-        self.scrollBar.setParent(self,depth=1) ##스크롤바는 레이아웃의 뎁스 1 자식으로 설정됩니다.
-        self.scrollBar.pos =self.getScrollbarPos()
-
-        ##스크롤바를 조작했을 때 레이아웃을 조정합니다.
-        def __ScrollHandle():
-            if self.isVertical:
-                l = -self.getBoundary().h+self.rect.h
-                self.pad = RPoint(0,self.scrollBar.value*l)
-                self.adjustLayout()
-            else:
-                l = -self.getBoundary().w+self.rect.w
-                self.pad = RPoint(self.scrollBar.value*l,0)
-                self.adjustLayout()
-        self.scrollBar.connect(__ScrollHandle)
-
-        self.curValue = self.scrollBar.value
-
-    def collideMouse(self):
-        return self.geometry.collidepoint(Rs.mousePos().toTuple())
-
-    def update(self):
-
-        ##마우스 클릭에 대한 업데이트
-        for child in self.childs[0]:
-            # child가 update function이 있을 경우 실행한다.
-            if hasattr(child, 'update') and callable(getattr(child, 'update')):
-                child.update()
-        
-        ##스크롤바에 대한 업데이트
-        if hasattr(self,"scrollBar"):
-            self.scrollBar.update()
-
-
-        return
 
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
@@ -82,7 +25,7 @@ class mainScene(Scene):
         self.longTextBg = rectObj(pygame.Rect(140,140,1100,800),color=Cs.dark(Cs.grey),edge=5,alpha=225)
         self.longTextBg.setAsViewport()
         self.name = textObj("Name: Radia",size=50)
-        self.description = longTextObj("Radia is so cute, but she is 500 years old. She loves chess. 에라 모르겠다 그냥 아무글이나 좀 써보자 내가 아는 사람 얘기해 줄게 며칠전 사랑하던 그녀와 헤어진 그냥 아는 사람",
+        self.description = longTextObj("우클릭을 하면 이 창이 드래그됩니다. Radia is so cute, but she is 500 years old. She loves chess. 에라 모르겠다 그냥 아무글이나 좀 써보자 내가 아는 사람 얘기해 줄게 며칠전 사랑하던 그녀와 헤어진 그냥 아는 사람. ",
                                        textWidth=850,size=25)
         self.stats = textObj("공격력:1235,방어력:352,어쩌고 저쩌고",size=25)        
         self.textLayout = layoutObj(pos=(520,120),childs=[self.name,self.description,self.stats],spacing=30)
@@ -105,8 +48,8 @@ class mainScene(Scene):
         self.book = imageButton("testIcon.png",pos=(1450,330))
         self.book.setParent(self.longTextBg)
 
-        self.testScrollLayout = scrollLayout2(pygame.Rect(100,100,300,700),isVertical=True,isViewport=True)
-        for i in range(20):
+        self.testScrollLayout = scrollLayout(pygame.Rect(100,100,300,700),isVertical=True,isViewport=True)
+        for i in range(50):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30,alpha=225)
             def func(i):
                 def _():
@@ -115,7 +58,7 @@ class mainScene(Scene):
             testObj.connect(func(i))
             testObj.setParent(self.testScrollLayout)
         self.testScrollLayout.setParent(self.longTextBg)
-        self.testScrollLayoutBg = rectObj(self.testScrollLayout.offsetRect.inflate(80,80),color=Cs.dark(Cs.grey),edge=5,alpha=225)
+        self.testScrollLayoutBg = rectObj(self.testScrollLayout.offsetRect.inflate(130,130),color=Cs.mint,edge=5,alpha=225)
         self.testScrollLayoutBg.pos += RPoint(20,0)
         self.testScrollLayoutBg.setParent(self.testScrollLayout,depth=-1)
         return
