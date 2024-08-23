@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-22 13:39 Update)
+##version 0.2.3 (24-08-23 17:39 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -21,6 +21,7 @@
 #graphicObj 객체를 뷰포트로 지정할 수 있게 됐다. (08-22 12:20)
 #scrollLayout 객체를 리팩토링 완료. 사용할 수 있는 수준이 됐다. (08-22 13:39)
 #safeInt 객체를 추가. (08-22 11:17)
+#imageObj에서 스프라이트 시트를 통해 이미지를 불러올 수 있게 됐다. (08-23 17:39)
 ###
 
 from __future__ import annotations
@@ -756,7 +757,7 @@ class Rs:
     
     __imagePipeline={}
     @classmethod
-    def getImage(cls,path):
+    def getImage(cls,path) -> pygame.Surface:
         '''
         이미지를 로드하여 캐싱하는 함수.\n
         '''
@@ -775,8 +776,7 @@ class Rs:
         '''
         key = (path,str(rect))
         if key not in Rs.__spritePipeline:
-            sprite = pygame.Surface(rect.size,pygame.SRCALPHA)
-            sprite.blit(Rs.getImage(path),(0,0),rect)
+            sprite = Rs.getImage(path).subsurface(rect)
             Rs.__spritePipeline[key]=sprite
         return Rs.__spritePipeline[key]
     
@@ -1635,10 +1635,26 @@ class graphicObj():
 class imageObj(graphicObj):
     
     def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1):
+        '''
+        _imgPath : 이미지 경로 혹은 스프라이트 아틀라스 지정 가능. \n
+        [이미지 경로, sheetMatrix, index] 형태로 입력할 경우 스프라이트시트로부터 이미지를 불러온다.\n
+        ex) 5*7행렬의 스프라이트 시트에서 3번째 이미지를 불러오고 싶을 경우 [이미지 경로, (5,7), 3]을 입력한다.\n
+        '''
         super().__init__()
         if _imgPath:
-            self.graphic_n = Rs.getImage(_imgPath)
-            self.graphic = self.graphic_n.copy()
+            if type(_imgPath) ==str:
+                self.graphic_n = Rs.getImage(_imgPath)
+                self.graphic = self.graphic_n.copy()
+            else:
+                ##스프라이트 시트로부터 이미지를 불러올 경우 즉,
+                ##인자로 [이미지 경로, sheetMatrix, index]가 들어올 경우
+                _path, _matrix, _index = _imgPath
+                sheet = Rs.getImage(_path)
+                spriteSize = (sheet.get_rect().w//_matrix[1],sheet.get_rect().h//_matrix[0])
+                target_rect = pygame.Rect((_index%_matrix[1])*spriteSize[0],(_index//_matrix[1])*spriteSize[1],spriteSize[0],spriteSize[1])
+                self.graphic_n = Rs.getSprite(_path,target_rect)
+
+
         if _rect:
             self.rect = _rect
         

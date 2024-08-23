@@ -4,61 +4,6 @@ from REMOLib import *
 ##setCursor 메소드 만들어보자.
 
 
-class viewportObj(graphicObj):
-    '''
-    그리기 영역을 제한하는 뷰포트 오브젝트입니다.
-    rect 영역 밖의 그림은 그려지지 않습니다.
-    그리기 영역이 제한되는 오브젝트는 childs[0]에 포함된 오브젝트뿐입니다.
-    '''
-    def _getCache(self):
-        if id(self) in Rs.graphicCache:
-            try:
-                return Rs.graphicCache[id(self)]
-            except:
-                pass
-
-        # id가 없으므로 childs의 재귀적 union을 통해 전체 영역을 계산
-        r = self.boundary
-        
-        bp = RPoint(r.x,r.y) #position of boundary
-        cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
-
-        depth_excluded = list(set(self.childs.keys())-self._hidedDepth)
-        depth_excluded.sort()
-
-        negative_depths = []
-        positive_depths = []
-        for d in depth_excluded:
-            if d<0:
-                negative_depths.append(d)
-            else:
-                positive_depths.append(d)
-            
-
-
-        ##depth가 음수인 차일드들을 먼저 그린다.
-        for depth in negative_depths:
-            l = self.childs[depth]
-            for c in l:
-                ccache,cpos = c._getCache()
-                p = cpos-bp
-                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-
-        cache.blit(self.graphic,(self.geometryPos-bp).toTuple())
-
-        ##depth가 양수인 차일드들을 그린다.
-        for depth in positive_depths:
-            l = self.childs[depth]
-            for c in l:
-                ccache,cpos = c._getCache()
-                p = cpos-bp
-                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-
-        cache.set_alpha(self.alpha)
-        return [cache,bp]
-        None
-
-
 
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
@@ -86,6 +31,8 @@ class mainScene(Scene):
         self.charaSprite.colorize(Cs.red)
         self.charaSprite.center = Rs.screen.get_rect().center
         self.charaMode = charaMode.idle
+
+        self.testImage = imageObj(["testItemSheet.png",(9,8),11],pos=(100,600),scale=3)
 
         return
     def init(self):
@@ -136,6 +83,7 @@ class mainScene(Scene):
         return
     def draw(self):
         self.charaSprite.draw()
+        self.testImage.draw()
         return
 
 
