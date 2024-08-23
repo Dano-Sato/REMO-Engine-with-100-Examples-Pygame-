@@ -16,6 +16,7 @@ class charaMode(Enum):
     attack = 3
 
 class mainScene(Scene):
+
     def initOnce(self):
 
         ##게임 종료 다이얼로그
@@ -32,13 +33,18 @@ class mainScene(Scene):
         self.charaSprite.center = Rs.screen.get_rect().center
         self.charaMode = charaMode.idle
 
-        self.testImage = imageObj(["testItemSheet.png",(9,8),11],pos=(100,600),scale=3)
+        self.testImage = imageObj("testIcon.png",pos=(100,100),scale=1)
+        self.testImage.lock()
+
 
         return
     def init(self):
         return
     def update(self):
         speed = 5
+
+        if self.testImage.isJustClicked():
+            self.testImage.unlock()
 
         if Rs.userPressing(pygame.K_a):
             self.charaSprite.scale+=0.1

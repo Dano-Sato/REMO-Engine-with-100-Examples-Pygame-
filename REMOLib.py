@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-23 17:39 Update)
+##version 0.2.3 (24-08-23 19:28 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -22,6 +22,7 @@
 #scrollLayout 객체를 리팩토링 완료. 사용할 수 있는 수준이 됐다. (08-22 13:39)
 #safeInt 객체를 추가. (08-22 11:17)
 #imageObj에서 스프라이트 시트를 통해 이미지를 불러올 수 있게 됐다. (08-23 17:39)
+#imageObj를 lock 또는 unlock할 수 있게 됐다. (08-23 19:28)
 ###
 
 from __future__ import annotations
@@ -1634,13 +1635,19 @@ class graphicObj():
 #image file Object         
 class imageObj(graphicObj):
     
-    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1):
+    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,isLocked = False):
         '''
         _imgPath : 이미지 경로 혹은 스프라이트 아틀라스 지정 가능. \n
         [이미지 경로, sheetMatrix, index] 형태로 입력할 경우 스프라이트시트로부터 이미지를 불러온다.\n
         ex) 5*7행렬의 스프라이트 시트에서 3번째 이미지를 불러오고 싶을 경우 [이미지 경로, (5,7), 3]을 입력한다.\n
+        isLocked : 잠금 이미지를 추가할지 여부를 결정한다. 기본값은 False이다.\n
         '''
         super().__init__()
+        if isLocked:
+            self.lock()
+        else:
+            self.lockObj = None # 잠금 이미지 오브젝트
+
         if _imgPath:
             if type(_imgPath) ==str:
                 self.graphic_n = Rs.getImage(_imgPath)
@@ -1710,7 +1717,47 @@ class imageObj(graphicObj):
         self.graphic = Rs.getImage(path)
         self.graphic_n = Rs.getImage(path)
         self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
-        
+
+
+    ##이미지 잠금 관련 함수
+    #이미지 오브젝트에 잠금 이미지를 추가할 수 있다.
+    #갤러리, 업적 등의 해금을 표현할 수 있습니다.
+
+    def isLocked(self):
+        '''
+        이미지 오브젝트가 잠겨있는지를 체크하는 함수
+        '''
+        if self.lockObj:
+            return True
+        return False
+
+    def lock(self,*,depth=2,scale=1):
+        '''
+        이미지 오브젝트에 잠금 이미지를 추가합니다. \n
+        뎁스 2에 잠금 이미지를 추가하며, 원한다면 뎁스를 조절할 수 있습니다. \n
+        해당 이미지 오브젝트의 최상위 뎁스에 잠금 이미지를 추가해야 정상 작동합니다. \n
+        자물쇠 아이콘의 크기를 조절하려면 scale 인자를 조절하면 됩니다. \n
+        이후 잠금 이미지는 .lockObj 어트리뷰트를 통해 접근할 수 있습니다. \n
+        '''
+        lockImage = Rs.copyImage(self)
+        lockImage.colorize(Cs.dark(Cs.grey))
+        lockImage.pos = RPoint(0,0)
+        lockImage.setParent(self,depth=depth)
+        lock = imageObj("ui_locked.png",scale=scale)
+        lock.center = self.offsetRect.center
+        lock.setParent(lockImage)
+        self.lockObj = lockImage
+        return lock
+    
+    def unlock(self):
+        '''
+        이미지 오브젝트의 잠금을 해제합니다.
+        '''
+        if self.lockObj:
+            self.lockObj.setParent(None)
+            self.lockObj.pos = self.pos
+            Rs.fadeAnimation(self.lockObj)
+            self.lockObj = None
  
         
     
