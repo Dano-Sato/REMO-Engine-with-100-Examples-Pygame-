@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-23 19:28 Update)
+##version 0.2.3 (24-08-23 20:46 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -23,6 +23,7 @@
 #safeInt 객체를 추가. (08-22 11:17)
 #imageObj에서 스프라이트 시트를 통해 이미지를 불러올 수 있게 됐다. (08-23 17:39)
 #imageObj를 lock 또는 unlock할 수 있게 됐다. (08-23 19:28)
+#size 인자 추가 (08-23 20:46)
 ###
 
 from __future__ import annotations
@@ -1273,6 +1274,12 @@ class graphicObj():
         setattr(_rect,attr,_point)
         self.pos = RPoint(_rect.topleft)
 
+    @property
+    def size(self):
+        return self.rect.size
+    @size.setter
+    def size(self,size):
+        self.rect = pygame.Rect(self.pos.x,self.pos.y,size[0],size[1])
 
     @property
     def x(self):
@@ -1662,6 +1669,7 @@ class imageObj(graphicObj):
                 self.graphic_n = Rs.getSprite(_path,target_rect)
 
 
+        self.adjustByRect = False
         if _rect:
             self.rect = _rect
         
@@ -1673,7 +1681,6 @@ class imageObj(graphicObj):
         self.scale = scale
         if _rect:
             self.rect = _rect
-
 
     #Fill object with Color
     def fill(self,color,*,special_flags=pygame.BLEND_MAX):
@@ -1714,7 +1721,6 @@ class imageObj(graphicObj):
 
     ##이미지 교환 함수     
     def setImage(self,path):
-        self.graphic = Rs.getImage(path)
         self.graphic_n = Rs.getImage(path)
         self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
 

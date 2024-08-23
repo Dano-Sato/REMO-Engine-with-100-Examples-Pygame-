@@ -22,7 +22,6 @@ class mainScene(Scene):
         return int(self.money.text)
 
     def initOnce(self):
-        self.item_db = REMODatabase.loadExcel('item.xlsx')
 
         ##보유한 돈을 보여주기 위한 GUI 오브젝트 모음
         self.moneyBg = rectObj(pygame.Rect(1500,60,200,50),color=Cs.dark(Cs.grey))
@@ -45,7 +44,7 @@ class mainScene(Scene):
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
         ##스크롤레이아웃이 무엇인가의 자식 객체가 되었을 때
-        self.testlayout = scrollLayout(pygame.Rect(30,130,250,500),isVertical=True)
+        self.testlayout = scrollLayout(pygame.Rect(30,130,220,500),isVertical=True)
         self.testBg = rectObj(pygame.Rect(100,100,300,700),color=Cs.dark(Cs.grey))
         self.testDrag = rectObj(pygame.Rect(0,0,300,50),color=Cs.grey)
         for i in range(20):
@@ -59,7 +58,6 @@ class mainScene(Scene):
             testObj.setParent(self.testlayout)
         self.attachLayout()
         self.testDrag.setParent(self.testBg)
-        print(self.item_db)
         return
     def init(self):
         return

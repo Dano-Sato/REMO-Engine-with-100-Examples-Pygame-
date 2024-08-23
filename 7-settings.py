@@ -179,7 +179,7 @@ class Scenes:
 if __name__=="__main__":
     #Screen Setting
     window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="DEFAULT")
-    window.setCurrentScene(Scenes.mainScene)
+    window.setCurrentScene(Scenes.settingScene)
     window.run()
 
     # Done! Time to quit.

@@ -1,5 +1,5 @@
 #bg testBg.jpg
-#bgm piano_calm.mp3
+#bgm night_detective.mp3 volume=0.5
 (카페를 나오는 길에, 익숙한 얼굴과 마주쳤다.)
 #chara1 schoolGirl1_default.png pos=(0,50) emotion=surprised jump
 #sound testEffect.wav volume=0.1
