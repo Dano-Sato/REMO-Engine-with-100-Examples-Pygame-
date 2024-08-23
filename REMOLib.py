@@ -24,6 +24,7 @@
 #imageObj에서 스프라이트 시트를 통해 이미지를 불러올 수 있게 됐다. (08-23 17:39)
 #imageObj를 lock 또는 unlock할 수 있게 됐다. (08-23 19:28)
 #size 인자 추가 (08-23 20:46)
+#addPath 함수 추가, dragHandler 함수 리팩토링 (08-24 02:29)
 ###
 
 from __future__ import annotations
@@ -301,8 +302,9 @@ class Rs:
         for i,_ in enumerate(state):
             if i==0 and (Rs.__lastState[i],state[i])==(True,False): # Drag 해제.
                 ##드래그 해제 이벤트 처리
-                Rs.draggedObj=None
                 Rs.dropFunc()
+                Rs.draggedObj=None
+                Rs.dropFunc = lambda:None
             #버튼 클릭 여부를 확인.
             if (Rs.__lastState[i],state[i])==(False,True):
                Rs.__justClicked[i]=True
@@ -722,6 +724,18 @@ class Rs:
                     Rs.__pathPipeline[file]=path
                 else:
                     print("possible file conflict in",file,":",path,Rs.__pathPipeline[file])
+
+    @classmethod
+    def addPath(cls,rel,path):
+        '''
+        경로를 새로 추가하는 함수.\n
+        '''
+        Rs.__pathPipeline[rel]=path
+        extension = path.split('.')[-1]
+        if extension in list(Rs.__pathData):
+            Rs.__pathData[extension].append(path)
+        else:
+            Rs.__pathData[extension]=[path]
                     
     #해당 파일의 실제 경로를 스마트하게 찾아주는 함수.
     #가령 실제 파일이 /Resources/sprites/testGirl.png 여도
@@ -877,21 +891,24 @@ class Rs:
 
     ##Drag and Drop Handler##
     @classmethod
-    def dragEventHandler(cls,triggerObj,draggedObj=None,draggingFunc=lambda:None,dropFunc=lambda:None):
+    def dragEventHandler(cls,triggerObj,*,draggedObj=None,dragStartFunc=lambda:None,draggingFunc=lambda:None,dropFunc=lambda:None,filterFunc=lambda:True):
         '''
         Drag & Drop Event Handler \n
         triggerObj : 드래그가 촉발되는 객체 \n
         draggedObj : 드래그되는 객체. 설정하지 않을 경우 triggerObj와 같다. \n
+        dragStartFunc : 드래그가 시작될 때 실행되는 함수 \n
         draggingFunc : 드래깅 중 실행되는 함수 \n
         dropFunc : 드래그가 끝날 때 실행되는 함수 \n
+        filterFunc : 해당 함수가 False를 반환하면 드래그가 시작되지 않는다. \n
         Scene의 update 함수 안에 넣어야 동작합니다.
         '''
         if draggedObj==None:
             draggedObj = triggerObj
-        if Rs.userJustLeftClicked() and triggerObj.collideMouse():
+        if Rs.userJustLeftClicked() and triggerObj.collideMouse() and filterFunc():
             Rs.draggedObj = draggedObj
             Rs.dragOffset = Rs.mousePos()-draggedObj.pos
             Rs.dropFunc = dropFunc
+            dragStartFunc()
         if Rs.userIsLeftClicking() and Rs.draggedObj == draggedObj:
             draggedObj.pos = Rs.mousePos()-Rs.dragOffset
             draggingFunc()
