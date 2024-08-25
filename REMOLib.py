@@ -1655,6 +1655,10 @@ class graphicObj():
 
    ###merge method: 차일드와 현재의 객체를 병합한다.
     def merge(self):
+        '''
+        차일드와 현재의 객체를 이미지 병합합니다.
+        차일드는 다시 빈 리스트로 초기화됩니다.
+        '''
         self.graphic_n = self._getCache()[0]
         if hasattr(self,'angle'):
             self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)

@@ -14,24 +14,43 @@ class Obj:
 
 
 class catalogObj(layoutObj):
+    def merge(self):
+        '''
+        레이아웃의 차일드를 전부 합쳐서 부하를 줄입니다.
+        '''
+        self.catalogs = []
+        for child in self.getChilds():
+            self.catalogs.append({"rect":child.rect,"key":child.key,"path":child.path})
+        print(self.catalogs)
+        super().merge()
+
     def update(self):
         if not self.collideMouse():
             return
-        for icon in self.getChilds():
-            if icon.collideMouse():
+        for icon in self.catalogs:
+            '''
+            아이콘들의 rect를 계산하여 마우스가 아이콘 위에 있는지 확인합니다.
+            아이콘 위에 있다면, 아이콘에 대한 설명을 설정합니다.
+            '''
+            geo = icon["rect"]
+            geo = pygame.Rect(self.geometryPos.x+geo.x,self.geometryPos.y+geo.y,geo.width,geo.height)
+            if geo.collidepoint(Rs.mousePos().toTuple()):
                 mainScene.setIconDescription(icon)
 
 
 class mainScene(Scene):
     @classmethod
     def setIconDescription(cls,icon):
+        '''
+        화면 우측에서 보여줄 아이콘에 대한 설명 텍스트, 그리고 대형 아이콘을 설정합니다.
+        '''
+        key, path = icon["key"], icon["path"]
 
-
-        description = f"Icons.{icon.key}"
+        description = f"Icons.{key}"
         if mainScene.IconDescriptionObj != None and description == mainScene.IconDescriptionObj.text:
             return ##이미 같은 아이콘에 대한 설명이 나타나고 있을 때, 다시 설정하지 않는다.
 
-        mainScene.bigIcon = imageObj(icon.path,scale=2)
+        mainScene.bigIcon = imageObj(path,scale=2)
         mainScene.bigIcon.center = RPoint(1670,530)
         _bg = rectObj(mainScene.bigIcon.offsetRect.inflate(40,40),color=Cs.grey,edge=4)
         _bg.setParent(mainScene.bigIcon,depth=-1)
@@ -77,6 +96,7 @@ class mainScene(Scene):
 
                 if count == 10:
                     horiz_layout.adjustBoundary() ##레이아웃의 크기를 자식들에 맞게 조정
+                    horiz_layout.merge()
                     horiz_layout.setParent(self.catalogLayout)
                     horiz_layout = catalogObj(isVertical=False)
                     count = 0
