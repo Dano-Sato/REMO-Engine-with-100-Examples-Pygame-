@@ -47,6 +47,21 @@ class mainScene(Scene):
         key, path = icon["key"], icon["path"]
 
         description = f"Icons.{key}"
+
+        if Rs.userJustLeftClicked():
+            '''
+            아이콘을 클릭하면 설명을 클립보드에 복사합니다. 동시에 팝업을 띄웁니다.
+            '''
+            import pyperclip
+            pyperclip.copy(description)
+            obj = textObj(f"{description} copied to clipboard!",size=30,color=Cs.white)
+            obj_bg = rectObj(obj.offsetRect.inflate(50,50),color=Cs.grey,edge=2)
+            obj_bg.setParent(obj,depth=-1)
+            obj.midtop = Rs.mousePos() + RPoint(0,50)
+            Rs.fadeAnimation(obj,time=100)
+
+
+        
         if mainScene.IconDescriptionObj != None and description == mainScene.IconDescriptionObj.text:
             return ##이미 같은 아이콘에 대한 설명이 나타나고 있을 때, 다시 설정하지 않는다.
 
