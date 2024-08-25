@@ -42,7 +42,6 @@ class mainScene(Scene):
         mainScene.IconDescriptionObj.center = mainScene.bigIcon.midbottom+RPoint(0,80)
         bg = rectObj(mainScene.IconDescriptionObj.offsetRect.inflate(20,20),color=Cs.grey,edge=2)
         bg.setParent(mainScene.IconDescriptionObj,depth=-1)
-        print(f"Icon Description : {description}")
 
     def initOnce(self):
         self.title = textObj("REMO Icon Catalog",size=50,color=Cs.white)
@@ -73,6 +72,7 @@ class mainScene(Scene):
                 icon_bg.setParent(horiz_layout)
                 icon_bg.key = attr
                 icon_bg.path = icon_path
+                icon_bg.merge()
                 count += 1
 
                 if count == 10:
@@ -85,8 +85,6 @@ class mainScene(Scene):
         return
     def update(self):
         self.catalogLayout.update()
-        if Rs.userJustLeftClicked():
-            print(Rs.mousePos())
         if mainScene.IconDescriptionObj:
             if not self.catalogLayout.collideMouse():
                 mainScene.IconDescriptionObj=None
