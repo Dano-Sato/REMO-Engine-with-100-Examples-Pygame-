@@ -34,7 +34,7 @@ class mainScene(Scene):
         self.charaMode = charaMode.idle
 
         self.testImage = imageObj("testIcon.png",pos=(100,100),scale=1)
-        self.testImage.lock()
+        self.testImage.lock(scale=0.6)
 
 
         return

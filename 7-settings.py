@@ -148,7 +148,7 @@ class settingScene(Scene):
         self.musicVolumeSlider.setParent(self.leftLayout)
         
         ##DEBUG
-        Rs.playMusic("piano_calm.mp3")
+        Rs.playMusic("night_detective.mp3")
         return
     def init(self):
         return
