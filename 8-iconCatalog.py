@@ -16,12 +16,12 @@ class Obj:
 class catalogObj(layoutObj):
     def merge(self):
         '''
-        레이아웃의 차일드를 전부 합쳐서 부하를 줄입니다.
+        어차피 카탈로그 안의 차일드들은 개별로 업데이트 될 일이 없기 때문에,
+        레이아웃의 차일드를 미리 전부 합쳐서 그래픽 부하를 줄입니다.
         '''
         self.catalogs = []
         for child in self.getChilds():
             self.catalogs.append({"rect":child.rect,"key":child.key,"path":child.path})
-        print(self.catalogs)
         super().merge()
 
     def update(self):
