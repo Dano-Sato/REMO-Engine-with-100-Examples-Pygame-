@@ -6,7 +6,7 @@ from REMOLib import *
 REMO Project에서의 다국어 지원을 위한 클래스를 구상해보고 있습니다.
 '''
 
-class REMOTextManager:
+class REMOLocalizeManager:
     '''
     REMO 프로젝트의 텍스트 번역과 폰트 등을 관리하는 클래스입니다.
     textObj, textButton, longTextObj 등에서 사용할 수 있습니다.
@@ -40,7 +40,7 @@ class REMOTextManager:
         if key==None:
             key = "default"
         if key in cls.__fonts:
-            return cls.__fonts[key][REMOTextManager.getLanguage()]
+            return cls.__fonts[key][REMOLocalizeManager.getLanguage()]
 
     @classmethod
     def manageObj(cls,obj,key,*,font=None):
@@ -48,8 +48,8 @@ class REMOTextManager:
         오브젝트의 텍스트를 관리하는 함수입니다.
         '''
         obj_id = id(obj)
-        REMOTextManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font}
-        REMOTextManager.updateText(obj,key,font=font)
+        REMOLocalizeManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font}
+        REMOLocalizeManager.updateText(obj,key,font=font)
         return
 
 
@@ -63,7 +63,7 @@ class REMOTextManager:
         if language in cls.__translations and key in cls.__translations[language]:
             translated_text = cls.__translations[language][key]
             obj.text = translated_text  # 오브젝트에 번역된 텍스트를 설정하는 메서드
-            obj.font = REMOTextManager.getFont(font)
+            obj.font = REMOLocalizeManager.getFont(font)
 
     @classmethod
     def updateTexts(cls):

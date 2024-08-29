@@ -27,6 +27,8 @@
 #addPath 함수 추가, dragHandler 함수 리팩토링 (08-24 02:29)
 #소소한 버그 및 주석 수정 (08-25 20:19)
 #Icons 클래스 및 에셋 추가. kenney.nl cc0 에셋을 사용함. 일부 에셋 이름 변경 (08-25 21:00)
+#textButton 클래스에서 font 추가. 요소 fontColor -> textColor (rename) (08-26 20:01)
+
 ###
 
 from __future__ import annotations
@@ -2304,7 +2306,7 @@ class imageButton(imageObj):
             
 class textButton(rectObj):
     def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
-                 font:typing.Optional[str]=None,size:typing.Optional[int]=None,fontColor = Cs.white,
+                 font:typing.Optional[str]=None,size:typing.Optional[int]=None,textColor = Cs.white,
                  enabled=True,func=lambda:None,alpha=245):
         '''
         text: 버튼에 표시될 텍스트 \n
@@ -2327,7 +2329,7 @@ class textButton(rectObj):
 
 
         ##텍스트 오브젝트 생성
-        self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=fontColor) 
+        self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=textColor) 
         
         ##텍스트 오브젝트의 크기에 따라 버튼의 크기를 조정
         rect.w = max(self.textObj.rect.w+20,rect.w)
@@ -2366,13 +2368,24 @@ class textButton(rectObj):
     def text(self,text):
         self.textObj.text = text
         self.textObj.center = self.offsetRect.center
+        self._clearGraphicCache()
 
     @property
-    def fontColor(self):
+    def font(self):
+        return self.textObj.font
+
+    @font.setter
+    def font(self,font):
+        self.textObj.font = font
+        self.textObj.center = self.offsetRect.center
+        self._clearGraphicCache()
+
+    @property
+    def textColor(self):
         return self.textObj.color
 
-    @fontColor.setter
-    def fontColor(self,color):
+    @textColor.setter
+    def textColor(self,color):
         self.textObj.color = color
         self._clearGraphicCache()
 
