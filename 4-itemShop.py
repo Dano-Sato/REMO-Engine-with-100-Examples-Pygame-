@@ -38,7 +38,7 @@ class mainScene(Scene):
         self.label = textObj("Mirai's Shop",size=40,pos=(0,0))
         self.label.midtop = (960,20)
 
-        self.clerkTalk = textBubbleObj("어서오세요! 무엇을 도와드릴까요?",pos=(630,200),size=30,liveTimer=200,bgColor=Cs.dark(Cs.grey))
+        self.clerkTalk = textBubbleObj("어서오세요! 무엇을 도와드릴까요?",pos=(630,200),size=30,bgColor=Cs.dark(Cs.grey),speed=100,liveTimerDuration=2000)
 
 
         ##스크롤 레이아웃 테스트
@@ -75,7 +75,7 @@ class mainScene(Scene):
 
 
         if Rs.userJustPressed(pygame.K_s):
-            obj = self.testlayout.childs[0]
+            obj = self.testlayout.getChilds()[0]
             obj.setParent(None)
 
         self.clerkTalk.updateText()

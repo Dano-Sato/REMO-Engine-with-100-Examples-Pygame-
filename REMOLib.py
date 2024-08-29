@@ -28,7 +28,8 @@
 #소소한 버그 및 주석 수정 (08-25 20:19)
 #Icons 클래스 및 에셋 추가. kenney.nl cc0 에셋을 사용함. 일부 에셋 이름 변경 (08-25 21:00)
 #textButton 클래스에서 font 추가. 요소 fontColor -> textColor (rename) (08-26 20:01)
-#textBubbleObj 리팩토링 및 주석 추가 (08-30 04:53)
+#textBubbleObj 리팩토링 및 주석 추가. 전반적으로 코드 리팩토링 진행할 예정 (08-30 04:53)
+#path Pipeline 부분을 REMODatabase로 이동. (08-30 05:22)
 
 ###
 
@@ -478,7 +479,7 @@ class Rs:
         사운드 재생. wav와 ogg파일을 지원한다. 중복재생이 가능하다. \n
         loops=-1 인자를 넣을 경우 무한 반복재생.   
         '''
-        fileName = Rs.getPath(fileName)
+        fileName = REMODatabase.getPath(fileName)
         if fileName not in list(Rs.__soundPipeline):
             Rs.__soundPipeline[fileName] = pygame.mixer.Sound(fileName)         
         mixer = Rs.__soundPipeline[fileName]
@@ -487,7 +488,7 @@ class Rs:
         return mixer
     @classmethod
     def stopSound(cls,fileName:str):
-        fileName = Rs.getPath(fileName)
+        fileName = REMODatabase.getPath(fileName)
         if fileName not in list(Rs.__soundPipeline):
             return
         mixer = Rs.__soundPipeline[fileName]
@@ -513,7 +514,7 @@ class Rs:
         볼륨은 0~1 사이의 float이다.
         음원의 자체 볼륨이 너무 크거나 작거나 할 때 조정할 수 있다. 실제론 __masterVolume과 곱해진다.
         '''
-        pygame.mixer.music.load(Rs.getPath(fileName))
+        pygame.mixer.music.load(REMODatabase.getPath(fileName))
         pygame.mixer.music.set_volume(volume*Rs.__masterVolume)
         pygame.mixer.music.play(loops,start)
         Rs.__currentMusic = fileName
@@ -524,9 +525,13 @@ class Rs:
         pygame.mixer.music.stop()
         
     @classmethod
-    ##fadeout in time(milliseconds)
-    def fadeoutMusic(cls,time=500):
-        pygame.mixer.music.fadeout(time)
+    def fadeoutMusic(cls, duration_ms=1000):
+        """
+        음악을 페이드아웃 시키면서 종료하는 메서드.
+        
+        :param duration_ms: 페이드아웃이 완료될 때까지의 시간 (밀리초 단위), 기본값은 1000ms (1초)
+        """
+        pygame.mixer.music.fadeout(duration_ms)
 
     ##페이드아웃을 통해 자연스럽게 음악을 전환하는 기능        
     @classmethod
@@ -563,10 +568,6 @@ class Rs:
     @classmethod
     def unpauseMusic(cls):
         pygame.mixer.music.unpause()
-    @classmethod
-    def fadeoutMusic(cls,fadeout_ms=1000):
-        pygame.mixer.music.fadeout(fadeout_ms)
-        
     ##볼륨 슬라이더##
     @classmethod
     def musicVolumeSlider(cls,pos=RPoint(0,0),length=300,thickness=13,color=Cs.white,isVertical=False):
@@ -636,7 +637,7 @@ class Rs:
         '''
 
         if '.ttf' in font:
-            font = Rs.getPath(font)
+            font = REMODatabase.getPath(font)
 
             if font in list(Rs.__fontPipeline):
                 return Rs.__fontPipeline[font]
@@ -698,111 +699,7 @@ class Rs:
         Rs.draw_fps = fps
 
 
-    ###Path Pipeline###
-    __pathData={} ## 확장자에 따라 경로를 분류하는 딕셔너리
-    __pathPipeline={} ## 파일명과 실제 경로를 연결하는 딕셔너리
-    __pathException=[".git",".pyc",".py"] ##해당 글자가 들어있으면 파이프라인에서 제외된다.
-    @classmethod
-    def _buildPath(cls):
-        '''
-        현재 파일이 포함된 경로의 내부 폴더들을 전부 참조하여 경로 파이프라인을 빌드하는 함수. 내부적으로 사용된다.\n
-        '''
-        Rs.__pathData={}
-        Rs.__pathPipeline={}
-        import os
-        #확장자명에 따른 파일분류
-        for currentpath, folders, files in os.walk('.'):
-            for file in files:
-                if file[0]==".": # 숨김 파일은 기본적으로 제외한다.
-                    continue
-                path = os.path.join(currentpath, file)
-                _except = False
-                for ex in Rs.__pathException: ## 제외어가 들어간 경우 제외한다. 예를 들어 .git 관련 파일들은 제외
-                    if ex in path:
-                        _except = True
-                if _except:
-                    continue
-                extension = path.split('.')[-1]
-                if extension in list(Rs.__pathData):
-                    Rs.__pathData[extension].append(path)
-                else:
-                    Rs.__pathData[extension]=[path]
-                if file not in list(Rs.__pathPipeline):
-                    Rs.__pathPipeline[file]=path
-                else:
-                    print("possible file conflict in",file,":",path,Rs.__pathPipeline[file])
 
-    @classmethod
-    def addPath(cls,rel,path):
-        '''
-        경로를 새로 추가하는 함수.\n
-        '''
-        Rs.__pathPipeline[rel]=path
-        extension = path.split('.')[-1]
-        if extension in list(Rs.__pathData):
-            Rs.__pathData[extension].append(path)
-        else:
-            Rs.__pathData[extension]=[path]
-                    
-    #해당 파일의 실제 경로를 스마트하게 찾아주는 함수.
-    #가령 실제 파일이 /Resources/sprites/testGirl.png 여도
-    #testGirl.png만 해도 찾아내준다.
-    @classmethod
-    def getPath(cls,path):
-        '''
-        파일명을 입력하면 실제 경로를 반환하는 함수.\n
-        가령 실제 파일 경로가 /Resources/sprites/testGirl.png 여도 \n
-        testGirl.png만 해도 찾아내준다. \n
-        '''
-        if path in list(Rs.__pathPipeline):
-            return Rs.__pathPipeline[path]
-
-        extension = path.split('.')[-1]
-        if extension not in list(Rs.__pathData):
-            raise Exception(path,"is not exists!")        
-        if path in Rs.__pathData[extension]:
-             Rs.__pathPipeline[path]=path
-             return path
-        else:
-            for p in Rs.__pathData[extension]:
-                if path in p:
-                    print("path",path,"is attached to",p)
-                    Rs.__pathPipeline[path]=p
-                    return p
-        raise Exception(path,"is not exists!")
-    
-    ##해당 파일이 실제로 존재하는지를 체크하는 함수
-    @classmethod    
-    def assetExist(cls,path) -> bool:
-        if path in Rs.__pathPipeline:
-            return True
-        return False
-    
-    __imagePipeline={}
-    @classmethod
-    def getImage(cls,path) -> pygame.Surface:
-        '''
-        이미지를 로드하여 캐싱하는 함수.\n
-        '''
-        path = Rs.getPath(path)
-        if path not in Rs.__imagePipeline:
-            Rs.__imagePipeline[path]=pygame.image.load(path).convert_alpha()            
-        return Rs.__imagePipeline[path]
-    
-    #이미지 스프라이트에서 rect영역을 잘라낸 함수 
-    __spritePipeline={}
-    @classmethod
-    def getSprite(cls,path,rect):
-        '''
-        이미지 스프라이트에서 rect영역만큼 잘라내어 반환하는 함수.\n
-        해당 과정에서 캐싱이 일어난다. \n
-        '''
-        key = (path,str(rect))
-        if key not in Rs.__spritePipeline:
-            sprite = Rs.getImage(path).subsurface(rect)
-            Rs.__spritePipeline[key]=sprite
-        return Rs.__spritePipeline[key]
-    
     
     ##애니메이션 재생을 위한 함수
     ##애니메이션이 한번 재생되고 꺼진다.
@@ -978,7 +875,7 @@ class Rs:
     ##디스플레이 아이콘을 바꾼다.
     @classmethod
     def setIcon(cls,img):
-        img = Rs.getImage(img)
+        img = REMODatabase.getImage(img)
         pygame.display.set_icon(img)
 
     ##드로우 쓰레드에 락을 걸어야 할 때 사용하는 함수
@@ -1106,7 +1003,6 @@ class Rs:
         '''
         return Rs.__transitionTimer.isRunning()
 
-Rs._buildPath() ## 경로 파이프라인을 구성한다.
 
 class Scene(ABC):
 
@@ -1168,6 +1064,8 @@ class REMOGame:
     __showBenchmark = False
     _lastStartedWindow = None
     def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window"):
+
+        REMODatabase._buildPath() ## 경로 파이프라인을 구성한다.
 
         ##파이게임 윈도우가 화면 밖을 벗어나는 문제를 해결하기 위한 코드
         if sys.platform == 'win32':
@@ -1682,16 +1580,16 @@ class imageObj(graphicObj):
 
         if _imgPath:
             if type(_imgPath) ==str:
-                self.graphic_n = Rs.getImage(_imgPath)
+                self.graphic_n = REMODatabase.getImage(_imgPath)
                 self.graphic = self.graphic_n.copy()
             else:
                 ##스프라이트 시트로부터 이미지를 불러올 경우 즉,
                 ##인자로 [이미지 경로, sheetMatrix, index]가 들어올 경우
                 _path, _matrix, _index = _imgPath
-                sheet = Rs.getImage(_path)
+                sheet = REMODatabase.getImage(_path)
                 spriteSize = (sheet.get_rect().w//_matrix[1],sheet.get_rect().h//_matrix[0])
                 target_rect = pygame.Rect((_index%_matrix[1])*spriteSize[0],(_index//_matrix[1])*spriteSize[1],spriteSize[0],spriteSize[1])
-                self.graphic_n = Rs.getSprite(_path,target_rect)
+                self.graphic_n = REMODatabase.getSprite(_path,target_rect)
 
 
         if _rect:
@@ -1751,7 +1649,7 @@ class imageObj(graphicObj):
 
     ##이미지 교환 함수     
     def setImage(self,path):
-        self.graphic_n = Rs.getImage(path)
+        self.graphic_n = REMODatabase.getImage(path)
         self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
 
 
@@ -1960,15 +1858,15 @@ class spriteObj(imageObj):
         ##스프라이트 집합을 만든다.
         if _imageSource:
             if type(_imageSource) == str: #SpriteSheet를 인자로 받을 경우
-                sheet = Rs.getImage(_imageSource)
+                sheet = REMODatabase.getImage(_imageSource)
                 spriteSize = (sheet.get_rect().w//sheetMatrix[1],sheet.get_rect().h//sheetMatrix[0])
                 for y in range(sheetMatrix[0]):
                     for x in range(sheetMatrix[1]):
                         t_rect = pygame.Rect(x*spriteSize[0],y*spriteSize[1],spriteSize[0],spriteSize[1])
-                        self.sprites.append(Rs.getSprite(_imageSource,t_rect))
+                        self.sprites.append(REMODatabase.getSprite(_imageSource,t_rect))
             else:
                 for image in _imageSource:
-                    self.sprites.append(Rs.getImage(image))
+                    self.sprites.append(REMODatabase.getImage(image))
 
         self._angle = 0
         self._scale = 1 
@@ -2437,7 +2335,7 @@ class textBubbleObj(longTextObj):
         bgExist : 말풍선 배경이 존재하는지 여부 \n
         bgColor : 말풍선 배경 색상 \n
         liveTimerDuration : 말풍선 효과를 낼 경우, 해당 오브젝트의 fadeout에 걸리는 시간(밀리초 단위) \n
-        speed : 텍스트를 읽어들이는 속도(밀리초 단위)
+        speed : 텍스트를 읽어들이는 속도(밀리초 단위) 추천값은 영어(60) 한국어(100) \n
         '''
         super().__init__(text, pos=pos, font=font, size=size, color=color, textWidth=textWidth, alpha=alpha)
         self.fullBoundary = copy.copy(self.boundary)  # 텍스트가 전부 출력되었을 경우의 경계를 저장.
@@ -2528,6 +2426,111 @@ class textBubbleObj(longTextObj):
 class REMODatabase:
 
 
+    ##Path pipeline
+
+    __pathData = {}  # 확장자에 따라 경로를 분류하는 딕셔너리
+    __pathPipeline = {}  # 파일명과 실제 경로를 연결하는 딕셔너리
+    __pathException = [".git", ".pyc", ".py"]  # 경로에서 제외할 파일 패턴
+
+    @classmethod
+    def _buildPath(cls):
+        """
+        현재 파일이 포함된 경로의 내부 폴더들을 모두 탐색하여 경로 파이프라인을 구성하는 메서드.
+        """
+        cls.__pathData.clear()
+        cls.__pathPipeline.clear()
+
+        for currentpath, _, files in os.walk('.'):
+            for file in files:
+                if file.startswith("."):  # 숨김 파일은 기본적으로 제외
+                    continue
+
+                path = os.path.join(currentpath, file)
+                if any(ex in path for ex in cls.__pathException):
+                    continue  # 예외 조건에 해당하는 파일은 제외
+
+                extension = os.path.splitext(path)[-1]
+                cls.__pathData.setdefault(extension, []).append(path)
+
+                # 파일 이름 충돌 검사 및 경고 출력
+                if file not in cls.__pathPipeline:
+                    cls.__pathPipeline[file] = path
+                else:
+                    print(f"Possible file conflict: {file} in {path} and {cls.__pathPipeline[file]}")
+
+    @classmethod
+    def addPath(cls, alias: str, path: str):
+        """
+        특정 경로를 파이프라인에 수동으로 추가하는 메서드.
+        
+        :param alias: 파일에 대한 별칭
+        :param path: 실제 파일 경로
+        """
+        cls.__pathPipeline[alias] = path
+        extension = os.path.splitext(path)[-1]
+        cls.__pathData.setdefault(extension, []).append(path)
+
+    @classmethod
+    def getPath(cls, alias: str) -> str:
+        """
+        파일명을 통해 실제 경로를 반환하는 메서드.
+        
+        :param alias: 파일명 또는 경로의 별칭
+        :return: 실제 파일 경로
+        :raises FileNotFoundError: 경로를 찾을 수 없을 때 예외 발생
+        """
+        if alias in cls.__pathPipeline:
+            return cls.__pathPipeline[alias]
+
+        extension = os.path.splitext(alias)[-1]
+        if extension not in cls.__pathData:
+            raise FileNotFoundError(f"Path '{alias}' does not exist!")
+
+        for path in cls.__pathData[extension]:
+            if alias in path:
+                print(f"path {alias} is attached to {path}")
+                cls.__pathPipeline[alias] = path
+                return path
+
+        raise FileNotFoundError(f"Path '{alias}' does not exist!")
+
+    @classmethod
+    def assetExist(cls, alias: str) -> bool:
+        """
+        파일이 실제로 존재하는지 확인하는 메서드.
+        
+        :param alias: 파일명 또는 경로의 별칭
+        :return: 파일이 존재하면 True, 그렇지 않으면 False
+        """
+        return alias in cls.__pathPipeline
+    
+
+    __imagePipeline={}
+    @classmethod
+    def getImage(cls,path) -> pygame.Surface:
+        '''
+        이미지를 로드하여 캐싱하는 함수.\n
+        '''
+        path = cls.getPath(path)
+        if path not in cls.__imagePipeline:
+            cls.__imagePipeline[path]=pygame.image.load(path).convert_alpha()            
+        return cls.__imagePipeline[path]
+    
+    #이미지 스프라이트에서 rect영역을 잘라낸 함수 
+    __spritePipeline={}
+    @classmethod
+    def getSprite(cls,path,rect):
+        '''
+        이미지 스프라이트에서 rect영역만큼 잘라내어 반환하는 함수.\n
+        해당 과정에서 캐싱이 일어난다. \n
+        '''
+        key = (path,str(rect))
+        if key not in cls.__spritePipeline:
+            sprite = cls.getImage(path).subsurface(rect)
+            cls.__spritePipeline[key]=sprite
+        return cls.__spritePipeline[key]
+    
+
     ##File Input/Output
     
     ##피클로 파이썬 객체를 저장한다. 보통 딕셔너리나 리스트 계열을 저장할때 사용
@@ -2614,7 +2617,7 @@ class REMODatabase:
         '''
         if not fileName.endswith('.scrs'):
             fileName += '.scrs'
-        path = Rs.getPath(fileName)
+        path = REMODatabase.getPath(fileName)
         REMODatabase.scriptPipeline.update(REMODatabase.loadData(path))
 
 
@@ -2625,7 +2628,7 @@ class REMODatabase:
         orient: dictionary의 방향. 'index'로 지정할 경우 indexNum의 열을 key로 사용한다.\n
         'records'로 지정할 경우 각 시트를 dictionary list로 불러옵니다.\n
         '''
-        path = Rs.getPath(fileName)
+        path = REMODatabase.getPath(fileName)
         excel_data = pandas.read_excel(path, None)  # None loads all sheets
 
         # Convert each sheet in the Excel file to a list of dictionaries
@@ -3268,7 +3271,7 @@ class scrollLayout(layoutObj):
 ##버튼이 달려있는 팝업창이다.
 class dialogObj(rectObj):
     def __init__(self,rect,title="",content="",buttons=[],*,radius=10,edge=1,color=Cs.black,alpha=255,
-                 font="korean_button.ttf",title_size=40,content_size=30,fontColor=Cs.white,
+                 font="korean_button.ttf",title_size=40,content_size=30,textColor=Cs.white,
                  spacing=20,buttonSize=(200,50)):
         '''
         dialogObj는 다이얼로그 창을 나타내는 오브젝트입니다.\n
@@ -3282,15 +3285,15 @@ class dialogObj(rectObj):
         #TODO: title, content, buttons 선언
 
         if title!="":
-            self.title = textObj(title,pos=(spacing,spacing),size=title_size,font=font,color=fontColor)
-            self.content = longTextObj(content,pos=(spacing,spacing*2+self.title.rect.height),size=content_size,font=font,color=fontColor,textWidth=rect.w-2*spacing)
+            self.title = textObj(title,pos=(spacing,spacing),size=title_size,font=font,color=textColor)
+            self.content = longTextObj(content,pos=(spacing,spacing*2+self.title.rect.height),size=content_size,font=font,color=textColor,textWidth=rect.w-2*spacing)
             self.title.setParent(self)
             self.title.centerx = rect.w//2
         else:
             self.title=None
-            self.content = longTextObj(content,pos=(spacing,spacing*2),size=content_size,font=font,color=fontColor,textWidth=rect.w-2*spacing)
+            self.content = longTextObj(content,pos=(spacing,spacing*2),size=content_size,font=font,color=textColor,textWidth=rect.w-2*spacing)
 
-        self.buttons = buttonLayout(buttons,pos=RPoint(0,0),fontSize=30,buttonSize=buttonSize,spacing=10,fontColor=fontColor,buttonColor=Cs.light(color),isVertical=False)
+        self.buttons = buttonLayout(buttons,pos=RPoint(0,0),fontSize=30,buttonSize=buttonSize,spacing=10,textColor=textColor,buttonColor=Cs.light(color),isVertical=False)
         self.content.centerx = rect.w//2
         self.buttons.midbottom = (rect.w//2,rect.h-spacing)
 
