@@ -61,6 +61,8 @@ class mainScene(Scene):
         self.testScrollLayoutBg = rectObj(self.testScrollLayout.offsetRect.inflate(130,130),color=Cs.mint,edge=5,alpha=225)
         self.testScrollLayoutBg.pos += RPoint(20,0)
         self.testScrollLayoutBg.setParent(self.testScrollLayout,depth=-1)
+
+        self.testBubble = textBubbleObj("Test Bubble is So good to talk and use and you'd never know that it is great!!",pos=(100,100),bgColor=Cs.dark(Cs.grey))
         return
     def init(self):
         return
@@ -75,11 +77,15 @@ class mainScene(Scene):
         self.slider.update()
         self.book.update()
         self.testScrollLayout.update()
+        Rs.acquireDrawLock()
+        self.testBubble.updateText()
+        Rs.releaseDrawLock()
         return
     def draw(self):
         self.imageShadow.draw()
         self.image.draw()
         self.longTextBg.draw()
+        self.testBubble.draw()
         return
 
 

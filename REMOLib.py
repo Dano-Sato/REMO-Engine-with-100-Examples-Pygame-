@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-25 21:00 Update)
+##version 0.2.3 (24-08-30 04:53 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -28,6 +28,7 @@
 #소소한 버그 및 주석 수정 (08-25 20:19)
 #Icons 클래스 및 에셋 추가. kenney.nl cc0 에셋을 사용함. 일부 에셋 이름 변경 (08-25 21:00)
 #textButton 클래스에서 font 추가. 요소 fontColor -> textColor (rename) (08-26 20:01)
+#textBubbleObj 리팩토링 및 주석 추가 (08-30 04:53)
 
 ###
 
@@ -2422,10 +2423,8 @@ class textButton(rectObj):
 
 
 
-##실제로 대사를 한 글자씩 출력하기 위한 오브젝트.        
-##npc의 대사 출력 등에 활용하면 좋다.
 class textBubbleObj(longTextObj):
-    def __init__(self,text="",pos=RPoint(0,0),*,font=None,size=None,color=Cs.white,textWidth=100,alpha=255, bgExist=True, bgColor = Cs.black, liveTimer=None,speed=2):
+    def __init__(self, text="", pos=RPoint(0, 0), *, font=None, size=20, color=Cs.white, textWidth=200, alpha=255, bgExist=True, bgColor=Cs.black, liveTimerDuration=1200, speed=60):
         '''
         NPC 대사 출력 등에 활용할 수 있는 말풍선 오브젝트. \n
         text : 대사 내용 \n
@@ -2437,66 +2436,89 @@ class textBubbleObj(longTextObj):
         alpha : 투명도 \n
         bgExist : 말풍선 배경이 존재하는지 여부 \n
         bgColor : 말풍선 배경 색상 \n
-        liveTimer : 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미 \n
-
-        일반적인 업데이트 함수 대신 .updateText() 함수를 통해 업데이트를 해주면 된다.
-        
+        liveTimerDuration : 말풍선 효과를 낼 경우, 해당 오브젝트의 fadeout에 걸리는 시간(밀리초 단위) \n
+        speed : 텍스트를 읽어들이는 속도(밀리초 단위)
         '''
-        super().__init__(text,pos=pos,font=font,size=size,color=color,textWidth=textWidth,alpha=alpha)
-        self.fullBoundary = copy.copy(self.boundary) ## 텍스트가 전부 출력되었을 경우의 경계를 저장.
-        self.fullSentence = self.text #전체 텍스트를 저장.
+        super().__init__(text, pos=pos, font=font, size=size, color=color, textWidth=textWidth, alpha=alpha)
+        self.fullBoundary = copy.copy(self.boundary)  # 텍스트가 전부 출력되었을 경우의 경계를 저장.
+        self.fullSentence = self.text  # 전체 텍스트를 저장.
         self.text = ""
-        self.speed = speed #텍스트를 읽어들이는 속도(프레임 단위)
-        self.liveTimer = liveTimer ## 말풍선 효과를 낼 경우, 해당 오브젝트가 살아있는 시간을 의미
-        
+        self.speed = speed  # 텍스트를 읽어들이는 속도(밀리초 단위)
+        # 전체 텍스트 재생시간 계산
+        text_duration = len(self.fullSentence) * self.speed  # 텍스트 출력에 걸리는 전체 시간 (밀리초 단위)
+
+        # liveTimer를 텍스트 재생시간 + liveTimerDuration 후에 종료되도록 설정
+        self.liveTimer = RTimer(text_duration + (liveTimerDuration if liveTimerDuration is not None else 0))
         if bgExist:
-            self.bg = textButton("",self.fullBoundary.inflate(40,40),color=bgColor,enabled=False)
+            self.bg = textButton("", self.fullBoundary.inflate(40, 40), color=bgColor, enabled=False)
         else:
             self.bg = None
 
     ##대사 출력이 되고 있는지 확인한다.
     def isVisible(self):
-        return self.liveTimer>0
-        
+        return self.liveTimer.isRunning() if self.liveTimer else False
+
     ##update 함수를 대체하는 함수.
     def updateText(self):
-        if self.liveTimer!=None and self.liveTimer>0:
-            super().update()
-            i = len(self.text)
-            temp = False
-            if i < len(self.fullSentence):
-                if self.liveTimer%self.speed==0:
-                    while i < len(self.fullSentence) and self.fullSentence[i]!=" ":
-                        i+=1
-                    parsedText = self.fullSentence[:i]
-                    l1 = self.getStringList(self.text)[:-1]
-                    l2 = self.getStringList(parsedText)[:-1]
-                    try:
-                        while len(l1[-1]) > len(l2[-1]):
-                            self.text = self.fullSentence[:len(self.text)+1]
-                            l1 = self.getStringList(self.text)[:-1]
-                            temp = True
-                    except:                    
-                        pass
-                    if not temp:
-                        self.text = self.fullSentence[:len(self.text)+1]
-            if self.liveTimer != None and self.liveTimer>0:
-                self.liveTimer -=1
-            
-            if self.liveTimer != None and self.liveTimer<25:
-                self.alpha = int(self.liveTimer*8)
-                if self.bg:
-                    self.bg.alpha = int(self.liveTimer*8)
-                self._update()
-            
+        """
+        텍스트 말풍선을 업데이트하는 함수로, 텍스트를 한 글자씩 출력하고
+        말풍선의 투명도와 생명 주기를 관리합니다.
+        사용 전에 drawLock을 호출해야 정상적으로 보입니다.
+        """
+        # 텍스트 말풍선이 살아있는 동안 업데이트 진행
+        if self.isVisible():
+            self._updateFullTextDisplay()
+            self._adjustTransparency()
+            self._updateBackgroundPosition()
+
+    def _updateFullTextDisplay(self):
+        """
+        전체 텍스트를 한 글자씩 출력합니다.
+        텍스트가 모두 출력될 때까지 self.text를 업데이트합니다.
+        """
+        i = len(self.text)
+        if i < len(self.fullSentence):
+            # 일정 밀리초마다 글자 추가
+            if self.liveTimer.timeElapsed() // self.speed > len(self.text):
+                while i < len(self.fullSentence) and self.fullSentence[i] != " ":
+                    i += 1
+                parsedText = self.fullSentence[:i]
+                l1 = self.getStringList(self.text)[:-1]
+                l2 = self.getStringList(parsedText)[:-1]
+
+                # 현재 줄의 텍스트 길이를 조정하여 한 글자씩 출력
+                if l1 and l2:  # l1과 l2가 모두 비어 있지 않을 때만 비교
+                    while len(l1[-1]) > len(l2[-1]):
+                        self.text = self.fullSentence[:len(self.text) + 1]
+                        l1 = self.getStringList(self.text)[:-1]
+                        if not l1 or not l2:  # 리스트가 비어 있을 경우 비교 중단
+                            break
+
+                self.text = self.fullSentence[:len(self.text) + 1]
+
+
+    def _adjustTransparency(self):
+        """
+        생명 주기가 거의 끝난 말풍선의 투명도를 조정합니다.
+        """
+        if self.liveTimer and self.liveTimer.timeLeft() < 200:  # 200ms 이하일 때
+            self.alpha = int(self.liveTimer.timeLeft() / 200 * 255)
             if self.bg:
-                self.bg.pos = self.geometryPos-RPoint(20,20)
+                self.bg.alpha = int(self.liveTimer.timeLeft() / 200 * 255)
+            self._update()  # 투명도 변경 후 추가적인 업데이트 처리
+
+    def _updateBackgroundPosition(self):
+        """
+        말풍선 배경의 위치를 텍스트의 위치에 맞게 조정합니다.
+        """
+        if self.bg:
+            self.bg.pos = self.geometryPos - RPoint(20, 20)
 
     def draw(self):
-        if self.liveTimer!=None and self.liveTimer>0:
+        if self.isVisible():
             if self.bg:
                 self.bg.draw()
-            super().draw()            
+            super().draw()
 
 
 
@@ -2545,7 +2567,8 @@ class REMODatabase:
     ##{'text1.scr':*lines*, 'text2.scr':*lines*} 형식으로 파이프라인에 저장됨.
     ## prefix를 통해서 지정된 .scr 파일만 묶어서 저장할 수 있다. ex)GAME1_script1.scr GAME1_script2.scr
     ##        
-    def zipScript(outputName,inputs=None,prefix=""):
+    @classmethod
+    def zipScript(cls, outputName,inputs=None,prefix=""):
         '''
         outputName : 저장할 .scrs 파일의 이름\n
         inputs : 묶을 .scr 파일의 이름 리스트(전체 파일들을 묶을 경우 None)\n
@@ -2571,7 +2594,8 @@ class REMODatabase:
         return zipped
 
     ##.scr 파일을 불러와 파이프라인에 저장한다.
-    def loadScript(fileName):
+    @classmethod
+    def loadScript(cls, fileName):
         '''
         fileName : 불러올 .scr 파일의 이름\n
         '''
@@ -2583,7 +2607,8 @@ class REMODatabase:
 
 
     ##.scrs 파일을 불러와 파이프라인에 저장한다.
-    def loadScripts(fileName):
+    @classmethod
+    def loadScripts(cls, fileName):
         '''
         fileName : 불러올 .scrs 파일의 이름\n
         '''
@@ -2593,8 +2618,8 @@ class REMODatabase:
         REMODatabase.scriptPipeline.update(REMODatabase.loadData(path))
 
 
-    ##.xlsx 파일을 불러와 dictionary의 list 형태로 저장한다.    
-    def loadExcel(fileName,orient='index',indexNum=0):
+    @classmethod
+    def loadExcel(cls, fileName,orient='index',indexNum=0):
         '''
         fileName : 불러올 .xlsx 파일의 이름\n
         orient: dictionary의 방향. 'index'로 지정할 경우 indexNum의 열을 key로 사용한다.\n
@@ -3132,13 +3157,13 @@ class buttonLayout(layoutObj):
     '''
     def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=10,
                  isVertical=True,buttonSize=RPoint(200,50),buttonColor = Cs.tiffanyBlue,
-                 fontSize=None,fontColor=Cs.white,font="korean_button.ttf",
+                 fontSize=None,textColor=Cs.white,font="korean_button.ttf",
                  buttonAlpha=225):
         self.buttons = {}
         buttonSize = Rs.Point(buttonSize)
         buttonRect = pygame.Rect(0,0,buttonSize.x,buttonSize.y)
         for name in buttonNames:
-            self.buttons[name]=textButton(name,buttonRect,font=font,size=fontSize,color=buttonColor,fontColor=fontColor,alpha=buttonAlpha)            
+            self.buttons[name]=textButton(name,buttonRect,font=font,size=fontSize,color=buttonColor,textColor=textColor,alpha=buttonAlpha)            
             setattr(self,name,self.buttons[name])
         super().__init__(pos=pos,spacing=spacing,isVertical=isVertical,childs=list(self.buttons.values()))
     def __getitem__(self,key) -> textButton:
