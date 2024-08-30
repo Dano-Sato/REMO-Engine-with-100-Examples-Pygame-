@@ -23,7 +23,7 @@ class REMOLocalizeManager:
         언어를 설정하는 함수입니다.
         '''
         cls.__language = language
-        #cls.updateTexts() # 언어가 변경되면 로컬라이제이션과 관련된 모든 오브젝트의 텍스트를 업데이트합니다.
+        cls.updateAllObjs() # 언어가 변경되면 로컬라이제이션과 관련된 모든 오브젝트의 텍스트를 업데이트합니다.
 
     @classmethod
     def getLanguage(cls):
@@ -49,32 +49,59 @@ class REMOLocalizeManager:
         '''
         obj_id = id(obj)
         REMOLocalizeManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font}
-        REMOLocalizeManager.updateText(obj,key,font=font)
+        REMOLocalizeManager.updateObj(obj,key,font=font)
         return
 
 
     @classmethod
-    def updateText(cls, obj, key,*,font=None):
+    def updateObj(cls, obj, key,*,font=None):
         '''
         개별 오브젝트의 텍스트를 업데이트하는 함수입니다.
         폰트를 지정하면 해당 폰트로 텍스트를 업데이트합니다.
         '''
         language = cls.getLanguage()
-        if language in cls.__translations and key in cls.__translations[language]:
-            translated_text = cls.__translations[language][key]
+        if key in cls.__translations and language in cls.__translations[key]:
+            translated_text = cls.__translations[key][language]
             obj.text = translated_text  # 오브젝트에 번역된 텍스트를 설정하는 메서드
             obj.font = REMOLocalizeManager.getFont(font)
 
     @classmethod
-    def updateTexts(cls):
+    def updateAllObjs(cls):
         '''
         로컬라이제이션 파이프라인에 등록된 모든 오브젝트의 텍스트를 업데이트하는 함수입니다.
         '''
-        for item in cls.__localizationPipeline:
+        for key in cls.__localizationPipeline:
+            item = cls.__localizationPipeline[key]
             obj = item["obj"]
             key = item["key"]
             font = item["font"]
-            cls.updateText(obj, key, font=font)
+            cls.updateObj(obj, key, font=font)
+
+    @classmethod
+    def importTranslations(cls, translations: dict):
+        '''
+        번역 데이터를 가져오는 함수입니다.
+        번역 데이터는 {"hello": {"en": "Hello", "kr": "안녕하세요"}}와 같은 형식으로 구성됩니다.
+        '''
+        cls.__translations.update(translations)
+
+    @classmethod
+    def importFonts(cls, fonts: dict):
+        '''
+        폰트 데이터를 가져오는 함수입니다.
+        폰트 데이터는 {"default": {"en": "Arial", "kr": "맑은 고딕"}}과 같은 형식으로 구성됩니다.
+        '''
+        cls.__fonts.update(fonts)
+
+    @classmethod
+    def getText(cls, key: str):
+        '''
+        키에 해당하는 텍스트를 반환하는 함수입니다.
+        '''
+        language = cls.getLanguage()
+        if key in cls.__translations and language in cls.__translations[key]:
+            return cls.__translations[key][language]
+        raise KeyError(f"Key '{key}' not found in translations for language '{language}'")
 
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
@@ -82,12 +109,24 @@ class Obj:
 
 class mainScene(Scene):
     def initOnce(self):
+        db = REMODatabase.loadExcel('db.xlsx')
+        REMOLocalizeManager.importTranslations(db['ui'])
+        REMOLocalizeManager.importFonts(db['font'])
+        print(db['ui'])
+        self.t = textButton(REMOLocalizeManager.getText("lang"),size=30)
+        REMOLocalizeManager.manageObj(self.t,"lang")
+        self.t.center = Rs.screen.get_rect().center
         return
     def init(self):
         return
     def update(self):
+        if Rs.userJustPressed(pygame.K_a):
+            REMOLocalizeManager.setLanguage("kr")
+        if Rs.userJustPressed(pygame.K_s):
+            REMOLocalizeManager.setLanguage("en")
         return
     def draw(self):
+        self.t.draw()
         return
 
 

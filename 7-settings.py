@@ -113,6 +113,7 @@ class settingScene(Scene):
                         else:
                             button.color = buttonColor
                             button.enabled = True
+                            
                     Rs.releaseDrawLock()
                 return _
             button.connect(f(sheet,option))
