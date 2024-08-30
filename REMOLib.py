@@ -1566,6 +1566,18 @@ class graphicObj():
         else:
             self.graphic = self.graphic_n
         self.childs = {0:[]}        
+
+
+class localizable():
+    '''
+    로컬라이제이션(번역 지원)이 가능한 클래스입니다.
+    '''
+    def localize(self,key,font=None,callback=lambda obj:None):
+        '''
+        오브젝트의 텍스트를 로컬라이제이션하는 함수입니다.
+        '''
+        REMOLocalizeManager.manageObj(self,key,font=font,callback=callback)
+
 #image file Object         
 class imageObj(graphicObj):
     
@@ -1749,7 +1761,7 @@ class rectObj(graphicObj):
         self._makeRect(temp,color,self.edge,self.radius)
 
 
-class textObj(graphicObj):
+class textObj(graphicObj,localizable):
     def __init__(self,text="",pos=(0,0),*,font=None,size=None,color=Cs.white,angle=0):
         '''
         size: 폰트 사이즈
@@ -2045,7 +2057,7 @@ class layoutObj(graphicObj):
 
          
 #긴 텍스트를 처리하기 위한 오브젝트.
-class longTextObj(layoutObj):
+class longTextObj(layoutObj,localizable):
     @classmethod
     def _cutString(cls,font,size,str,textWidth):
         
@@ -2203,7 +2215,7 @@ class imageButton(imageObj):
                 self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
 
             
-class textButton(rectObj):
+class textButton(rectObj,localizable):
     def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
                  font:typing.Optional[str]=None,size:typing.Optional[int]=None,textColor = Cs.white,
                  enabled=True,func=lambda:None,alpha=245):
@@ -2321,7 +2333,7 @@ class textButton(rectObj):
 
 
 
-class textBubbleObj(longTextObj):
+class textBubbleObj(longTextObj,localizable):
     def __init__(self, text="", pos=RPoint(0, 0), *, font=None, size=20, color=Cs.white, textWidth=200, alpha=255, bgExist=True, bgColor=Cs.black, liveTimerDuration=1200, speed=60):
         '''
         NPC 대사 출력 등에 활용할 수 있는 말풍선 오브젝트. \n
@@ -3474,6 +3486,8 @@ class REMOLocalizeManager:
         if key in cls.__translations and language in cls.__translations[key]:
             return cls.__translations[key][language]
         raise KeyError(f"Key '{key}' not found in translations for language '{language}'")
+
+
 
 
 class Icons:
