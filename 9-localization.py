@@ -14,7 +14,7 @@ class REMOLocalizeManager:
     __localizationPipeline = {}  # 로컬라이제이션을 관리할 오브젝트와 키를 저장
     __language = "en"            # 기본 언어는 영어로 설정
     __translations = {}          # 번역 데이터를 저장하는 딕셔너리
-    __fonts = {}                # 폰트 데이터를 저장하는 딕셔너리
+    __fonts = {"default":{"en":"korean_button.ttf","kr":"korean_button.ttf","jp":"japanese_button.ttf"}} # 폰트 데이터를 저장하는 딕셔너리
 
 
     @classmethod
@@ -43,18 +43,19 @@ class REMOLocalizeManager:
             return cls.__fonts[key][REMOLocalizeManager.getLanguage()]
 
     @classmethod
-    def manageObj(cls,obj,key,*,font=None):
+    def manageObj(cls,obj,key,*,font=None,callback=lambda obj:None):
         '''
-        오브젝트의 텍스트를 관리하는 함수입니다.
+        오브젝트의 텍스트를 관리하는 함수입니다. 이후 언어 변경이 있을 때마다 텍스트가 업데이트됩니다.
+        callback을 지정하면 업데이트시 함수가 호출됩니다.
         '''
         obj_id = id(obj)
-        REMOLocalizeManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font}
+        REMOLocalizeManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font,"callback":callback}
         REMOLocalizeManager.updateObj(obj,key,font=font)
         return
 
 
     @classmethod
-    def updateObj(cls, obj, key,*,font=None):
+    def updateObj(cls, obj, key,*,font=None,callback=lambda obj:None):
         '''
         개별 오브젝트의 텍스트를 업데이트하는 함수입니다.
         폰트를 지정하면 해당 폰트로 텍스트를 업데이트합니다.
@@ -64,6 +65,7 @@ class REMOLocalizeManager:
             translated_text = cls.__translations[key][language]
             obj.text = translated_text  # 오브젝트에 번역된 텍스트를 설정하는 메서드
             obj.font = REMOLocalizeManager.getFont(font)
+            callback(obj)
 
     @classmethod
     def updateAllObjs(cls):
@@ -75,7 +77,8 @@ class REMOLocalizeManager:
             obj = item["obj"]
             key = item["key"]
             font = item["font"]
-            cls.updateObj(obj, key, font=font)
+            callback = item["callback"]
+            cls.updateObj(obj, key, font=font, callback=callback)
 
     @classmethod
     def importTranslations(cls, translations: dict):
@@ -110,15 +113,28 @@ class Obj:
 class mainScene(Scene):
     def initOnce(self):
         db = REMODatabase.loadExcel('db.xlsx')
+        REMOLocalizeManager.setLanguage("kr")
         REMOLocalizeManager.importTranslations(db['ui'])
-        REMOLocalizeManager.importFonts(db['font'])
         print(db['ui'])
-        self.t = textButton(REMOLocalizeManager.getText("lang"),size=30)
-        REMOLocalizeManager.manageObj(self.t,"lang")
+        self.t = textObj("",size=30)
+        def centerToScreen(obj):
+            obj.center = Rs.screen.get_rect().center
+        REMOLocalizeManager.manageObj(self.t,"lang",callback=centerToScreen)
         self.t.center = Rs.screen.get_rect().center
         return
+
+
+
+
+
+
+
+
+
+
+
     def init(self):
-        return
+        return  
     def update(self):
         if Rs.userJustPressed(pygame.K_a):
             REMOLocalizeManager.setLanguage("kr")
