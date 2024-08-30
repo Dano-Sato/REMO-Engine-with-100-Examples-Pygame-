@@ -2333,7 +2333,7 @@ class textButton(rectObj,localizable):
 
 
 
-class textBubbleObj(longTextObj,localizable):
+class textBubbleObj(longTextObj):
     def __init__(self, text="", pos=RPoint(0, 0), *, font=None, size=20, color=Cs.white, textWidth=200, alpha=255, bgExist=True, bgColor=Cs.black, liveTimerDuration=1200, speed=60):
         '''
         NPC 대사 출력 등에 활용할 수 있는 말풍선 오브젝트. \n

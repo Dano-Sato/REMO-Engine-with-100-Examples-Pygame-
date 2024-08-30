@@ -4,6 +4,7 @@ from REMOLib import *
 
 '''
 REMO Project에서의 다국어 지원을 위한 클래스를 구상해보고 있습니다.
+주로 UI에 사용되는 텍스트를 다국어로 지원하기 위한 클래스입니다.
 '''
 
 #게임 오브젝트들을 선언하는 곳입니다.
@@ -27,8 +28,6 @@ class mainScene(Scene):
         self.t3 = longTextObj("",pos=RPoint(100,200),size=30)
         self.t3.localize("longText")
 
-        self.t4 = textBubbleObj("",pos=RPoint(700,300),size=30)
-        self.t4.localize("longText")
 
         return
     def init(self):
@@ -39,13 +38,11 @@ class mainScene(Scene):
         if Rs.userJustPressed(pygame.K_s):
             REMOLocalizeManager.setLanguage("en")
         self.t2.update()
-        self.t4.updateText()
         return
     def draw(self):
         self.t.draw()
         self.t2.draw()
         self.t3.draw()
-        self.t4.draw()
         return
 
 
