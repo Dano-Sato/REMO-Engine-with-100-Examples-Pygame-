@@ -23,7 +23,7 @@ class REMOLocalizeManager:
         언어를 설정하는 함수입니다.
         '''
         cls.__language = language
-        cls.updateAllObjs() # 언어가 변경되면 로컬라이제이션과 관련된 모든 오브젝트의 텍스트를 업데이트합니다.
+        cls._updateAllObjs() # 언어가 변경되면 로컬라이제이션과 관련된 모든 오브젝트의 텍스트를 업데이트합니다.
 
     @classmethod
     def getLanguage(cls):
@@ -50,12 +50,12 @@ class REMOLocalizeManager:
         '''
         obj_id = id(obj)
         REMOLocalizeManager.__localizationPipeline[obj_id]={"obj":obj,"key":key,"font":font,"callback":callback}
-        REMOLocalizeManager.updateObj(obj,key,font=font)
+        REMOLocalizeManager._updateObj(obj,key,font=font,callback=callback)
         return
 
 
     @classmethod
-    def updateObj(cls, obj, key,*,font=None,callback=lambda obj:None):
+    def _updateObj(cls, obj, key,*,font=None,callback=lambda obj:None):
         '''
         개별 오브젝트의 텍스트를 업데이트하는 함수입니다.
         폰트를 지정하면 해당 폰트로 텍스트를 업데이트합니다.
@@ -68,7 +68,7 @@ class REMOLocalizeManager:
             callback(obj)
 
     @classmethod
-    def updateAllObjs(cls):
+    def _updateAllObjs(cls):
         '''
         로컬라이제이션 파이프라인에 등록된 모든 오브젝트의 텍스트를 업데이트하는 함수입니다.
         '''
@@ -78,7 +78,7 @@ class REMOLocalizeManager:
             key = item["key"]
             font = item["font"]
             callback = item["callback"]
-            cls.updateObj(obj, key, font=font, callback=callback)
+            cls._updateObj(obj, key, font=font, callback=callback)
 
     @classmethod
     def importTranslations(cls, translations: dict):
@@ -120,7 +120,6 @@ class mainScene(Scene):
         def centerToScreen(obj):
             obj.center = Rs.screen.get_rect().center
         REMOLocalizeManager.manageObj(self.t,"lang",callback=centerToScreen)
-        self.t.center = Rs.screen.get_rect().center
         return
 
 
