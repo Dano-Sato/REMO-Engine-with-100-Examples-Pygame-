@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-08-31 04:08 Update)
+##version 0.2.3 (24-09-01 10:25 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
