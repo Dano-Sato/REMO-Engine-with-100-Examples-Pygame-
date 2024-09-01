@@ -31,6 +31,7 @@
 #textBubbleObj 리팩토링 및 주석 추가. 전반적으로 코드 리팩토링 진행할 예정 (08-30 04:53)
 #path Pipeline 부분을 REMODatabase로 이동. (08-30 05:22)
 #LocalizeManager 클래스 추가. (08-31 04:08)
+#scriptRenderer 버그 해결 (09-01 10:25)
 ###
 
 from __future__ import annotations
@@ -3045,7 +3046,7 @@ class scriptRenderer():
             self.textFrameTimer.reset()
 
         ##점멸 마커 업데이트
-        if self.scriptLoaded():
+        if self.scriptLoaded() and self.scriptObj.getChilds()!=[]:
             ##점멸 표시
             if time.time()>self.endMarker.timer:
                 self.endMarker.timer = time.time()+self.endMarker.tick 
