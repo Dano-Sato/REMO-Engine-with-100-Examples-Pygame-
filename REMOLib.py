@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-09-01 10:25 Update)
+##version 0.2.3 (24-09-06 16:44 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -32,6 +32,9 @@
 #path Pipeline 부분을 REMODatabase로 이동. (08-30 05:22)
 #LocalizeManager 클래스 추가. (08-31 04:08)
 #scriptRenderer 버그 해결 (09-01 10:25)
+#scriptRenderer 리팩토링중 (09-04 03:44)
+#scriptRenderer Q&A 시스템 구현 (09-04 15:30)
+#Rs.future method, layoutObj.adjustBoundary 변경, loadScript 함수 디버그, safeInt 클래스 디버그 (09-06 16:44)
 ###
 
 from __future__ import annotations
@@ -51,7 +54,7 @@ except ImportError:
     sys.exit ()
 
 from abc import *
-from enum import Enum
+from enum import Enum,auto
 import typing
 
 
@@ -255,6 +258,7 @@ class Rs:
     draw_fps = 144
     __window_resolution = (800,600) # 게임 윈도우 해상도
 
+
     def getWindowRes() -> typing.Tuple[int,int]:
         '''
         윈도우 해상도를 반환한다.\n
@@ -356,7 +360,7 @@ class Rs:
         ##change Music 처리
         if Rs.__changeMusic != None:
             if Rs.__changeMusic["Time"]<time.time():
-                Rs.playMusic(Rs.__changeMusic["Name"],volume=Rs.__changeMusic["Volume"])
+                Rs.playMusic(Rs.__changeMusic["Name"],volume=Rs.__changeMusic["Volume"],fadein_ms=Rs.__changeMusic["fadein"])
                 Rs.__changeMusic = None
 
         ##transition(장면 전환) 처리
@@ -508,7 +512,7 @@ class Rs:
     __changeMusic = None
     #여기서의 volume값은 마스터값이 아니라 음원 자체의 볼륨을 조절하기 위한 것이다. 음원이 너무 시끄럽거나 할 때 값을 낮춰잡는 용도
     @classmethod
-    def playMusic(cls,fileName:str,*,loops=-1,start=0.0,volume=1.0):
+    def playMusic(cls,fileName:str,*,loops=-1,start=0.0,volume=1.0,fadein_ms=0):
         '''
         음악 재생. mp3, wav, ogg파일을 지원한다. 중복 스트리밍은 불가능. \n
         loops=-1 인자를 넣을 경우 무한 반복재생. 0을 넣을 경우 반복 안됨
@@ -517,7 +521,7 @@ class Rs:
         '''
         pygame.mixer.music.load(REMODatabase.getPath(fileName))
         pygame.mixer.music.set_volume(volume*Rs.__masterVolume)
-        pygame.mixer.music.play(loops,start)
+        pygame.mixer.music.play(loops,start,fadein_ms)
         Rs.__currentMusic = fileName
         Rs.__musicVolumePipeline[Rs.currentMusic()] = volume ##볼륨 세팅값을 저장
 
@@ -538,7 +542,7 @@ class Rs:
     @classmethod
     def changeMusic(cls,fileName:str,_time=500,volume=1):
         Rs.fadeoutMusic(_time)
-        Rs.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume}
+        Rs.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume,"fadein":_time}
 
     @classmethod
     def currentMusic(cls):
@@ -1003,6 +1007,18 @@ class Rs:
         트랜지션 중인지를 체크하는 함수.\n
         '''
         return Rs.__transitionTimer.isRunning()
+    
+    @classmethod
+    def future(cls,func,time):
+        '''
+        특정 함수를 특정 시간(ms) 뒤에 실행하는 함수.\n
+        '''
+        def f():
+            import time as t
+            t.sleep(time/1000)
+            func()
+        import threading
+        threading.Thread(target=f).start()
 
 
 class Scene(ABC):
@@ -1011,10 +1027,12 @@ class Scene(ABC):
         self.initiated=False
         return
     def _init(self):
+        Rs.acquireDrawLock()
         if self.initiated==False:
             self.initOnce()
             self.initiated = True
         self.init()
+        Rs.releaseDrawLock()
         
     #Scene을 불러올 때마다 initiation 되는 메소드 부분 
     def init(self):
@@ -1895,7 +1913,6 @@ class spriteObj(imageObj):
         if _rect!=None:
             self.rect = _rect
             self.adjustByRect = True       
-        print(self.rect)
         if startFrame==None:
             self.frame = fromSprite # 스프라이트 현재 프레임. 시작 프레임에서부터 시작한다.
         else:
@@ -2010,10 +2027,11 @@ class layoutObj(graphicObj):
     
     def adjustBoundary(self):
         '''
-        레이아웃의 경계를 차일드에 맞게 조정한다.
+        레이아웃의 경계를 depth 0에 해당하는 차일드에 맞게 조정한다.
         '''
-        self.graphic_n = pygame.Surface((self.boundary.w,self.boundary.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
-        self.graphic = self.graphic_n.copy()
+        if self.childs[0]!=[]:
+            self.graphic_n = pygame.Surface((self.getBoundary(0).w,self.getBoundary(0).h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
+            self.graphic = self.graphic_n.copy()
 
 
 
@@ -2617,7 +2635,7 @@ class REMODatabase:
         '''
         if not fileName.endswith('.scr'):
             fileName += '.scr'
-        file = open(fileName,'r',encoding='UTF-8')
+        file = open(REMODatabase.getPath(fileName),'r',encoding='UTF-8')
         lines = file.readlines()
         REMODatabase.scriptPipeline[fileName] = lines
 
@@ -2692,6 +2710,12 @@ class scriptRenderLayouts:
         cls.layouts[name] = layout
 
 
+class scriptMode(Enum):
+    Normal = 0
+    QuestioningStart = 1
+    Questioning = 2
+    Answering = 3
+
 ##작성한 비주얼노벨 스크립트를 화면에 그려주는 오브젝트 클래스.
 class scriptRenderer():
     ##감정 벌룬 스프라이트(emotion-ballon.png)에 담겨진 감정의 순서를 나열한다.
@@ -2741,6 +2765,7 @@ class scriptRenderer():
         
         self.currentScript = "" #현재 출력해야 되는 스크립트
         self.endFunc = endFunc #스크립트가 끝날 경우 실행되는 함수.
+        self.scriptMode = scriptMode.Normal
 
         self.textSpeed=textSpeed
         self.textFrameTimer = RTimer((1000/60)*self.textSpeed) ##텍스트 출력 속도를 조절하는 타이머
@@ -2772,14 +2797,19 @@ class scriptRenderer():
                 self.scriptObj.text = self.currentScript
             elif not self.isEnded():
                 ##다음 스크립트를 불러온다.
-                self.index+=1
+                self.indexIncrement()
                 self.updateScript()
                 self.endMarker.switch = False
             else:
-                ##파일의 재생이 끝남.
-                self._init() ## 초기화(오브젝트를 비운다)
-                self.endFunc()
-                print("script is ended")
+                if self.scriptMode == scriptMode.Normal:
+                    ##파일의 재생이 끝남.
+                    self._init() ## 초기화(오브젝트를 비운다)
+                    self.endFunc()
+                    print("script is ended")
+                elif self.scriptMode == scriptMode.Answering:
+                    self.scriptMode = scriptMode.Questioning
+                    self.qnaIndex = 0
+                    self.updateScript()
 
         self.scriptBgObj.connect(nextScript)
         self.updateScript()
@@ -2792,13 +2822,26 @@ class scriptRenderer():
 
     ##전체 파일을 다 읽었는지 확인하는 함수.
     def isEnded(self):
-        if self.index == len(self.data)-1:
-            return True
-        return False
+        if self.scriptMode == scriptMode.Normal:
+            if self.index == len(self.data)-1:
+                return True
+            return False
+        elif self.scriptMode == scriptMode.Answering:
+            if self.qnaIndex == len(self.answers[self.currentCase])-1:
+                return True
+            return False
+        return True
 
     @property
     def currentLine(self):
-        return self.data[self.index]
+        if self.scriptMode == scriptMode.Normal:
+            return self.data[self.index].strip()
+        elif self.scriptMode == scriptMode.Questioning:
+            return self.qnaScript.strip()
+        elif self.scriptMode == scriptMode.QuestioningStart:
+            return self.lastScript.strip()
+        elif self.scriptMode == scriptMode.Answering:
+            return self.answers[self.currentCase][self.qnaIndex].strip()
     
     ##렌더러의 폰트 변경.
     def setFont(self,font):
@@ -2816,186 +2859,266 @@ class scriptRenderer():
                 moveInst.append(move)
 
 
-
     def updateScript(self):
-
-
+        """
+        현재 스크립트 라인을 처리하는 함수.\n
         
-        ### '#'태그 처리
-        # #bgm -> 배경음악 설정. volume 인자가 있다.
-        ## ex: '#bgm music.mp3 volume=0.7'
-        # #sound -> 효과음 설정. volume 인자가 있다.
-        ## ex: '#sound sound1.wav volume=0.3'
-        # #bg -> 배경 설정
-        ## ex: '#bg bg1.png'
-        # #image -> 이미지를 설정한다. pos, scale 인자가 있다.
-        ## ex: '#image Man1.png pos=RPoint(50,80) scale=1'
-        # #clear -> (배경을 제외한)이미지들을 제거한다. '#clear' 만으로 작동.
-        # #chara #chara1 #chara2 #chara3 -> 캐릭터를 설정한다. pos, scale 인자가 있으며, 파일명만 넣을 경우
-        while self.currentLine[0]=="#":
-            ##TODO: 블록 작성
+        이 함수는 현재 스크립트에서 명령어로 시작하는 라인을 처리합니다.\n
+        명령어는 '#'로 시작하며, 이 함수는 각 명령어에 맞는 처리를 수행합니다.\n
+        
+        주요 기능:\n
+        - 스크립트 라인이 '#'로 시작하는 경우, 해당 태그를 분석하고 적절한 처리를 실행.\n
+        - '#question' 태그를 만나면 Q&A 모드를 시작.\n
+        - '#clear', '#bgm', '#sound', '#bg', '#chara', '#image' 등의 태그에 따라 각각의 처리 메소드를 호출.\n
+        - 스크립트 라인이 명령어가 아닌 경우, 일반적인 대사 처리로 넘어감.\n
+        
+        주의사항:\n
+        - 지원되지 않는 태그를 만나면 예외(Exception)를 발생시킴.\n
+        - 현재 인덱스가 스크립트 데이터의 끝에 도달하면 함수를 종료함.\n
+        """    
+
+        ## 명령어 처리 ##
+        while self.currentLine[0] == "#":
             l = self.currentLine.split()
-            tag = l[0] # tag : '#bgm','#bg','#image'같은 부분
-            if tag=='#clear':
-                ##이미지들을 지운다.
-                self.imageObjs=[]
-                self.charaObjs=[None,None,None]
-                self.moveInstructions = [[],[],[]] ## 움직임 초기화
-                self.index+=1
-                continue
+            tag = l[0]  # Tag : '#bgm', '#bg', '#image' 등의 태그
+            fileName, parameters = self.parse_parameters(l[1:])
 
-            fileName = None # 파일명
-            parameters = {} # parameters : 태그와 파일명을 제외한 인자들.
-            
-            ##각 니블 분석
-            #예를 들면, 'volume=1' 인자는 parameters에 {'volume':'1'}로 저장된다.
-            for nibble in l[1:]:
-                if '=' in nibble:
-                    param_name,param_value = nibble.split("=")
-                    parameters[param_name]=param_value
-                else:
-                    #'.'가 들어있는 니블은 파일명 ex)"test.png"
-                    if '.' in nibble:
-                        fileName = nibble
-                    else: ##기타 명령어
-                        if nibble=='jump': ##점프한다.
-                            parameters['jump']=12
-
-
-
-            ###태그 처리 분기문## 
-            ##배경음악 재생
-            if tag=='#bgm':
-                if 'volume' in parameters:
-                    _volume = float(parameters['volume'])
-                else:
-                    _volume = 1.0
-                
-                Rs.changeMusic(fileName,volume=_volume)
-            ##효과음 재생                
-            elif tag=='#sound':
-                if 'volume' in parameters:
-                    _volume = float(parameters['volume'])
-                else:
-                    _volume = 1.0
-                
-                Rs.playSound(fileName,volume=_volume)
-            ##배경 교체
-            elif tag=='#bg':
-                self.bgObj = imageObj(fileName,Rs.screen.get_rect())
-
-            ##캐릭터 관련 태그                
-            elif '#chara' in tag: ## #chara1 #chara2 #chara3 #chara(=#chara1)
-                if tag=='#chara':
-                    num=0
-                else:
-                    num = int(tag[-1])-1
-                if 'pos' in parameters:
-                    _pos = eval(parameters['pos'])
-                else:
-                    _pos = RPoint(0,0)            
-                if 'scale' in parameters:
-                    _scale = float(parameters['scale'])
-                else:
-                    _scale = 1
-
-                ##캐릭터 스프라이트 처리
-                if fileName:
-                    if self.charaObjs[num]:
-                        self.charaObjs[num].setImage(fileName)
-                    else:
-                        self.charaObjs[num] = imageObj(fileName,pos=_pos,scale=_scale)
-
-                ##감정 표현 처리
-                if 'emotion' in parameters:
-                    try:
-                        emotion = parameters['emotion']
-                        i = scriptRenderer.emotions.index(emotion)
-                        e_pos = RPoint(self.charaObjs[num].rect.centerx,30)
-                        Rs.playAnimation(scriptRenderer.emotionSpriteFile,stay=scriptRenderer.emotionTime,pos=e_pos,sheetMatrix=(13,8),fromSprite=8*i,toSprite=8*(i+1)-1,frameDuration=125,scale=2)
-                        self.emotionTimer = time.time()+scriptRenderer.emotionTime/1000.0
-                    except:
-
-                        raise Exception("Emotion not Supported: "+emotion+", currently supported are:"+str(scriptRenderer.emotions))
-
-                ##캐릭터 점프
-                if 'jump' in parameters:
-
-                    ##점프 지시를 넣는다.
-                    j_pos = -int(parameters['jump'])
-                    jumpInstruction = []
-                    if j_pos>0:
-                        d=-2
-                    else:
-                        d=2
-                    temp = j_pos
-                    sum = temp
-                    while sum != 0:
-                        jumpInstruction.append(RPoint(0,temp))
-                        temp+=d
-                        sum += temp                        
-                    jumpInstruction.append(RPoint(0,temp))
-
-                    self.makeMove(num,jumpInstruction)
-                
-                ##캐릭터 수평이동
-                if 'move' in parameters:
-                    m_pos = int(parameters['move'])
-                    moveInstruction = []
-                    temp = m_pos
-                    while temp!=0:
-                        if abs(temp)<=2:
-                            d = temp
-                        else:
-                            d =temp*0.05
-                            if 0<d<1:
-                                d=1
-                            elif -1<d<0:
-                                d=-1
-                            d= int(d)
-                        temp-=d
-                        moveInstruction.append(RPoint(d,0))
-                    
-                    self.makeMove(num,moveInstruction)
-
-
-
-            elif tag=='#image':
-                if 'pos' in parameters:
-                    _pos = eval(parameters['pos'])
-                else:
-                    _pos = RPoint(0,0)
-            
-                if 'scale' in parameters:
-                    _scale = float(parameters['scale'])
-                else:
-                    _scale = 1
-
-                obj = imageObj(fileName,pos=_pos,scale=_scale)
-                self.imageObjs.append(obj)
+            if tag == '#qna_open':
+                self.startQnaMode(l)
+            elif tag == '#clear':
+                self.clearImages()
+            elif tag == '#bgm':
+                self.handleBgm(fileName, parameters)
+            elif tag == '#sound':
+                self.handleSound(fileName, parameters)
+            elif tag == '#bg':
+                self.handleBg(fileName)
+            elif '#chara' in tag:
+                self.handleChara(tag, fileName, parameters)
+            elif tag == '#image':
+                self.handleImage(fileName, parameters)
             else:
-                raise Exception("Tag Not Supported, please check the script file(.scr): "+self.currentLine)
-            ###
+                raise Exception("Tag Not Supported, please check the script file(.scr): " + self.currentLine)
 
-            if self.index == len(self.data)-1:
+            if self.index == len(self.data) - 1:
                 return
-            self.index+=1
+            self.indexIncrement()
 
-        ##스크립트 처리##
-        ##ex: '민혁: 너는 왜 그렇게 생각해?'
-        if ":" in self.currentLine:
-            name,script = self.currentLine.split(":")
+        ## 스크립트 처리 ##
+        ## ex: '민혁: 너는 왜 그렇게 생각해?'
+        self.handleScriptLine(self.currentLine)
+
+    def indexIncrement(self):
+        if self.scriptMode == scriptMode.Normal:
+            self.index += 1
+        elif self.scriptMode == scriptMode.Questioning:
+            return
+        elif self.scriptMode == scriptMode.QuestioningStart:
+            return
+        elif self.scriptMode == scriptMode.Answering:
+            self.qnaIndex += 1
+
+    def startQnaMode(self, l):
+        '''
+        질문과 답변 모드를 시작하는 함수입니다.
+        '''
+        try:
+            self.qnaScript = self.data[self.index-1]
+            self.lastScript = self.qnaScript
+        except IndexError:
+            raise IndexError("선택지 이전에 qna를 시작하는 스크립트가 없습니다.")
+        
+        self.qnaIndex = 0
+        # 선택지 파싱
+        choice_string = " ".join(l[1:])  # l[1:] 부분을 하나의 문자열로 결합
+        self.choices = self.parse_choices(choice_string)
+        self.questionButtons = buttonLayout(self.choices,RPoint(0,0),buttonSize=RPoint(700,100),spacing=30,buttonColor=Cs.black)
+        for i,button in enumerate(self.questionButtons.getChilds()[:-1]):
+            def selectAnswer(i,button):
+                def x():
+                    self.currentCase = i+1
+                    self.scriptMode = scriptMode.Answering
+                    button.setParent(None)
+                    self.questionButtons._clearGraphicCache()
+                    self.questionButtons.adjustBoundary()
+                    self.questionButtons.center = RPoint(950,360)
+                    self.updateScript()
+                return x
+            button.connect(selectAnswer(i,button))
+        def endQna():
+            self.scriptMode = scriptMode.Normal
+            self.indexIncrement()
+            self.updateScript()
+        self.questionButtons.getChilds()[-1].connect(endQna)
+
+        self.questionButtons.center = RPoint(950,360)
+        self.answers = {}
+        self.currentCase = None
+
+        # while문으로 #close까지 스크립트 읽어들이기
+        while True:
+            self.index += 1
+            if self.index >= len(self.data):
+                raise Exception("Unexpected end of script while in listening mode.")            
+            if self.currentLine.startswith("#qna_script"):
+                sentence = self.currentLine.split(" ",1)[1]
+                self.qnaScript = sentence
+            elif self.currentLine.startswith("#answer"):
+                answer_number = int(self.currentLine[7:])  # '#answerX'에서 'X' 추출
+                self.currentCase = answer_number
+                self.answers[answer_number] = []  # 새로운 case 스크립트 저장 공간 생성
+            elif self.currentLine.startswith("#qna_close"):
+                break
+            elif self.currentCase is not None:
+                self.answers[self.currentCase].append(self.currentLine)        
+
+        self.currentCase = None # 현재 선택지 초기화. 선택시 다시 설정됨.
+        self.scriptMode = scriptMode.QuestioningStart
+
+
+    def parse_choices(self, choice_string):
+        import re
+        # 정규 표현식을 사용하여 선택지를 나누기
+        return [choice.strip() for choice in re.split(r' / ', choice_string)]
+
+    def parse_parameters(self, l):
+        fileName = None
+        parameters = {}
+        for nibble in l:
+            if '=' in nibble:
+                param_name, param_value = nibble.split("=")
+                parameters[param_name] = param_value
+            elif '.' in nibble:
+                fileName = nibble
+            else:
+                if nibble == 'jump':
+                    parameters['jump'] = 12
+                if nibble == 'clear':
+                    parameters['clear'] = True
+        return fileName, parameters
+
+    def clearImages(self):
+        self.imageObjs = []
+        self.charaObjs = [None, None, None]
+        self.moveInstructions = [[], [], []]  # 움직임 초기화
+
+    def handleBgm(self, fileName, parameters):
+        _volume = float(parameters.get('volume', 1.0))
+        Rs.changeMusic(fileName, volume=_volume)
+
+    def handleSound(self, fileName, parameters):
+        _volume = float(parameters.get('volume', 1.0))
+        Rs.playSound(fileName, volume=_volume)
+
+    def handleBg(self, fileName):
+        self.bgObj = imageObj(fileName, Rs.screen.get_rect())
+
+    def handleChara(self, tag, fileName, parameters):
+        num = 0 if tag == '#chara' else int(tag[-1]) - 1
+        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _scale = float(parameters.get('scale', 1))
+
+        if fileName:
+            if self.charaObjs[num]:
+                self.charaObjs[num].setImage(fileName)
+            else:
+                self.charaObjs[num] = imageObj(fileName, pos=_pos, scale=_scale)
+
+        if 'emotion' in parameters:
+            self.apply_emotion(num, parameters['emotion'])
+
+        if 'jump' in parameters:
+            self.apply_jump(num, parameters['jump'])
+
+        if 'move' in parameters:
+            self.apply_move(num, parameters['move'])
+
+        if 'clear' in parameters:
+            self.charaObjs[num] = None
+
+    def apply_emotion(self, num, emotion):
+        try:
+            i = scriptRenderer.emotions.index(emotion)
+            e_pos = RPoint(self.charaObjs[num].rect.centerx, 30)
+            Rs.playAnimation(
+                scriptRenderer.emotionSpriteFile,
+                stay=scriptRenderer.emotionTime,
+                pos=e_pos,
+                sheetMatrix=(13, 8),
+                fromSprite=8 * i,
+                toSprite=8 * (i + 1) - 1,
+                frameDuration=125,
+                scale=2
+            )
+            self.emotionTimer = time.time() + scriptRenderer.emotionTime / 1000.0
+        except ValueError:
+            raise Exception("Emotion not Supported: " + emotion +
+                            ", currently supported are:" + str(scriptRenderer.emotions))
+
+    def apply_jump(self, num, jump_value):
+        j_pos = -int(jump_value)
+        jumpInstruction = []
+        d = -2 if j_pos > 0 else 2
+        temp = j_pos
+        sum = temp
+        while sum != 0:
+            jumpInstruction.append(RPoint(0, temp))
+            temp += d
+            sum += temp
+        jumpInstruction.append(RPoint(0, temp))
+
+        self.makeMove(num, jumpInstruction)
+
+    def apply_move(self, num, move_value):
+        m_pos = int(move_value)
+        moveInstruction = []
+        temp = m_pos
+        while temp != 0:
+            if abs(temp) <= 2:
+                d = temp
+            else:
+                d = int(temp * 0.05)
+                if d == 0:  # d가 0이면 루프가 멈추지 않으므로, 강제로 1 또는 -1로 설정
+                    d = 1 if temp > 0 else -1
+            temp -= d
+            moveInstruction.append(RPoint(d, 0))
+
+        self.makeMove(num, moveInstruction)
+
+    def handleImage(self, fileName, parameters):
+        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _scale = float(parameters.get('scale', 1))
+
+        obj = imageObj(fileName, pos=_pos, scale=_scale)
+        self.imageObjs.append(obj)
+
+    def handleScriptLine(self,line):
+        '''
+        line : "이름: 대사" 형식의 스크립트 라인
+        line을 받아서 GUI에 출력할 수 있도록 처리한다.
+        '''
+        if self.scriptMode == scriptMode.QuestioningStart:
+            return
+        if ":" in line:
+            name, script = line.split(":")
             script = script.strip()
 
-            self.nameObj = textButton(name,rect=self.layout["name-rect"],font=self.font,size=self.layout['font-size'],enabled=False,color=Cs.hexColor("222222"))
+            self.nameObj = textButton(
+                name,
+                rect=self.layout["name-rect"],
+                font=self.font,
+                size=self.layout['font-size'],
+                enabled=False,
+                color=Cs.hexColor("222222")
+            )
             if "name-alpha" in self.layout:
                 self.nameObj.alpha = self.layout["name-alpha"]
             self.currentScript = script
         else:
             self.nameObj.textObj.text = ""
-            self.currentScript = self.currentLine.strip()
-        self.scriptObj.text=""
+            self.currentScript = line.strip()
 
+        self.scriptObj.text = ""
 
 
 
@@ -3056,6 +3179,9 @@ class scriptRenderer():
             if self.endMarker.bottomleft != markerPos:
                 self.endMarker.bottomleft = markerPos
 
+        ## 질문용 선택지 업데이트
+        if self.scriptMode == scriptMode.Questioning or self.scriptMode == scriptMode.QuestioningStart:
+            self.questionButtons.update()
 
 
 
@@ -3075,6 +3201,8 @@ class scriptRenderer():
             self.nameObj.textObj.draw()
         for emotion in self.emotionObjs:
             emotion.draw()
+        if self.scriptMode == scriptMode.Questioning or self.scriptMode == scriptMode.QuestioningStart:
+            self.questionButtons.draw()
 
 
 
@@ -3357,8 +3485,7 @@ class safeInt:
 
     def __init__(self,value:int):
         self.__m = self.__makeOffset()
-        self.__n = value - self.__m
-        print(self.__m,self.__n)
+        self.__n = int(value) - self.__m
 
     @property
     def value(self):
@@ -3367,16 +3494,16 @@ class safeInt:
     @value.setter
     def value(self,value):
         self.__m = self.__makeOffset()
-        self.__n = value - self.__m
+        self.__n = int(value) - self.__m
 
     def __add__(self,other):
-        return safeInt(self.value+other)
+        return safeInt(self.value+int(other))
     def __sub__(self,other):
-        return safeInt(self.value-other)
+        return safeInt(self.value-int(other))
     def __mul__(self,other):
-        return safeInt(self.value*other)
+        return safeInt(self.value*int(other))
     def __truediv__(self,other):
-        return safeInt(self.value//other)
+        return safeInt(self.value//int(other))
     def __str__(self):
         return str(self.value)
     def __int__(self):
