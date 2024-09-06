@@ -835,34 +835,6 @@ class Rs:
         threading.Thread(target=f).start()
 
 
-class Scene(ABC):
-
-    def __init__(self):
-        self.initiated=False
-        return
-    def _init(self):
-        Rs.acquireDrawLock()
-        if self.initiated==False:
-            self.initOnce()
-            self.initiated = True
-        self.init()
-        Rs.releaseDrawLock()
-        
-    #Scene을 불러올 때마다 initiation 되는 메소드 부분 
-    def init(self):
-        return
-    
-    #Scene을 처음 불러올때만 initiation 되는 메소드
-    def initOnce(self):
-        return
-
-    def update(self):
-        #update childs
-        #if child has update method, it updates child
-        return
-    def draw(self):
-        #draw childs
-        return
 
 #target_fps에 맞게 그리기 함수를 호출하는 스레드
 
@@ -3059,44 +3031,4 @@ class dialogObj(rectObj):
                 
 
 
-
-class safeInt:
-    bigNumber = 2147483648
-    '''
-    안전한 정수형 클래스입니다.
-    실제 값을 저장하지 않으며 getter에서만 반환됩니다.
-    '''
-
-    def __makeOffset(self):
-        return random.randint(-safeInt.bigNumber,safeInt.bigNumber)
-
-    def __init__(self,value:int):
-        self.__m = self.__makeOffset()
-        self.__n = int(value) - self.__m
-
-    @property
-    def value(self):
-        return self.__m + self.__n
-    
-    @value.setter
-    def value(self,value):
-        self.__m = self.__makeOffset()
-        self.__n = int(value) - self.__m
-
-    def __add__(self,other):
-        return safeInt(self.value+int(other))
-    def __sub__(self,other):
-        return safeInt(self.value-int(other))
-    def __mul__(self,other):
-        return safeInt(self.value*int(other))
-    def __truediv__(self,other):
-        return safeInt(self.value//int(other))
-    def __str__(self):
-        return str(self.value)
-    def __int__(self):
-        return self.value
-    def __float__(self):
-        return float(self.value)
-    def __repr__(self) -> str:
-        return "safeInt({0})".format(str(self.value))
 

@@ -1,4 +1,5 @@
 import pygame,math,typing,random
+from abc import ABC
 
 
 ## Idea from Pyside2.QPoint
@@ -172,3 +173,34 @@ class safeInt:
     def __repr__(self) -> str:
         return "safeInt({0})".format(str(self.value))
 
+
+
+class Scene(ABC):
+
+    def __init__(self):
+        self.initiated=False
+        return
+    def _init(self):
+        from .core import Rs
+        Rs.acquireDrawLock()
+        if self.initiated==False:
+            self.initOnce()
+            self.initiated = True
+        self.init()
+        Rs.releaseDrawLock()
+        
+    #Scene을 불러올 때마다 initiation 되는 메소드 부분 
+    def init(self):
+        return
+    
+    #Scene을 처음 불러올때만 initiation 되는 메소드
+    def initOnce(self):
+        return
+
+    def update(self):
+        #update childs
+        #if child has update method, it updates child
+        return
+    def draw(self):
+        #draw childs
+        return
