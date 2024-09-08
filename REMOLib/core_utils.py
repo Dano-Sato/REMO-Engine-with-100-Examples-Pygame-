@@ -34,13 +34,25 @@ class RPoint():
         self.__y = x
     
     def __add__(self,p2):
+        if type(p2) != RPoint:
+            p2 = RPoint(p2)
         return RPoint(self.x+p2.x,self.y+p2.y)
+    # 후열 덧셈 연산자
+    def __radd__(self, p2):
+        return self.__add__(p2)        
     def __sub__(self,p2):
+        if type(p2) != RPoint:
+            p2 = RPoint(p2)
         return RPoint(self.x-p2.x,self.y-p2.y)
+    # 후열 뺄셈 연산자
+    def __rsub__(self, p2):
+        if type(p2) != RPoint:
+            p2 = RPoint(p2)
+        return RPoint(p2.x - self.x, p2.y - self.y)    
     def __mul__(self,m):
         return RPoint(int(self.x*m),int(self.y*m))
     def __rmul__(self,m):
-        return RPoint(int(self.x*m),int(self.y*m))
+        return self.__mul__(m)
     def __truediv__(self,m):
         return RPoint(int(self.x/m),int(self.y/m))
     def __floordiv__(self,m):
@@ -173,6 +185,24 @@ class safeInt:
     def __repr__(self) -> str:
         return "safeInt({0})".format(str(self.value))
 
+    # Comparison operators
+    def __eq__(self, other):
+        return self.value == other
+    
+    def __ne__(self, other):
+        return self.value != other
+    
+    def __lt__(self, other):
+        return self.value < other
+    
+    def __le__(self, other):
+        return self.value <= other
+    
+    def __gt__(self, other):
+        return self.value > other
+    
+    def __ge__(self, other):
+        return self.value >= other
 
 
 class Scene(ABC):

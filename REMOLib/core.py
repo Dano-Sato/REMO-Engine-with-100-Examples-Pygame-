@@ -1,7 +1,7 @@
 ###REMO Engine 
 #Pygames 모듈을 리패키징하는 REMO Library 모듈
 #2D Assets Game을 위한 생산성 높은 게임 엔진을 목표로 한다.
-##version 0.2.3 (24-09-06 16:44 Update)
+##version 0.2.3 (24-09-08 16:03 Update)
 #업데이트 내용
 #playVoice 함수 추가
 #소소한 디버깅과 주석 수정(08-15 21:01)
@@ -35,6 +35,7 @@
 #scriptRenderer 리팩토링중 (09-04 03:44)
 #scriptRenderer Q&A 시스템 구현 (09-04 15:30)
 #Rs.future method, layoutObj.adjustBoundary 변경, loadScript 함수 디버그, safeInt 클래스 디버그 (09-06 16:44)
+#RPoint에 후열 연산 추가 (09-08 16:03)
 ###
 
 from __future__ import annotations
