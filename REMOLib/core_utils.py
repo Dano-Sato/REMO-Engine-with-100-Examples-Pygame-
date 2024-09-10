@@ -49,6 +49,11 @@ class RPoint():
         if type(p2) != RPoint:
             p2 = RPoint(p2)
         return RPoint(p2.x - self.x, p2.y - self.y)    
+
+    ##음수 연산자
+    def __neg__(self):
+        return RPoint(-self.x, -self.y)
+
     def __mul__(self,m):
         return RPoint(int(self.x*m),int(self.y*m))
     def __rmul__(self,m):
@@ -77,10 +82,15 @@ class RPoint():
     def distance(self,p2) -> float:
         return math.dist(self.toTuple(),p2.toTuple())
     ## 포인트 p2로 speed값만큼 이동한 결과를 반환한다. 
-    def moveTo(self,p2,speed=None):
+    def moveTo(self,p2,speed=None,*,smoothness=5):
+        '''
+        p2로 이동하는 함수\n
+        speed : 이동속도\n
+        smoothness : 이동의 매끄러움을 조절하는 값으로, 거리가 멀면 더 빠르게, 가까우면 더 느리게 이동하는 효과를 줍니다. 더 큰 값일수록 속도가 부드럽게 증가합니다.\n
+        '''
         d = self.distance(p2)
-        if speed==None: #스피드를 정하지 않을경우, 자연스러운 속도로 정해진다
-            speed=max(d/5,2)
+        if speed==None: #스피드를 정하지 않을경우, 거리에 비례하는 속도로 정해진다
+            speed=max(d/smoothness,2)
         if d <= speed:
             return p2 ##도달
         else:
