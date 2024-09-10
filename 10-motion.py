@@ -56,6 +56,32 @@ class RMotion:
                     motion["callback"]()
                 motion["timer"].reset()
         return
+    
+    @classmethod
+    def jump(cls,obj:graphicObj,delta:RPoint,*,frameDuration = 1000/60,callback = lambda:None,gravity=4):
+        '''
+        지정한 오브젝트를 주어진 변위 `delta`만큼 점프시키는 함수입니다.\n
+        obj: 점프할 그래픽 오브젝트\n
+        delta: 점프 변위 (RPoint)\n
+        frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
+        callback: 점프가 끝났을 때 호출할 함수 (기본값: 빈 함수)\n
+        smoothness: 점프의 부드러움을 조절하는 값 (기본값: 8, 값이 클수록 점프가 부드럽고 느려짐)\n
+        '''
+        d = delta.distance(RPoint(0,0))
+        v = math.sqrt(2*gravity*d)
+        g = gravity
+        inst = []
+        temp = RPoint(0,0)
+        while True:
+            _d =(v/d)*delta
+            inst.append(_d)
+            temp += _d
+            if v<g:
+                break
+            v -= g
+        inst.extend([-x for x in reversed(inst)])
+        cls.__motionPipeline.append({"obj":obj,"inst":inst,"timer":RTimer(frameDuration),"callback":callback})
+ 
 
 
 
@@ -74,8 +100,11 @@ class mainScene(Scene):
         self.t = textObj("Hello",size=30)
         self.t.center = Rs.screen.get_rect().center
         #RMotion.move(self.t,RPoint(mainScene.d,0))
-        #RMotion.jump(self.t,RPoint(0,-500),smoothness=5)
-        RMotion.shake(self.t,intensity=RPoint(10,10),count=30,frameDuration=1000/30)
+        self.j = RPoint(0,50)
+        RMotion.jump(self.t,self.j,gravity=16)
+        self.red = rectObj(pygame.Rect(0,0,10,10),color=Cs.red) 
+        self.red.center = self.t.pos+self.j  
+        #RMotion.shake(self.t,intensity=RPoint(10,10),count=30,frameDuration=1000/60)
         self.switch = True
         return
     def init(self):
@@ -88,9 +117,13 @@ class mainScene(Scene):
                 RMotion.move(self.t,RPoint(0,mainScene.d),callback=lambda:setattr(self.t,'color',Cs.red))
             else:
                 RMotion.move(self.t,RPoint(0,-mainScene.d),callback=lambda:setattr(self.t,'color',Cs.blue))
+        if Rs.userJustRightClicked():
+            RMotion.jump(self.t,self.j,gravity=16)
+
         return
     def draw(self):
         self.t.draw()
+        self.red.draw()
         return
 
 
