@@ -61,6 +61,7 @@ class RMotion:
     def jump(cls,obj:graphicObj,delta:RPoint,*,frameDuration = 1000/60,callback = lambda:None,gravity=4):
         '''
         지정한 오브젝트를 주어진 변위 `delta`만큼 점프시키는 함수입니다.\n
+        알고리즘 특성상 변위가 정확하지 않은 경우가 있습니다.
         obj: 점프할 그래픽 오브젝트\n
         delta: 점프 변위 (RPoint)\n
         frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
@@ -104,7 +105,7 @@ class mainScene(Scene):
         RMotion.jump(self.t,self.j,gravity=16)
         self.red = rectObj(pygame.Rect(0,0,10,10),color=Cs.red) 
         self.red.center = self.t.pos+self.j  
-        #RMotion.shake(self.t,intensity=RPoint(10,10),count=30,frameDuration=1000/60)
+        RMotion.shake(self.t,intensity=RPoint(10,10),count=30,frameDuration=1000/60)
         self.switch = True
         return
     def init(self):

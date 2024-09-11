@@ -15,7 +15,7 @@ class Obj:
 class mainScene(Scene):
     def initOnce(self):
         test = "6_test.assets"
-        testpath = Rs.getPath("hexagon.png")
+        testpath = REMODatabase.getPath("hexagon.png")
         with open(testpath, 'rb') as file:
             data_as_binary = file.read()        
         REMODatabase.saveData(test,data_as_binary)
@@ -32,6 +32,7 @@ class mainScene(Scene):
     def update(self):
         return
     def draw(self):
+        Rs.fillScreen(Cs.white)
         Rs.screen.blit(self.image,(0,0))
         return
 
