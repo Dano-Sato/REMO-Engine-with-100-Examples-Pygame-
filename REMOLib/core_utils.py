@@ -1,6 +1,9 @@
 import pygame,math,typing,random
 from abc import ABC
 
+'''
+REMO Library의 기본 요소들을 정의하는 모듈입니다.
+'''
 
 ## Idea from Pyside2.QPoint
 ## includes all of the method of QPoint + additional methods

@@ -106,6 +106,8 @@ class Rs:
 
 
     __fullScreen = False # 풀스크린 여부를 체크하는 인자
+    windowFlag = 0 # 파이게임 창 플래그
+    events = [] # 파이게임 이벤트를 저장하는 인자
     draggedObj = None # 드래깅되는 오브젝트를 추적하는 인자
     dropFunc = lambda:None # 드래깅이 끝났을 때 실행되는 함수
     
@@ -232,9 +234,9 @@ class Rs:
     @classmethod
     def __updateWindow(cls):
         if Rs.isFullScreen():
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE)
+            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE | Rs.windowFlag)
         else:
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.DOUBLEBUF | pygame.HWSURFACE)
+            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.DOUBLEBUF | pygame.HWSURFACE | Rs.windowFlag)
         #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
         x,y = Rs.getWindowRes()
         Rs._mouseTransformer=(Rs.screen_size[0]/x,Rs.screen_size[1]/y)
@@ -869,7 +871,7 @@ class REMOGame:
     drawClock = pygame.time.Clock() ##드로우 쓰레드의 클락
     __showBenchmark = False
     _lastStartedWindow = None
-    def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window"):
+    def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window",flags=0):
 
         REMODatabase._buildPath() ## 경로 파이프라인을 구성한다.
 
@@ -884,6 +886,7 @@ class REMOGame:
                 pass # Windows XP doesn't support monitor scaling, so just do nothing.
 
         pygame.init()
+        Rs.windowFlag = flags
         info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
         Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
         Rs.__fullScreen=fullscreen
@@ -953,7 +956,8 @@ class REMOGame:
             try:
                 Rs._update()
                 # Did the user click the window close button?
-                for event in pygame.event.get():
+                Rs.events = pygame.event.get()
+                for event in Rs.events:
                     if event.type == pygame.QUIT:
                         REMOGame.exit()
                 if not Rs.isTransitioning():
