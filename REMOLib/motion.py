@@ -90,16 +90,17 @@ class RMotion:
     __alphaPipeline = []
 
     @classmethod
-    def fadein(cls,obj:graphicObj,*,frameDuration = 1000/60,callback = lambda:None,smoothness=8):
+    def fadein(cls,obj:graphicObj,*,to=255,frameDuration = 1000/60,callback = lambda:None,smoothness=8):
         '''
         지정한 오브젝트를 서서히 나타나게 하는 함수입니다.\n
         obj: 나타날 그래픽 오브젝트\n
         frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
         callback: 나타나기가 끝났을 때 호출할 함수 (기본값: 빈 함수)\n
         smoothness: 나타나기의 부드러움을 조절하는 값 (기본값: 8, 값이 작을수록 나타나기가 부드럽고 느려짐)\n
+        to: 최종 투명도 (기본값: 255, 0~255 사이의 정수)\n
         '''
         inst = []
-        for i in range(0,256,smoothness):
+        for i in range(0,to+1,smoothness):
             inst.append(i)
         obj.alpha = 0 
         cls.__alphaPipeline.append({"obj":obj,"inst":inst,"timer":RTimer(frameDuration),"callback":callback})
