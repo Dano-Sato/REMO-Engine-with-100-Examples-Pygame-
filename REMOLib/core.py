@@ -186,6 +186,9 @@ class Rs:
             Rs.__transitionCallBack = None
             Rs.__transitionTimer.stop()
 
+        from .motion import RMotion
+        RMotion._motionUpdate() # 모션 업데이트
+
         Rs.__lastState=state
     
     @classmethod

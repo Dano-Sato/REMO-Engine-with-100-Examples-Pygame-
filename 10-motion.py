@@ -28,7 +28,6 @@ class mainScene(Scene):
     def init(self):
         return
     def update(self):
-        RMotion._motionUpdate()
 
         for event in Rs.events:
             if event.type == pygame.VIDEORESIZE:
