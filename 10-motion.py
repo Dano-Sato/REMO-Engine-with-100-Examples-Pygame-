@@ -23,6 +23,7 @@ class mainScene(Scene):
         self.red = rectObj(pygame.Rect(0,0,10,10),color=Cs.red) 
         self.red.center = self.t.pos+self.j  
         RMotion.shake(self.t,intensity=RPoint(10,10),count=30,frameDuration=1000/60)
+        RMotion.fadein(self.t,smoothness=15)
         self.switch = True
         return
     def init(self):
