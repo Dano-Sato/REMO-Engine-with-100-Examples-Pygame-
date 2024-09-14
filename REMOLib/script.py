@@ -120,6 +120,7 @@ class scriptRenderer():
         def nextScript():
             if not self.scriptLoaded():
                 self.scriptObj.text = self.currentScript
+                self.scriptObj.text = self.currentScript # 스크립트가 간헐적으로 한번에 출력이 안되는 버그가 있어서 임시방편으로 이렇게 해놓음.
             elif not self.isEnded():
                 ##다음 스크립트를 불러온다.
                 self.indexIncrement()
