@@ -332,4 +332,14 @@ class REMOLocalizeManager:
         raise KeyError(f"Key '{key}' not found in translations for language '{language}'")
 
 
-
+class triggerManager:
+    __triggers = {}
+    
+    @classmethod
+    def activateTrigger(cls,trigger):
+        cls.__triggers[trigger] = True
+        return
+    
+    @classmethod
+    def checkTrigger(cls,trigger):
+        return cls.__triggers.get(trigger,False)
