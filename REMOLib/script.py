@@ -56,7 +56,7 @@ class scriptRenderer():
         self.charaObjs=[None,None,None] #화면에 출력될 캐릭터들
         self.moveInstructions = [[],[],[]] #캐릭터들의 움직임에 대한 지시문
         self.emotionObjs = [] # 화면에 출력될 (캐릭터의) 감정들
-        self.emotionTimer = time.time() ## 감정 출력될 때 스크립트를 멈추는 타이머
+        self.freezeTimer = time.time() ## 스크립트를 멈추는 타이머
         self.bgObj = rectObj(Rs.screen.get_rect(),color=Cs.black,radius=0) #배경 이미지
         self.nameObj = textButton()
 
@@ -217,6 +217,8 @@ class scriptRenderer():
                 self.handleBgm(fileName, parameters)
             elif tag == '#sound':
                 self.handleSound(fileName, parameters)
+            elif tag == '#effect':
+                self.apply_effect(fileName, parameters)
             elif tag == '#bg':
                 self.handleBg(fileName)
             elif '#chara' in tag:
@@ -362,6 +364,19 @@ class scriptRenderer():
         if 'clear' in parameters:
             self.charaObjs[num] = None
 
+    def apply_effect(self, fileName, parameters):
+        #effect effect1.png matrix=(5,3) pos=(300,300) scale=0.5 frameDuration=125
+        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _scale = float(parameters.get('scale', 1))
+        _matrix = eval(parameters.get('matrix', '(1,1)'))
+        _frameDuration = eval(parameters.get('frameDuration', 1000/60))
+        _stay = int(parameters.get('stay', 0))
+        _freeze = int(parameters.get('freeze', 0))
+
+        Rs.playAnimation(fileName,stay=_stay, pos=_pos, scale=_scale, sheetMatrix=_matrix, frameDuration=_frameDuration)
+        self.freezeTimer = time.time() + _freeze / 1000.0
+
+
     def apply_emotion(self, num, emotion):
         try:
             i = scriptRenderer.emotions.index(emotion)
@@ -376,7 +391,7 @@ class scriptRenderer():
                 frameDuration=125,
                 scale=2
             )
-            self.emotionTimer = time.time() + scriptRenderer.emotionTime / 1000.0
+            self.freezeTimer = time.time() + scriptRenderer.emotionTime / 1000.0
         except ValueError:
             raise Exception("Emotion not Supported: " + emotion +
                             ", currently supported are:" + str(scriptRenderer.emotions))
@@ -464,7 +479,7 @@ class scriptRenderer():
 
 
         ##감정 애니메이션이 재생중일 땐 스크립트를 재생하지 않는다.
-        if self.emotionTimer>time.time():
+        if self.freezeTimer>time.time():
             if self.scriptObj.text != "":
                 self.scriptObj.text = ""
             return
