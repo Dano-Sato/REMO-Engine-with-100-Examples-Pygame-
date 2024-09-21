@@ -2469,6 +2469,62 @@ class scrollLayout(layoutObj):
         return
 
 
+# 카드를 일렬로 배치하기 위해 존재하는 레이아웃 오브젝트입니다.
+class cardLayout(layoutObj):
+
+    def __init__(self,pos,spacing=10,maxWidth=500, isVertical=False):
+        super().__init__(pos=pos,spacing=spacing,isVertical=isVertical)
+        self.maxWidth = maxWidth # 카드를 배치하는 최대 길이
+
+
+    def cardLength(self,child:graphicObj) -> int:
+        if self.isVertical:
+            return child.rect.h
+        else:
+            return child.rect.w
+
+    def makeVector(self,l):
+        if self.isVertical:
+            return RPoint(0,l)
+        else:
+            return RPoint(l,0)
+    #카드들의 간격을 정하는 함수
+    def delta(self,c:graphicObj,isCollide):
+        if len(self)<=1:
+            return RPoint(0,0)
+        else:
+            if c.collideMouse():
+                return self.makeVector(self.cardLength(c))
+            else:
+                if isCollide:
+                    _spacing = (self.maxWidth-2*self.cardLength(c)) / (len(self)-1)
+                else:
+                    _spacing = (self.maxWidth-self.cardLength(c)) / (len(self)-1)
+
+
+                _spacing = min(_spacing,self.spacing+self.cardLength(c))
+                return self.makeVector(_spacing)
+            
+    #레이아웃 내부 객체 위치 조정 (override)
+    def adjustLayout(self,smoothness=3):
+        lastChild = None
+        isCollide = False
+        for child in self.getChilds():
+            if child.collideMouse():
+                isCollide = True
+                break
+        
+
+        for child in self.getChilds():
+            if lastChild != None:
+                if child.collideMouse():
+                    child.pos = child.pos.moveTo(lastChild.pos+self.makeVector(self.cardLength(child)),smoothness=smoothness)
+                else:
+                    child.pos = child.pos.moveTo(lastChild.pos+self.delta(lastChild,isCollide),smoothness=smoothness)
+            else:
+                child.pos = self.pad
+            lastChild = child
+        self._clearGraphicCache()
 
 
 ##다이얼로그 창을 나타내는 오브젝트
