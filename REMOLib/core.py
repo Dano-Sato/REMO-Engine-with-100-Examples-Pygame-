@@ -234,6 +234,10 @@ class Rs:
     def setFullScreen(cls,t:bool=True):
         Rs.__fullScreen = t
         Rs.__updateWindow()
+
+    @classmethod
+    def screenRect(cls) -> pygame.Rect:
+        return cls.screen.get_rect()
     @classmethod
     def __updateWindow(cls):
         if Rs.isFullScreen():
@@ -1850,6 +1854,29 @@ class layoutObj(graphicObj):
             lastChild = child
         self._clearGraphicCache()
 
+
+    #레이아웃 내부 객체들의 위치를 부드럽게 조정한다.
+    def smoothAdjustLayout(self,smoothness=5):
+        if self.isVertical:
+            def delta(c):
+                d = c.rect.h
+                return RPoint(0,d+self.spacing)
+        else:
+            def delta(c):
+                d = c.rect.w
+                return RPoint(d+self.spacing,0)
+
+        lastChild = None
+        for child in self.childs[0]:
+
+            if lastChild != None:
+                child.pos = child.pos.moveTo(lastChild.pos+delta(lastChild),smoothness=smoothness)
+            else:
+                child.pos = child.pos.moveTo(self.pad)
+            lastChild = child
+        self._clearGraphicCache()
+
+
     ##레이아웃을 업데이트한다.
     # depths : 업데이트할 depth들을 지정한다. 기본값은 0
     def update(self,*,depths=[0]):
@@ -1867,6 +1894,9 @@ class layoutObj(graphicObj):
     def __setitem__(self, key, value):
         self.childs[0][key] = value
         self.childs[0][key].setParent(self)
+
+    def __len__(self):
+        return len(self.childs[0])
 
          
 #긴 텍스트를 처리하기 위한 오브젝트.
