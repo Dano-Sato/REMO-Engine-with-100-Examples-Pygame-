@@ -23,26 +23,38 @@ class cardLayout(layoutObj):
         else:
             return RPoint(l,0)
     #카드들의 간격을 정하는 함수
-    def delta(self,c:graphicObj):
-        if len(self)==0:
+    def delta(self,c:graphicObj,isCollide):
+        if len(self)<=1:
             return RPoint(0,0)
         else:
-            _spacing = (self.maxWidth-self.cardLength(c)) / len(self)
             if c.collideMouse():
                 return self.makeVector(self.cardLength(c))
             else:
+                if isCollide:
+                    _spacing = (self.maxWidth-2*self.cardLength(c)) / (len(self)-1)
+                else:
+                    _spacing = (self.maxWidth-self.cardLength(c)) / (len(self)-1)
+
+
                 _spacing = min(_spacing,self.spacing+self.cardLength(c))
                 return self.makeVector(_spacing)
             
     #레이아웃 내부 객체 위치 조정 (override)
     def adjustLayout(self,smoothness=3):
         lastChild = None
+        isCollide = False
+        for child in self.getChilds():
+            if child.collideMouse():
+                isCollide = True
+                break
+        
+
         for child in self.getChilds():
             if lastChild != None:
                 if child.collideMouse():
                     child.pos = child.pos.moveTo(lastChild.pos+self.makeVector(self.cardLength(child)),smoothness=smoothness)
                 else:
-                    child.pos = child.pos.moveTo(lastChild.pos+self.delta(lastChild),smoothness=smoothness)
+                    child.pos = child.pos.moveTo(lastChild.pos+self.delta(lastChild,isCollide),smoothness=smoothness)
             else:
                 child.pos = self.pad
             lastChild = child
@@ -62,9 +74,9 @@ class mainScene(Scene):
         card.merge()
         return card
     def initOnce(self):
-        width = 500
-        self.cards = cardLayout(RPoint(100,100),spacing=10,maxWidth=width,isVertical=False)
-        self.cardBg = rectObj(pygame.Rect(0,0,width,200).inflate(10,10),color=Cs.red,edge=8)
+        width = 700
+        self.cards = cardLayout(RPoint(100,100),spacing=10,maxWidth=width,isVertical=True)
+        self.cardBg = rectObj(pygame.Rect(0,0,200,width).inflate(10,10),color=Cs.red,edge=8)
         self.cardBg.setParent(self.cards,depth=-1)
         self.testCounter = 0
         for i in range(3):
