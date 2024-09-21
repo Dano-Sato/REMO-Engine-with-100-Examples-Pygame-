@@ -2473,40 +2473,55 @@ class scrollLayout(layoutObj):
 class cardLayout(layoutObj):
 
     def __init__(self,pos,spacing=10,maxWidth=500, isVertical=False):
+        """
+        카드 레이아웃의 초기화 메서드입니다.
+        
+        :param pos: 레이아웃의 시작 위치 (position)
+        :param spacing: 카드 간의 기본 간격
+        :param maxWidth: 카드가 배치되는 최대 길이 (수평 또는 수직)
+        :param isVertical: 카드가 수직으로 배치될지 여부 (True일 경우 수직, False일 경우 수평)
+        """
+
         super().__init__(pos=pos,spacing=spacing,isVertical=isVertical)
         self.maxWidth = maxWidth # 카드를 배치하는 최대 길이
 
 
-    def cardLength(self,child:graphicObj) -> int:
+    def _cardLength(self,child:graphicObj) -> int:
+ 
         if self.isVertical:
             return child.rect.h
         else:
             return child.rect.w
 
-    def makeVector(self,l):
+    def _makeVector(self,l):
         if self.isVertical:
             return RPoint(0,l)
         else:
             return RPoint(l,0)
     #카드들의 간격을 정하는 함수
-    def delta(self,c:graphicObj,isCollide):
+    def _delta(self,c:graphicObj,isCollide):
         if len(self)<=1:
             return RPoint(0,0)
         else:
             if c.collideMouse():
-                return self.makeVector(self.cardLength(c))
+                return self._makeVector(self._cardLength(c))
             else:
                 if isCollide:
-                    _spacing = (self.maxWidth-2*self.cardLength(c)) / (len(self)-1)
+                    _spacing = (self.maxWidth-2*self._cardLength(c)) / (len(self)-1)
                 else:
-                    _spacing = (self.maxWidth-self.cardLength(c)) / (len(self)-1)
+                    _spacing = (self.maxWidth-self._cardLength(c)) / (len(self)-1)
 
 
-                _spacing = min(_spacing,self.spacing+self.cardLength(c))
-                return self.makeVector(_spacing)
+                _spacing = min(_spacing,self.spacing+self._cardLength(c))
+                return self._makeVector(_spacing)
             
     #레이아웃 내부 객체 위치 조정 (override)
     def adjustLayout(self,smoothness=3):
+        """
+        레이아웃 내 카드들의 위치를 조정하는 함수입니다. 각 카드는 순서에 따라 일정 간격으로 배치됩니다.
+        
+        :param smoothness: 위치 이동 시 부드러움의 정도 (값이 클수록 느리고 부드럽게 이동)
+        """
         lastChild = None
         isCollide = False
         for child in self.getChilds():
@@ -2518,9 +2533,9 @@ class cardLayout(layoutObj):
         for child in self.getChilds():
             if lastChild != None:
                 if child.collideMouse():
-                    child.pos = child.pos.moveTo(lastChild.pos+self.makeVector(self.cardLength(child)),smoothness=smoothness)
+                    child.pos = child.pos.moveTo(lastChild.pos+self._makeVector(self._cardLength(child)),smoothness=smoothness)
                 else:
-                    child.pos = child.pos.moveTo(lastChild.pos+self.delta(lastChild,isCollide),smoothness=smoothness)
+                    child.pos = child.pos.moveTo(lastChild.pos+self._delta(lastChild,isCollide),smoothness=smoothness)
             else:
                 child.pos = self.pad
             lastChild = child

@@ -19,8 +19,8 @@ class mainScene(Scene):
         return card
     def initOnce(self):
         width = 700
-        self.cards = cardLayout(RPoint(100,100),spacing=10,maxWidth=width,isVertical=True)
-        self.cardBg = rectObj(pygame.Rect(0,0,200,width).inflate(10,10),color=Cs.red,edge=8)
+        self.cards = cardLayout(RPoint(100,100),spacing=10,maxWidth=width,isVertical=False)
+        self.cardBg = rectObj(pygame.Rect(0,0,width,200).inflate(10,10),color=Cs.red,edge=8)
         self.cardBg.setParent(self.cards,depth=-1)
         self.testCounter = 0
         for i in range(3):
