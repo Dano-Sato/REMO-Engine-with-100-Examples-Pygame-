@@ -101,9 +101,7 @@ class scriptScene(Scene):
             else:
                 self.escDialog.hide()
 
-        Rs.acquireDrawLock()
         self.renderer.update()
-        Rs.releaseDrawLock()
         return
     def draw(self):
         if hasattr(self,"renderer"):

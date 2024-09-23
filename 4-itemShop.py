@@ -64,7 +64,6 @@ class mainScene(Scene):
         return
     
     def update(self):
-        Rs.acquireDrawLock()
         if Rs.userJustLeftClicked():
             print(Rs.mousePos())
         if Rs.userJustPressed(pygame.K_a):
@@ -81,7 +80,6 @@ class mainScene(Scene):
         self.clerkTalk.updateText()
         Rs.dragEventHandler(self.testDrag,draggedObj=self.testBg)
         self.testlayout.update()
-        Rs.releaseDrawLock()
         return
     def draw(self):
         self.clerk.draw()

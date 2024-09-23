@@ -697,9 +697,7 @@ class Rs:
         '''
         현재 Scene을 교체한다.\n
         '''
-        REMOGame.drawLock = True
         REMOGame.setCurrentScene(scene,skipInit)
-        REMOGame.drawLock = False
 
     ##디스플레이 아이콘을 바꾼다.
     @classmethod
@@ -707,24 +705,6 @@ class Rs:
         img = REMODatabase.getImage(img)
         pygame.display.set_icon(img)
 
-    ##드로우 쓰레드에 락을 걸어야 할 때 사용하는 함수
-    @classmethod
-    def acquireDrawLock(cls):
-        '''
-        드로우 락을 걸어서, 드로우 쓰레드가 드로우를 하지 못하게 한다.
-        Scene의 update 함수 안에서만 사용할것. 안 그러면 데드락이 걸릴 수 있다.
-        '''
-        REMOGame.drawLock = True 
-    ##락 해제
-    @classmethod
-    def releaseDrawLock(cls):
-        '''
-        드로우 락을 해제한다.
-        Scene의 update 함수 안에서만 사용할것. 안 그러면 데드락이 걸릴 수 있다.
-        '''
-        REMOGame.drawLock = False
-        
-        
 
     ##Random
 
@@ -846,33 +826,11 @@ class Rs:
 
 
 
-#target_fps에 맞게 그리기 함수를 호출하는 스레드
-
-class drawThread():
-
-    def __init__(self):
-        super().__init__()
-    def run(self):
-        while REMOGame._lastStartedWindow.running:
-            if not REMOGame.drawLock:
-                try:
-                    REMOGame._lastStartedWindow.draw()
-                    REMOGame._lastStartedWindow.paint()
-                except Exception as err:
-                    import traceback
-                    traceback.print_exc()
-                    continue
-                REMOGame.drawClock.tick(REMOGame.target_fps)
-
-
-
-
 ## Base Game class
 class REMOGame:
     currentScene = Scene()
     benchmark_fps = {"Draw":0,"Update":0}
     target_fps = 60
-    drawLock = False ## 신 교체 중임을 알리는 인자
     clock = pygame.time.Clock() ##프레임 제한을 위한 클락
     drawClock = pygame.time.Clock() ##드로우 쓰레드의 클락
     __showBenchmark = False
@@ -2213,7 +2171,6 @@ class textBubbleObj(longTextObj):
         """
         텍스트 말풍선을 업데이트하는 함수로, 텍스트를 한 글자씩 출력하고
         말풍선의 투명도와 생명 주기를 관리합니다.
-        사용 전에 drawLock을 호출해야 정상적으로 보입니다.
         """
         # 텍스트 말풍선이 살아있는 동안 업데이트 진행
         if self.isVisible():

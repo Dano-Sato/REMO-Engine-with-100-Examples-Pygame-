@@ -224,13 +224,10 @@ class Scene(ABC):
         self.initiated=False
         return
     def _init(self):
-        from .core import Rs
-        Rs.acquireDrawLock()
         if self.initiated==False:
             self.initOnce()
             self.initiated = True
         self.init()
-        Rs.releaseDrawLock()
         
     #Scene을 불러올 때마다 initiation 되는 메소드 부분 
     def init(self):

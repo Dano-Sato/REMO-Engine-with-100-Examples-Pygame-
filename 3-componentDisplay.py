@@ -77,9 +77,7 @@ class mainScene(Scene):
         self.slider.update()
         self.book.update()
         self.testScrollLayout.update()
-        Rs.acquireDrawLock()
         self.testBubble.updateText()
-        Rs.releaseDrawLock()
         return
     def draw(self):
         self.imageShadow.draw()
