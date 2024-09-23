@@ -350,7 +350,7 @@ class triggerManager:
         return
     
     @classmethod
-    def checkTrigger(cls, operation="and", *triggers):
+    def checkTrigger(cls,*triggers,operation="and"):
         """
         가변 인자를 받아 트리거들을 AND/OR 조건에 따라 확인하는 함수.
         :param operation: "and" 또는 "or" (기본값은 "and")
