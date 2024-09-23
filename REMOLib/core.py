@@ -870,7 +870,6 @@ class drawThread():
 ## Base Game class
 class REMOGame:
     currentScene = Scene()
-    __drawThread = drawThread()
     benchmark_fps = {"Draw":0,"Update":0}
     target_fps = 60
     drawLock = False ## 신 교체 중임을 알리는 인자
@@ -948,7 +947,6 @@ class REMOGame:
     @classmethod
     def exit(cls):
         REMOGame._lastStartedWindow.running = False
-        REMOGame.__drawThread.join()
 
         #pygame.quit()
 
@@ -956,8 +954,6 @@ class REMOGame:
     def run(self):
         self.running = True
         import threading
-        REMOGame.__drawThread = threading.Thread(target=drawThread().run)
-        REMOGame.__drawThread.start()
 
         while self.running:
             try:
@@ -969,6 +965,7 @@ class REMOGame:
                         REMOGame.exit()
                 if not Rs.isTransitioning():
                     self.update()
+                self.draw()
 
                 Rs._updateState()
 
