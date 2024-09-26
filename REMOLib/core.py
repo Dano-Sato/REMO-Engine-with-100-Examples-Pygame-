@@ -56,6 +56,7 @@ except ImportError:
 
 from abc import *
 from enum import Enum,auto
+from collections import defaultdict
 import typing
 
 from .visuals import *
@@ -639,11 +640,11 @@ class Rs:
             draggedObj = triggerObj
         if Rs.userJustLeftClicked() and triggerObj.collideMouse() and filterFunc():
             Rs.draggedObj = draggedObj
-            Rs.dragOffset = Rs.mousePos()-draggedObj.pos
+            Rs.dragOffset = Rs.mousePos()-draggedObj.geometryPos
             Rs.dropFunc = dropFunc
             dragStartFunc()
         if Rs.userIsLeftClicking() and Rs.draggedObj == draggedObj:
-            draggedObj.pos = Rs.mousePos()-Rs.dragOffset
+            Rs.draggedObj.pos = Rs.mousePos()-Rs.dragOffset
             draggingFunc()
 
 
@@ -1267,7 +1268,7 @@ class graphicObj():
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
         self.graphic = self.graphic_n.copy()
         self._pos = RPoint(0,0)
-        self.childs = {0:[]} ##차일드들을 depth별로 저장한다.
+        self.childs = defaultdict(list) ##차일드들을 depth별로 저장한다.
         self._hidedDepth = set() #숨길 depth를 저장한다.
         self.parent = None
         self._depth = None #부모에 대한 나의 depth를 저장한다.
@@ -1286,7 +1287,7 @@ class graphicObj():
 
     #Parent - Child 연결관계를 만듭니다.
     #depth는 차일드의 레이어를 의미합니다. depth가 음수이면 부모 아래에, 0 이상이면 부모 위에 그려집니다.
-    def setParent(self,_parent,*,depth=0):
+    def setParent(self,_parent,*,depth=0,index=None):
 
         ##기존 부모관계 청산
         if self.parent !=None:
@@ -1300,9 +1301,10 @@ class graphicObj():
         ##새로운 부모관계 설정
         self.parent = _parent
         if _parent != None:
-            if depth not in _parent.childs:
-                _parent.childs[depth] = []
-            _parent.childs[depth].append(self)
+            if index:
+                _parent.childs[depth].insert(index,self)
+            else:
+                _parent.childs[depth].append(self)
             if depth == 0 and hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 _parent.adjustLayout()
             self._depth = depth
@@ -1337,7 +1339,7 @@ class graphicObj():
             self.graphic = pygame.transform.rotozoom(self.graphic_n,self.angle,self.scale)
         else:
             self.graphic = self.graphic_n
-        self.childs = {0:[]}        
+        self.childs = defaultdict(list)       
 
 
 class localizable():
