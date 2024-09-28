@@ -1301,7 +1301,7 @@ class graphicObj():
         ##새로운 부모관계 설정
         self.parent = _parent
         if _parent != None:
-            if index:
+            if index!=None:
                 _parent.childs[depth].insert(index,self)
             else:
                 _parent.childs[depth].append(self)
