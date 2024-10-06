@@ -306,7 +306,7 @@ class Rs:
     @classmethod
     def playSound(cls,fileName:str,*,loops=0,maxtime=0,fade_ms=0,volume=1):
         '''
-        사운드 재생. wav와 ogg파일을 지원한다. 중복재생이 가능하다. \n
+        사운드 재생. mp3와 wav, ogg파일을 지원한다. 중복재생이 가능하다. \n
         loops=-1 인자를 넣을 경우 무한 반복재생.   
         '''
         fileName = REMODatabase.getPath(fileName)
