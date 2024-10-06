@@ -1258,11 +1258,18 @@ class graphicObj():
             self._hidedDepth.add(depth)
             self._clearGraphicCache()
 
-    def getChilds(self,depth=0):
+    def getChilds(self,depth=0) -> list[graphicObj]:
         '''
         해당 depth를 가진 차일드들을 반환한다.
         '''
         return self.childs[depth]
+    
+    def clearChilds(self,depth=0):
+        '''
+        해당 depth를 가진 차일드들을 모두 지운다.
+        '''
+        for c in self.childs[depth][:]:
+            c.setParent(None)
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
         self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
