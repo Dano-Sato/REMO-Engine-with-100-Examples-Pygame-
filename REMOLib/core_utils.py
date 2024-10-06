@@ -244,3 +244,19 @@ class Scene(ABC):
     def draw(self):
         #draw childs
         return
+
+
+
+class EventHandler:
+    def __init__(self):
+        self.events = {}
+
+    def addEvent(self, event_name, listener):
+        if event_name not in self.events:
+            self.events[event_name] = []
+        self.events[event_name].append(listener)
+
+    def occurEvent(self, event_name, *args, **kwargs):
+        if event_name in self.events:
+            for listener in self.events[event_name]:
+                listener(*args, **kwargs)
