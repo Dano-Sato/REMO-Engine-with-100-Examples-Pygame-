@@ -249,14 +249,34 @@ class Scene(ABC):
 
 class EventHandler:
     def __init__(self):
+        # 이벤트와 해당 이벤트에 연결된 리스너(함수)들을 저장하는 딕셔너리
         self.events = {}
 
     def addEvent(self, event_name, listener):
+        """
+        새로운 이벤트 리스너를 특정 이벤트에 추가합니다.
+        
+        Args:
+            event_name: 이벤트의 이름 또는 키.
+            listener: 이벤트가 발생할 때 호출될 함수(리스너).
+        """
+        # 이벤트 이름이 딕셔너리에 없을 경우, 빈 리스트로 초기화
         if event_name not in self.events:
             self.events[event_name] = []
+        # 해당 이벤트에 리스너를 추가
         self.events[event_name].append(listener)
 
     def occurEvent(self, event_name, *args, **kwargs):
+        """
+        특정 이벤트가 발생했을 때 해당 이벤트에 등록된 모든 리스너를 호출합니다.
+        
+        Args:
+            event_name: 발생한 이벤트의 이름.
+            *args: 리스너에 전달될 위치 기반 인자들.
+            **kwargs: 리스너에 전달될 키워드 기반 인자들.
+        """
+        # 이벤트가 존재할 경우, 등록된 모든 리스너를 호출
         if event_name in self.events:
             for listener in self.events[event_name]:
+                # *args와 **kwargs를 통해 리스너 함수에 전달
                 listener(*args, **kwargs)
