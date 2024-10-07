@@ -466,7 +466,7 @@ class scriptRenderer():
         
     def update(self):
         '''
-        함수가 복잡하므로 이 함수 실행 전에 Rs.acquireDrawLock()을 통해 락을 걸어주는 것이 좋다.
+        스크립트 렌더러를 업데이트하는 함수입니다.
         '''
 
         ##캐릭터의 움직임 업데이트

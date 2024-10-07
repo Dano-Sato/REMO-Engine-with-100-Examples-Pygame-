@@ -242,9 +242,9 @@ class Rs:
     @classmethod
     def __updateWindow(cls):
         if Rs.isFullScreen():
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE | Rs.windowFlag)
+            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | Rs.windowFlag)
         else:
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.DOUBLEBUF | pygame.HWSURFACE | Rs.windowFlag)
+            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),Rs.windowFlag)
         #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
         x,y = Rs.getWindowRes()
         Rs._mouseTransformer=(Rs.screen_size[0]/x,Rs.screen_size[1]/y)
@@ -912,7 +912,7 @@ class REMOGame:
     #Game Running Method
     def run(self):
         self.running = True
-        import threading
+        
 
         while self.running:
             try:
@@ -1268,7 +1268,7 @@ class graphicObj():
         '''
         해당 depth를 가진 차일드들을 모두 지운다.
         '''
-        for c in self.childs[depth][:]:
+        for c in reversed(self.childs[depth]):
             c.setParent(None)
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
