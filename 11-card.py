@@ -1,6 +1,8 @@
 from REMOLib import *
 
-
+'''
+cardLayout, monoTextButton 테스트
+'''
 
 
 
@@ -27,6 +29,14 @@ class mainScene(Scene):
             card = self.makeTestCard(i)
             card.setParent(self.cards)
             self.testCounter+=1
+
+
+        self.button = monoTextButton("Add Card",pos=(100,400),size=30,color=Cs.grey)
+        self.button.connect(lambda:print("Button Clicked!"))
+        self.button2 = monoTextButton("Blabla Card",pos=(100,400),size=30,color=Cs.grey)
+
+        self.buttons = layoutObj(pos=RPoint(100,400),spacing=30,isVertical=True,childs=[self.button,self.button2])
+
         return
     def init(self):
         return
@@ -36,9 +46,11 @@ class mainScene(Scene):
             card = self.makeTestCard(self.testCounter)
             card.setParent(self.cards)
             self.testCounter+=1
+        self.buttons.update()
         return
     def draw(self):
         self.cards.draw()
+        self.buttons.draw()
         return
 
 

@@ -1977,8 +1977,32 @@ class longTextObj(layoutObj,localizable):
         #text childs를 생성한다.
 
 
+class clickable:
+   #버튼을 누르면 실행될 함수를 등록한다.
+    def connect(self,func):
+        '''
+        버튼을 눌렀을 때 실행될 함수를 등록한다.
+        '''
+        self.func = func
+
+    def update(self):
+        '''
+        depth 0의 오브젝트를 밝은 효과 오브젝트라고 가정하고, 버튼 클릭 관련 이벤트를 처리한다.
+        '''
+        if self.enabled:
+            if self.collideMouse():
+                if Rs.userIsLeftClicking():
+                    self.hideChilds(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
+                else:
+                    self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
+
+                if Rs.userJustLeftClicked():
+                    self.func()
+            else:
+                self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.            
+
 ##이미지를 버튼으로 활용하는 오브젝트
-class imageButton(imageObj):
+class imageButton(imageObj,clickable):
     def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,func=lambda:None,enabled=True,enableShadow=True):
         '''
         이미지를 버튼으로 활용하는 오브젝트
@@ -2000,29 +2024,34 @@ class imageButton(imageObj):
         else:
             self.shadow = None
 
-   #버튼을 누르면 실행될 함수를 등록한다.
-    def connect(self,func):
-        '''
-        버튼을 눌렀을 때 실행될 함수를 등록한다.
-        '''
-        self.func = func
 
-    def update(self):
-        
-        if self.enabled:
-            if self.collideMouse():
-                if Rs.userIsLeftClicking():
-                    self.hideChilds(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
-                else:
-                    self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
 
-                if Rs.userJustLeftClicked():
-                    self.func() #마우스를 눌렀을 때 등록된 함수를 실행한다.
-            else:
-                self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+class monoTextButton(textObj,localizable,clickable):
+    '''
+    테두리가 없는 텍스트 버튼 오브젝트
+    '''
+    def __init__(self,text:str="",pos:RPoint=RPoint(0,0),*,font=None,size=None,color=Cs.white,enabled=True,func=lambda:None,alpha=255):
+        '''
+        text: 버튼에 표시될 텍스트 \n
+        pos: 버튼의 위치 \n
+        font: 텍스트의 폰트 \n
+        size: 텍스트의 크기 \n
+        color: 텍스트의 색깔 \n
+        enabled: 버튼 활성화 여부 \n
+        func: 버튼 클릭시 실행할 함수 \n
+        alpha: 버튼의 투명도 \n
+        '''
+        super().__init__(text,pos,font=font,size=size,color=color)
+        self.hoverObj = textObj(text,pos=RPoint(0,0),font=font,size=size,color=Cs.white)
+        self.hoverObj.setParent(self)
+        self.enabled = enabled
+        if not self.enabled:
+            self.hideChilds(0)
+
+        self.func = func #clicked function        
 
             
-class textButton(rectObj,localizable):
+class textButton(rectObj,localizable,clickable):
     def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
                  font:typing.Optional[str]=None,size:typing.Optional[int]=None,textColor = Cs.white,
                  enabled=True,func=lambda:None,alpha=245):
@@ -2044,7 +2073,6 @@ class textButton(rectObj,localizable):
             font = Rs.getDefaultFont("button")["font"]
         if size==None:
             size = Rs.getDefaultFont("button")["size"]
-
 
         ##텍스트 오브젝트 생성
         self.textObj = textObj(text,RPoint(0,0),font=font,size=size,color=textColor) 
@@ -2118,25 +2146,7 @@ class textButton(rectObj,localizable):
         self.hoverRect = rectObj(self.rect,color=Cs.white)
         self.hoverRect.alpha = 80
 
-   #버튼을 누르면 실행될 함수를 등록한다.
-    def connect(self,func):
-        '''
-        버튼을 눌렀을 때 실행될 함수를 등록한다.
-        '''
-        self.func = func
-
-    def update(self):
-        if self.enabled:
-            if self.collideMouse():
-                if Rs.userIsLeftClicking():
-                    self.hideChilds(0) #마우스를 누르고 있을 때 밝은 효과를 숨긴다.
-                else:
-                    self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
-
-                if Rs.userJustLeftClicked():
-                    self.func()
-            else:
-                self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.                    
+            
 
 
 
