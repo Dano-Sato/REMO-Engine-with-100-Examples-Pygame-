@@ -343,7 +343,7 @@ class scriptRenderer():
 
     def handleChara(self, tag, fileName, parameters):
         num = 0 if tag == '#chara' else int(tag[-1]) - 1
-        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _pos = self.safe_eval_pos(parameters)
         _scale = float(parameters.get('scale', 1))
 
         if fileName:
@@ -364,12 +364,108 @@ class scriptRenderer():
         if 'clear' in parameters:
             self.charaObjs[num] = None
 
+
+    def literal_eval(self, parameters,key,default=None):
+        '''
+        parameters : 스크립트에서 파싱한 파라미터 딕셔너리
+        key : 파라미터 딕셔너리에서 가져올 키
+        default : 키가 없을 경우 반환할 기본값
+        '''
+        import ast
+        result_str = parameters.get(key, default)
+        try:
+            result = ast.literal_eval(result_str)
+        except (SyntaxError, ValueError) as e:
+            print(f"Error parsing str: {e}")
+            result = ast.literal_eval(default)  # 기본값 또는 에러 처리 로직
+        return result
+    
+    @staticmethod
+    def _safe_eval(expr, allowed_names=None):
+        '''
+        안전하지 않은 eval() 함수를 대신하여 사용할 수 있는 함수입니다.\n
+        '''
+        import ast
+        import operator as op
+
+        # 지원하는 연산자 매핑
+        operators = {
+            ast.Add: op.add,
+            ast.Sub: op.sub,
+            ast.Mult: op.mul,
+            ast.Div: op.truediv,
+            ast.Pow: op.pow,
+            ast.Mod: op.mod,
+            ast.FloorDiv: op.floordiv,
+            # 필요한 경우 더 많은 연산자를 추가할 수 있습니다.
+        }
+
+        allowed_names = allowed_names or {}
+        node = ast.parse(expr, mode='eval')
+
+        def _eval(node):
+            if isinstance(node, ast.Expression):
+                return _eval(node.body)
+            elif isinstance(node, ast.Constant):  # 숫자 리터럴
+                return node.value
+            elif isinstance(node, ast.Tuple):  # 튜플 처리
+                return tuple(_eval(elt) for elt in node.elts)            
+            elif isinstance(node, ast.BinOp):  # 이항 연산자
+                left = _eval(node.left)
+                right = _eval(node.right)
+                if type(node.op) in operators:
+                    return operators[type(node.op)](left, right)
+                else:
+                    raise TypeError(f"지원되지 않는 연산자: {type(node.op)}")
+            elif isinstance(node, ast.UnaryOp):  # 단항 연산자
+                operand = _eval(node.operand)
+                if isinstance(node.op, ast.UAdd):  # 양수(+)
+                    return +operand
+                elif isinstance(node.op, ast.USub):  # 음수(-)
+                    return -operand
+                else:
+                    raise TypeError(f"지원되지 않는 단항 연산자: {type(node.op)}")
+            elif isinstance(node, ast.Name):
+                if node.id in allowed_names:
+                    return allowed_names[node.id]
+                raise ValueError(f"'{node.id}'은 허용되지 않은 이름입니다.")
+            elif isinstance(node, ast.Call):  # 함수 호출
+                func = _eval(node.func)
+                args = [_eval(arg) for arg in node.args]
+                return func(*args)
+            else:
+                raise TypeError(f"지원되지 않는 노드 유형: {type(node)}")
+        return _eval(node)    
+    
+    def safe_eval(self, parameter,key,default=None,*,allowed_names=None):
+        '''
+        parameters : 스크립트에서 파싱한 파라미터 딕셔너리
+        key : 파라미터 딕셔너리에서 가져올 키
+        default : 키가 없을 경우 반환할 기본값
+        allowed_names : eval() 함수에서 사용할 수 있는 이름들
+        '''
+
+        result_str = parameter.get(key, default)
+        try:
+            result = self._safe_eval(result_str, allowed_names)
+        except (SyntaxError, ValueError) as e:
+            print(f"Error parsing str: {e}")
+            result = self._safe_eval(default, allowed_names) # 기본값 또는 에러 처리 로직
+        return result
+    
+    def safe_eval_pos(self,parameters):
+        return self.safe_eval(parameters,'pos','RPoint(0,0)',allowed_names={'RPoint':RPoint})
+        
     def apply_effect(self, fileName, parameters):
+        '''
+        스프라이트 시트를 이용한 이펙트를 적용하는 함수입니다. \n
+        예시 : #effect effect1.png matrix=(5,3) pos=(300,300) scale=0.5 frameDuration=125
+        '''
         #effect effect1.png matrix=(5,3) pos=(300,300) scale=0.5 frameDuration=125
-        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _pos = self.safe_eval_pos(parameters)
         _scale = float(parameters.get('scale', 1))
-        _matrix = eval(parameters.get('matrix', '(1,1)'))
-        _frameDuration = eval(parameters.get('frameDuration', 1000/60))
+        _matrix = self.literal_eval(parameters,'matrix',(1,1))
+        _frameDuration = self.safe_eval(parameters,'frameDuration', '1000/60')
         _stay = int(parameters.get('stay', 0))
         _freeze = int(parameters.get('freeze', 0))
 
@@ -427,7 +523,7 @@ class scriptRenderer():
         self.makeMove(num, moveInstruction)
 
     def handleImage(self, fileName, parameters):
-        _pos = eval(parameters.get('pos', 'RPoint(0,0)'))
+        _pos = self.safe_eval_pos(parameters)
         _scale = float(parameters.get('scale', 1))
 
         obj = imageObj(fileName, pos=_pos, scale=_scale)
