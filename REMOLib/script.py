@@ -463,13 +463,14 @@ class scriptRenderer():
         '''
         #effect effect1.png matrix=(5,3) pos=(300,300) scale=0.5 frameDuration=125
         _pos = self.safe_eval_pos(parameters)
+        _center = self.safe_eval(parameters,'center','True')
         _scale = float(parameters.get('scale', 1))
         _matrix = self.literal_eval(parameters,'matrix',(1,1))
         _frameDuration = self.safe_eval(parameters,'frameDuration', '1000/60')
         _stay = int(parameters.get('stay', 0))
         _freeze = int(parameters.get('freeze', 0))
 
-        Rs.playAnimation(fileName,stay=_stay, pos=_pos, scale=_scale, sheetMatrix=_matrix, frameDuration=_frameDuration)
+        Rs.playAnimation(fileName,stay=_stay, pos=_pos,center=_center, scale=_scale, sheetMatrix=_matrix, frameDuration=_frameDuration)
         self.freezeTimer = time.time() + _freeze / 1000.0
 
 
