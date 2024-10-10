@@ -2,12 +2,16 @@ from REMOLib import *
 
 
 class EventManager:
+    '''
+    게임 내에서 발생하는 이벤트를 관리하는 클래스입니다.
+    event, trigger(Enum 타입)으로 이벤트를 관리합니다.
+    '''
     __triggers = {}
     __events = {}
     __event_counters = {}
 
     @classmethod
-    def activateTrigger(cls, *triggers):
+    def activateTrigger(cls, *triggers: Enum):
         """
         여러 트리거를 한 번에 활성화하는 클래스 메서드.
         """
@@ -15,7 +19,7 @@ class EventManager:
             cls.__triggers[trigger] = True
 
     @classmethod
-    def disableTrigger(cls, *triggers):
+    def disableTrigger(cls, *triggers: Enum):
         """
         여러 트리거를 한 번에 비활성화하는 클래스 메서드.
         """
@@ -23,7 +27,7 @@ class EventManager:
             cls.__triggers[trigger] = False
 
     @classmethod
-    def checkTrigger(cls, *triggers, operation="and"):
+    def checkTrigger(cls, *triggers: Enum, operation="and"):
         """
         트리거들을 AND/OR 조건에 따라 확인하는 클래스 메서드.
         :param operation: "and" 또는 "or" (기본값은 "and")
@@ -38,7 +42,7 @@ class EventManager:
             raise ValueError("operation must be 'and' or 'or'")
 
     @classmethod
-    def addEvent(cls, event_name, listener):
+    def addEvent(cls, event_name: Enum, listener):
         """
         새로운 이벤트 리스너를 특정 이벤트에 추가합니다.
         :param event_name: 이벤트의 이름 또는 키.
@@ -50,7 +54,7 @@ class EventManager:
         cls.__events[event_name].append(listener)
 
     @classmethod
-    def occurEvent(cls, event_name, *args, required_triggers=None, trigger_operation="and", **kwargs):
+    def occurEvent(cls, event_name: Enum, *args, required_triggers=None, trigger_operation="and", **kwargs):
         """
         특정 이벤트가 발생했을 때 트리거를 확인하고, 등록된 리스너를 호출하며 카운터를 증가시킵니다.
         :param event_name: 발생한 이벤트의 이름.
@@ -82,16 +86,35 @@ class EventManager:
         return cls.__event_counters.get(event_name, 0)
 
 
+def testFunc(*args,a,b,**kwargs):
+    print(args)
+    print(a)
+    print(b)
+    print(kwargs)
+
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
     None
 
+class eventType(Enum):
+    EVENT1 = auto()
+
+class triggerType(Enum):
+    TRIGGER1 = auto()
+
 class mainScene(Scene):
     def initOnce(self):
+        EventManager.addEvent(eventType.EVENT1, lambda a: print("EVENT1 발생!",a))
+        testFunc(1,2,3,a=4,b=5,c=6)
         return
     def init(self):
         return
     def update(self):
+        if Rs.userJustPressed(pygame.K_a):
+            EventManager.occurEvent(eventType.EVENT1,required_triggers=[triggerType.TRIGGER1],a=5)
+        if Rs.userJustPressed(pygame.K_z):
+            EventManager.activateTrigger(triggerType.TRIGGER1)
+
         return
     def draw(self):
         return
