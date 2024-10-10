@@ -280,3 +280,4 @@ class EventHandler:
             for listener in self.events[event_name]:
                 # *args와 **kwargs를 통해 리스너 함수에 전달
                 listener(*args, **kwargs)
+
