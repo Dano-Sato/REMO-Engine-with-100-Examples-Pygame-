@@ -1,12 +1,16 @@
 #bg testBg.jpg
 #bgm night_detective.mp3 volume=0.5
+#color Cs.grey75
 (카페를 나오는 길에, 익숙한 얼굴과 마주쳤다.)
 #chara1 schoolGirl1_default.png pos=(0,50) emotion=surprised jump
 #sound testEffect.wav volume=0.1
+#color Cs.white
 미라이: 안녕하세요 아저씨. 또 뵙네요.
 안녕 미라이.
+#color Cs.grey75
 (어제 본 여고생이다.)
 #chara1 schoolGirl1_smile.png move=300
+#color Cs.white
 미라이: ...이 가게는 맘에 드셨나요?
 응. 커피가 아주 맛이 끝내줘.
 (여기서라면 좋은 코딩을 할 수 있을 것 같다.) 
@@ -21,7 +25,9 @@
 그, 그정도라면... 다음에 마셔볼게.
 미라이: ...제 인생은 17년짜리 짧디 짧은 인생이지만요.
 그, 그렇군.
+#color Cs.yellow
 미라이: 게다가 아저씨보다 젊디 젊은 싱싱한 여고생이지만요-
+#color Cs.white
 (...그거까지 말할 필요가 있었나...?)
 ...확실히 젊긴 하지.
 (17살이랬으니, 미라이와 내 나이차는 12살. 삼촌뻘이군...)

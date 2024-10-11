@@ -217,6 +217,9 @@ class scriptRenderer():
                 self.handleBgm(fileName, parameters)
             elif tag == '#sound':
                 self.handleSound(fileName, parameters)
+            elif tag == "#color":
+                color_name = fileName.split(".")[-1].lower()
+                self.scriptObj.color = getattr(Cs,color_name,Cs.white)
             elif tag == '#effect':
                 self.apply_effect(fileName, parameters)
             elif tag == '#bg':

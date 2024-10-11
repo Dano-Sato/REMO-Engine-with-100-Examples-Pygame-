@@ -1852,7 +1852,7 @@ class layoutObj(graphicObj):
 
 
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> graphicObj:
         return self.childs[0][key]
     
     def __setitem__(self, key, value):

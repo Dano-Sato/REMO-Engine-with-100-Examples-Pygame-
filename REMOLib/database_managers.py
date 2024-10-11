@@ -332,40 +332,6 @@ class REMOLocalizeManager:
             return cls.__translations[key][language]
         raise KeyError(f"Key '{key}' not found in translations for language '{language}'")
 
-
-class triggerManager:
-    __triggers = {}
-    
-    @classmethod
-    def activateTrigger(cls, *triggers):
-        """
-        가변 인자를 받아 여러 트리거를 한 번에 활성화하는 함수
-        """
-        for trigger in triggers:
-            cls.__triggers[trigger] = True
-        
-    @classmethod
-    def disableTrigger(cls,*triggers):
-        for trigger in triggers:
-            cls.__triggers[trigger] = False
-        return
-    
-    @classmethod
-    def checkTrigger(cls,*triggers,operation="and"):
-        """
-        가변 인자를 받아 트리거들을 AND/OR 조건에 따라 확인하는 함수.
-        :param operation: "and" 또는 "or" (기본값은 "and")
-        :param *triggers: 확인할 트리거 리스트
-        :return: AND 연산일 경우 모두 True면 True, OR 연산일 경우 하나라도 True면 True
-        """
-        if operation == "and":
-            return all(cls.__triggers.get(trigger, False) for trigger in triggers)
-        elif operation == "or":
-            return any(cls.__triggers.get(trigger, False) for trigger in triggers)
-        else:
-            raise ValueError("operation must be 'and' or 'or'")
-
-
 class EventManager:
     '''
     게임 내에서 발생하는 이벤트와 트리거를 관리하는 클래스입니다.
