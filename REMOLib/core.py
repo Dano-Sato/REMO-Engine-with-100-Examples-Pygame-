@@ -613,7 +613,18 @@ class Rs:
             return True
         else:
             return False
-    
+
+
+    @classmethod
+    def userJustReleased(cls,key) -> bool:
+        if Rs.__lastKeyState == None:
+            return False
+        keyState = pygame.key.get_pressed()
+        if (Rs.__lastKeyState[key],keyState[key])==(True,False):
+            return True
+        else:
+            return False
+
     @classmethod
     def userPressing(cls,key) -> bool:
         '''
