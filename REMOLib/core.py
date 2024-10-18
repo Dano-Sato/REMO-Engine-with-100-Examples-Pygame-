@@ -1006,7 +1006,7 @@ class graphicObj():
 
     @property
     def x(self):
-        return RPoint(self.rect.x)
+        return self.rect.x
     @x.setter
     def x(self,_x):
         self.__adjustPosBy("x",_x)
@@ -1014,7 +1014,7 @@ class graphicObj():
 
     @property
     def y(self):
-        return RPoint(self.rect.y)
+        return self.rect.y
     @y.setter
     def y(self,_y):
         self.__adjustPosBy("y",_y)
