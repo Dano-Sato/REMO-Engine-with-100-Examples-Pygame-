@@ -989,6 +989,22 @@ class graphicObj():
         self.rect = pygame.Rect(self.pos.x,self.pos.y,size[0],size[1])
 
     @property
+    def width(self):
+        return self.rect.width
+    
+    @width.setter
+    def width(self,width):
+        self.size = (width,self.height)
+
+    @property
+    def height(self):
+        return self.rect.height
+    
+    @height.setter
+    def height(self,height):
+        self.size = (self.width,height)
+
+    @property
     def x(self):
         return RPoint(self.rect.x)
     @x.setter
