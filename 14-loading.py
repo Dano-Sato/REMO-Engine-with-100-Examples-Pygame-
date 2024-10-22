@@ -46,11 +46,19 @@ class loading:
         '''
         기본 로딩 화면을 설정합니다.
         '''
-        cls.centerText = textObj("Loading...",size=70)
+        cls.centerText = textObj("Loading... 100%",size=60)
         cls.centerText.center = Rs.screenRect().center
-        cls.progressBar = rectObj(pygame.Rect(0,0,Rs.screenRect().width,50),color=Cs.grey25)
+        cls.progressBar = rectObj(pygame.Rect(-10,0,Rs.screenRect().width+10,20),color=Cs.grey25)
         cls.progressBar.y = Rs.screenRect().height - cls.progressBar.rect.height - 50
         cls.renderLoadingScreen = cls.drawDefault
+
+    @classmethod
+    def setCaption(cls,caption):
+        '''
+        로딩 화면의 캡션을 설정합니다.
+        '''
+        cls.caption = textObj(caption,size=30,color=Cs.grey75)
+        cls.caption.center = Rs.screenRect().center + RPoint(0,200)
 
     @classmethod
     def drawDefault(cls):
@@ -59,6 +67,8 @@ class loading:
         '''
         cls.centerText.text = f"Loading... {cls.progress:.1f}%"
         cls.centerText.draw()
+        if cls.caption:
+            cls.caption.draw()
         cls.progressBar.width = int((Rs.screenRect().width * cls.progress)/100)
         cls.progressBar.draw()
 
@@ -71,6 +81,7 @@ class Obj:
 class mainScene(Scene):
     def initOnce(self):
         loading.init()
+        loading.setCaption("그거 아세요? 로딩 화면을 만들 수 있어요!")
         objs = []
         for i in range(100000):
             # 무거운 함수들 (팩토리얼, 오브젝트 생성 등)
