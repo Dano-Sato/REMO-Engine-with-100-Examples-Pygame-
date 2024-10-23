@@ -51,20 +51,33 @@ class loading:
         cls.progressBar = rectObj(pygame.Rect(-10,0,Rs.screenRect().width+10,20),color=Cs.grey25)
         cls.progressBar.y = Rs.screenRect().height - cls.progressBar.rect.height - 50
         cls.renderLoadingScreen = cls.drawDefault
+        cls.bgColor = None
 
     @classmethod
-    def setCaption(cls,caption):
+    def custom(cls,*,caption="",bgColor=None,textColor=None,barColor=None,captionColor=None):
         '''
-        로딩 화면의 캡션을 설정합니다.
+        로딩 화면을 커스터마이즈합니다.
         '''
-        cls.caption = textObj(caption,size=30,color=Cs.grey75)
-        cls.caption.center = Rs.screenRect().center + RPoint(0,200)
+        if caption:
+            cls.caption = textObj(caption,size=30,color=Cs.grey75)
+            cls.caption.center = Rs.screenRect().center + RPoint(0,200)
+        if bgColor:
+            cls.bgColor = bgColor
+        if textColor:
+            cls.centerText.color = textColor
+        if barColor:
+            cls.progressBar.color = barColor
+        if captionColor:
+            cls.caption.color = captionColor
+        
 
     @classmethod
     def drawDefault(cls):
         '''
         기본 로딩 화면을 그리는 함수입니다.
         '''
+        if cls.bgColor:
+            Rs.fillScreen(cls.bgColor)
         cls.centerText.text = f"Loading... {cls.progress:.1f}%"
         cls.centerText.draw()
         if cls.caption:
@@ -81,7 +94,7 @@ class Obj:
 class mainScene(Scene):
     def initOnce(self):
         loading.init()
-        loading.setCaption("그거 아세요? 로딩 화면을 만들 수 있어요!")
+        loading.custom(caption="그거 아세요? 로딩 화면을 만들 수 있어요!",bgColor=Cs.mint,textColor=Cs.black,barColor=Cs.aquamarine,captionColor=Cs.dark(Cs.mint))
         objs = []
         for i in range(100000):
             # 무거운 함수들 (팩토리얼, 오브젝트 생성 등)
@@ -90,7 +103,7 @@ class mainScene(Scene):
                 objs.append(textObj(f"{i}",size=20))
                 loading.updateProgress(i/1000)
         loading.updateProgress(100)
-        self.layout = layoutObj(childs=objs)
+        self.layout = scrollLayout(pygame.Rect(0,0,500,1000),childs=objs)
         return
     def init(self):
         return
