@@ -110,15 +110,29 @@ class mainScene(Scene):
     def initOnce(self):
         self.t = 0
         self.testObj = textObj("TEST",size=30)
-        self.start = RPoint(100,500)
-        self.dest = RPoint(500,500)
+        self.start = RPoint(300,500)
+        self.dest = RPoint(1300,500)
+        self.unfold = False
         return
     def init(self):
         return
     def update(self):
-        if self.t < 1:
+        if self.t < 1 and not self.unfold:
             self.t += 0.01
-            self.testObj.center = RMath.smooth(self.start,self.dest,self.t)
+            self.testObj.center = RMath.bounce(self.start,self.dest,self.t)
+            self.testObj.size = RMath.bounce(30,70,self.t)
+            self.testObj.color = RMath.bounce(Cs.white,Cs.cornflowerblue,self.t)
+            if self.t >= 1:
+                self.unfold = True
+                self.t = 0
+        if self.unfold and self.t < 1:
+            self.t +=0.01
+            self.testObj.center = RMath.easein(self.dest,self.start,self.t)
+            self.testObj.size = RMath.easein(70,30,self.t)
+            self.testObj.color = RMath.easein(Cs.cornflowerblue,Cs.white,self.t)
+            if self.t >= 1:
+                self.unfold = False
+                self.t = 0
         return
     def draw(self):
         self.testObj.draw()
