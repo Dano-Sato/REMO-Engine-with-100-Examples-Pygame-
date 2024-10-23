@@ -43,14 +43,14 @@ class RMath:
         '''
         가속 보간을 수행합니다.
         '''
-        return cls._interpolate(start,dest,t,lambda x: x**3)
+        return cls._interpolate(start,dest,t,lambda x: x**2.5)
 
     @classmethod
     def easeout(cls,start,dest,t):
         '''
         감속 보간을 수행합니다.
         '''
-        return cls._interpolate(start,dest,t,lambda x: 1-(1-x)**3)
+        return cls._interpolate(start,dest,t,lambda x: 1-(1-x)**2.5)
     
     @classmethod
     def smooth(cls,start,dest,t):
@@ -58,6 +58,13 @@ class RMath:
         시작과 끝이 부드러운 보간을 수행합니다.
         '''
         return cls._interpolate(start,dest,t,lambda t: t**3 * (t * (6 * t - 15) + 10))
+    
+    @classmethod
+    def bounce(cls,start,dest,t):
+        '''
+        바운스 보간을 수행합니다.
+        '''
+        return cls._interpolate(start,dest,t,cls._bounce)
     
     @classmethod
     def _exponential(cls,t, smoothness=1.0):
@@ -104,14 +111,14 @@ class mainScene(Scene):
         self.t = 0
         self.testObj = textObj("TEST",size=30)
         self.start = RPoint(100,500)
-        self.dest = RPoint(1000,500)
+        self.dest = RPoint(500,500)
         return
     def init(self):
         return
     def update(self):
         if self.t < 1:
             self.t += 0.01
-            self.testObj.center = RMath.easein(self.start,self.dest,self.t)
+            self.testObj.center = RMath.smooth(self.start,self.dest,self.t)
         return
     def draw(self):
         self.testObj.draw()
