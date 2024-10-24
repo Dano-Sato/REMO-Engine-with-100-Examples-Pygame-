@@ -82,6 +82,9 @@ class Obj:
 
 class mainScene(Scene):
     def initOnce(self):
+        '''
+        이 함수는 시간에 따른 보간 함수 예시로, 오브젝트의 위치, 크기, 투명도, 회전 각도를 점진적으로 변경합니다.        
+        '''
         self.t = 0
         self.testObj = textObj("TEST",size=30)
         self.start = RPoint(300,500)
@@ -101,7 +104,7 @@ class mainScene(Scene):
             print("Bounce!")
             self.layout.alpha = 0
             self.layout.pos = RPoint(2300,100)
-            self.layout.bounce(["pos","alpha"],[RPoint(1200,100),255],callback=bouncebounce,revert=True)
+            self.layout.bounce(["pos","alpha"],[RPoint(1200,100),255],callback=bouncebounce,revert=True,on_update=lambda:print("test"))
 
         bouncebounce()
 

@@ -288,24 +288,25 @@ class interpolateManager:
     DEFAULT_STEPS = 50
     DEFAULT_FRAME_DURATION = 1000/60
     @classmethod
-    def interpolate(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x,revert=False):
+    def interpolate(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None):
         '''
-        지정한 오브젝트의 속성을 서서히 변화시키는 함수입니다.\n
-        obj: 변화시킬 오브젝트\n
-        attributes: 변화시킬 속성 (문자열 또는 문자열 리스트)\n
-        ends: 속성의 최종 값 (리스트 혹은 단일 스칼라,벡터)\n
-        frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
-        steps: 변화시킬 단계 수 (기본값: 50)\n
-        callback: 변화가 끝났을 때 호출할 함수 (기본값: 빈 함수)\n
-        interpolation: 보간 함수 (기본값: 선형 보간) \n
-        revert: True일 경우, 보간이 끝난 후 다시 되돌아갑니다. (역재생) \n
-
+        지정한 오브젝트의 속성을 서서히 변화시키는 함수입니다.
+        obj: 변화시킬 오브젝트
+        attributes: 변화시킬 속성 (문자열 또는 문자열 리스트)
+        ends: 속성의 최종 값 (리스트 혹은 단일 스칼라, 벡터)
+        frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)
+        steps: 변화시킬 단계 수 (기본값: 50)
+        callback: 변화가 끝났을 때 호출할 함수 (기본값: 빈 함수)
+        interpolation: 보간 함수 (기본값: 선형 보간)
+        revert: True일 경우, 보간이 끝난 후 다시 되돌아갑니다. (역재생)
+        on_update: 보간이 업데이트될 때마다 호출되는 함수
         '''
         # attributes가 리스트나 튜플이 아니면 리스트로 변환
         if not isinstance(attributes, (list, tuple)):
             attributes = [attributes]
             ends = [ends]
-        t_s = np.linspace(0,1,steps)
+        
+        t_s = np.linspace(0, 1, steps)
         insts = {
             attr: [cls.__interpolate(getattr(obj, attr), ends[i], t, interpolation) for t in t_s]
             for i, attr in enumerate(attributes)
@@ -316,39 +317,56 @@ class interpolateManager:
             for attr in insts:
                 insts[attr].extend(insts[attr][::-1])  # 뒤집어서 리스트에 추가
 
-        cls.__interpolablePipeline.append({"obj":obj,"attributes":attributes,"ends":ends,"insts":insts,"timer":RTimer(frameDuration),"callback":callback,"interpolation":interpolation})
+        cls.__interpolablePipeline.append({
+            "obj": obj,
+            "attributes": attributes,
+            "ends": ends,
+            "insts": insts,
+            "timer": RTimer(frameDuration),
+            "callback": callback,
+            "interpolation": interpolation,
+            "on_update": on_update
+        })
         return
 
     @classmethod
-    def easein(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        점점 가속되는 보간을 수행합니다.
-        '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: x**2.5,revert=revert)
+    def easein(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: x**2.5, revert=revert, on_update=on_update)
         return
 
     @classmethod
-    def easeout(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        점점 감속되는 보간을 수행합니다.
-        '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: 1-(1-x)**2.5,revert=revert)
+    def easeout(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: 1 - (1 - x)**2.5, revert=revert, on_update=on_update)
         return
     
     @classmethod
-    def smooth(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        시작과 끝이 부드러운 보간을 수행합니다.
-        '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10),revert=revert)
+    def smooth(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10), revert=revert, on_update=on_update)
         return
 
     @classmethod
-    def bounce(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
+    def bounce(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=cls.__bounce, revert=revert, on_update=on_update)
+        return
+
+    @classmethod
+    def _update(cls):
         '''
-        통통 튀는 듯한 보간을 수행합니다.
+        시간에 따른 보간을 업데이트합니다.
         '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=cls.__bounce,revert=revert)
+        for interpolable in cls.__interpolablePipeline:
+            if interpolable["timer"].isOver():
+                for attr in interpolable["attributes"]:
+                    setattr(interpolable["obj"], attr, interpolable["insts"][attr].pop(0))
+                
+                # on_update 함수를 실행하여 업데이트 이벤트 발생
+                interpolable["on_update"]()
+
+                if len(interpolable["insts"][interpolable["attributes"][0]]) == 0:
+                    cls.__interpolablePipeline.remove(interpolable)
+                    interpolable["callback"]()
+                
+                interpolable["timer"].reset()
         return
 
     @classmethod
@@ -387,66 +405,32 @@ class interpolateManager:
             t -= 2.625 / 2.75
             return (7.5625 * t * t + 0.984375)
 
-    @classmethod
-    def _update(cls):
-        '''
-        시간에 따른 보간을 업데이트합니다.
-        '''
-        for interpolable in cls.__interpolablePipeline:
-            if interpolable["timer"].isOver():
-                for attr in interpolable["attributes"]:
-                    setattr(interpolable["obj"],attr,interpolable["insts"][attr].pop(0))
-                if len(interpolable["insts"][interpolable["attributes"][0]])==0:
-                    cls.__interpolablePipeline.remove(interpolable)
-                    interpolable["callback"]()
-                interpolable["timer"].reset()
-        return
-
-    None 
 
 class interpolableObj:
     
-    def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        가진 인자(pos,center,color 등)에 대해 점점 가속되는 보간을 수행합니다.
-        '''
-        interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
+     
+    def easein(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        interpolateManager.easein(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
-    def easeout(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        가진 인자(pos,center,color 등)에 대해 점점 감속되는 보간을 수행합니다.
-        '''
-
-        interpolateManager.easeout(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
+    def easeout(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        interpolateManager.easeout(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
-    def smooth(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        가진 인자(pos,center,color 등)에 대해 시작과 끝이 부드러운 보간을 수행합니다.
-        '''
-        interpolateManager.smooth(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
+    def smooth(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        interpolateManager.smooth(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
-    def bounce(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
-        '''
-        가진 인자(pos,center,color 등)에 대해 통통 튀는 듯한 보간을 수행합니다
-        '''
-        interpolateManager.bounce(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
+    def bounce(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        interpolateManager.bounce(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
-    def interpolate(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x,revert=False):
-        '''
-        가진 인자(pos,center,color 등)에 대해 보간을 수행합니다.
-        '''
-        interpolateManager.interpolate(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=interpolation,revert=revert)
+    def interpolate(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None):
+        interpolateManager.interpolate(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=interpolation, revert=revert, on_update=on_update)
         return
     
-    def slidein(self,delta=RPoint(50,0),*,speed=1.5,callback=lambda:None,revert=False):
-        '''
-        오브젝트를 슬라이딩 시키면서 나타나게 하는 함수입니다.\n
-        '''
+    def slidein(self, delta=RPoint(50, 0), *, speed=1.5, callback=lambda: None, revert=False, on_update=lambda: None):
         self.pos -= delta
         self.alpha = 0
         steps = int(interpolateManager.DEFAULT_STEPS // speed)
-        self.easeout(["pos","alpha"],[self.pos+delta,255],steps=steps,callback=callback,revert=revert)
+        self.easeout(["pos", "alpha"], [self.pos + delta, 255], steps=steps, callback=callback, revert=revert, on_update=on_update)
