@@ -400,21 +400,46 @@ class interpolateManager:
 class interpolableObj:
     
     def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        '''
+        가진 인자(pos,center,color 등)에 대해 점점 가속되는 보간을 수행합니다.
+        '''
         interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
         return
     
     def easeout(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        '''
+        가진 인자(pos,center,color 등)에 대해 점점 감속되는 보간을 수행합니다.
+        '''
+
         interpolateManager.easeout(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
         return
     
     def smooth(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        '''
+        가진 인자(pos,center,color 등)에 대해 시작과 끝이 부드러운 보간을 수행합니다.
+        '''
         interpolateManager.smooth(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
         return
     
     def bounce(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        '''
+        가진 인자(pos,center,color 등)에 대해 통통 튀는 듯한 보간을 수행합니다
+        '''
         interpolateManager.bounce(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
         return
     
     def interpolate(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x):
+        '''
+        가진 인자(pos,center,color 등)에 대해 보간을 수행합니다.
+        '''
         interpolateManager.interpolate(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=interpolation)
         return
+    
+    def slidein(self,delta=RPoint(50,0),*,speed=1.5,callback=lambda:None):
+        '''
+        오브젝트를 슬라이딩 시키면서 나타나게 하는 함수입니다.\n
+        '''
+        self.pos -= delta
+        self.alpha = 0
+        steps = int(interpolateManager.DEFAULT_STEPS // speed)
+        self.easeout(["pos","alpha"],[self.pos+delta,255],steps=steps,callback=callback)

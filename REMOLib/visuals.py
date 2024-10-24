@@ -21,7 +21,7 @@ class Cs():
     purple=(160,32,240)
     pink=(255,192,203)
     beige = (245,245,220)
-    brown = (150, 75, 0)
+    brown_old = (150, 75, 0)
     aquamarine = (127,255,212)
     salmon = (250,128,114)
     ebony = (85,93,80)
