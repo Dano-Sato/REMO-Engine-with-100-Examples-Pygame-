@@ -345,9 +345,15 @@ class interpolateManager:
         return
 
     @classmethod
+    def jump(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: 4 * t * (1-t), revert=revert, on_update=on_update)
+        return
+
+    @classmethod
     def bounce(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
         cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=cls.__bounce, revert=revert, on_update=on_update)
         return
+    
 
     @classmethod
     def _update(cls):
@@ -410,26 +416,142 @@ class interpolableObj:
     
      
     def easein(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+        점점 가속되는 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
+
         interpolateManager.easein(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
     def easeout(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+        점점 감속되는 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
+
         interpolateManager.easeout(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
     def smooth(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+        시작과 끝이 부드러운 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
+
         interpolateManager.smooth(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
+    def jump(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+        점프하는 듯한 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
+
+        interpolateManager.jump(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        return
+    
     def bounce(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+        통통 튀는 듯한 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
+
+
         interpolateManager.bounce(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
         return
     
     def interpolate(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None):
+        '''
+        주어진 보간 함수를 이용해 보간을 수행합니다.
+
+        Args:
+            attributes (list or str): 보간할 속성 리스트 (예: "pos", "scale" 등).
+            ends (list or value): 보간 종료 시 속성들이 도달할 값.
+            frameDuration (float, optional): 한 프레임의 지속 시간 (기본값: 1000/60 ms).
+            steps (int, optional): 보간이 완료될 때까지의 단계 수 (기본값: 50).
+            callback (function, optional): 보간 완료 후 호출되는 함수.
+            interpolation (function, optional): 보간 함수 (기본값: 선형 보간).
+            revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
+            on_update (function, optional): 각 프레임마다 호출되는 함수.
+
+        Returns:
+            None
+        '''
         interpolateManager.interpolate(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=interpolation, revert=revert, on_update=on_update)
         return
     
     def slidein(self, delta=RPoint(50, 0), *, speed=1.5, callback=lambda: None, revert=False, on_update=lambda: None):
+        '''
+            오브젝트를 슬라이딩시키며 나타나게 하는 함수.
+
+            Args:
+                delta (RPoint, optional): 시작 위치에서의 변위.
+                speed (float, optional): 슬라이드 속도 조절 (기본값: 1.5).
+                callback (function, optional): 슬라이드 완료 후 호출되는 함수.
+                revert (bool, optional): True일 경우 슬라이드 후 원래 위치로 돌아갑니다.
+                on_update (function, optional): 슬라이드가 진행되는 동안 매 프레임마다 호출되는 함수.
+
+            Returns:
+                None
+        '''
+
+
         self.pos -= delta
         self.alpha = 0
         steps = int(interpolateManager.DEFAULT_STEPS // speed)
