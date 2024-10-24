@@ -65,11 +65,6 @@ class RMath:
         바운스 보간을 수행합니다.
         '''
         return cls._interpolate(start,dest,t,cls._bounce)
-    
-    @classmethod
-    def _exponential(cls,t, smoothness=1.0):
-        """ 지수적으로 보간 (t ** smoothness) """
-        return t ** smoothness    
 
     @classmethod
     def _bounce(cls, t):
@@ -86,22 +81,9 @@ class RMath:
         else:
             t -= 2.625 / 2.75
             return (7.5625 * t * t + 0.984375)
+        
 
-    @classmethod
-    def _elastic(cls,t, smoothness=1.0):
-        """ 탄성 보간 """
-        if t == 0 or t == 1:
-            return t
-        p = smoothness * 0.3
-        a = 1.0
-        s = p / 4
-        t -= 1
-        return -(a * math.pow(2, 10 * t) * math.sin((t - s) * (2 * math.pi) / p))
 
-    @classmethod
-    def _quadratic(cls,t, smoothness=1.0):
-        """ 2차 함수 보간 (t^smoothness) """
-        return t ** smoothness * (2 - t)
 #게임 오브젝트들을 선언하는 곳입니다.
 class Obj:
     None
@@ -112,13 +94,19 @@ class mainScene(Scene):
         self.testObj = textObj("TEST",size=30)
         self.start = RPoint(300,500)
         self.dest = RPoint(1300,500)
+        self.testObj2 = textObj("TEST 2",size=30)
+        self.testObj2.easein(["center","color","size"],[RPoint(1000,500),Cs.darkred,50])
+        self.layout = buttonLayout(["Test","Test2","Test3"],RPoint(1300,100))
+        self.layout.alpha = 0
+        self.layout.easeout(["pos","alpha"],[RPoint(1000,100),255])
+
         self.unfold = False
         return
     def init(self):
         return
     def update(self):
         if self.t < 1 and not self.unfold:
-            self.t += 0.01
+            self.t += 0.02
             self.testObj.center = RMath.bounce(self.start,self.dest,self.t)
             self.testObj.size = RMath.bounce(30,70,self.t)
             self.testObj.color = RMath.bounce(Cs.white,Cs.cornflowerblue,self.t)
@@ -126,16 +114,20 @@ class mainScene(Scene):
                 self.unfold = True
                 self.t = 0
         if self.unfold and self.t < 1:
-            self.t +=0.01
+            self.t +=0.02
             self.testObj.center = RMath.easein(self.dest,self.start,self.t)
             self.testObj.size = RMath.easein(70,30,self.t)
             self.testObj.color = RMath.easein(Cs.cornflowerblue,Cs.white,self.t)
             if self.t >= 1:
                 self.unfold = False
                 self.t = 0
+        self.layout.update()
+        
         return
     def draw(self):
         self.testObj.draw()
+        self.testObj2.draw()
+        self.layout.draw()
         return
 
 

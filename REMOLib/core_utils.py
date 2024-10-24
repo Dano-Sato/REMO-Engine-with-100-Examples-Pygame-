@@ -1,4 +1,5 @@
 import pygame,math,typing,random
+import numpy as np
 from abc import ABC
 
 '''
@@ -281,3 +282,123 @@ class EventHandler:
                 # *args와 **kwargs를 통해 리스너 함수에 전달
                 listener(*args, **kwargs)
 
+
+class interpolateManager:
+    __interpolablePipeline = []
+    DEFAULT_STEPS = 50
+    DEFAULT_FRAME_DURATION = 1000/60
+    @classmethod
+    def interpolate(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x):
+        '''
+        지정한 오브젝트의 속성을 서서히 변화시키는 함수입니다.\n
+        obj: 변화시킬 오브젝트\n
+        attributes: 변화시킬 속성 (문자열 또는 문자열 리스트)\n
+        ends: 속성의 최종 값 (리스트 혹은 단일 스칼라,벡터)\n
+        frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
+        steps: 변화시킬 단계 수 (기본값: 50)\n
+        callback: 변화가 끝났을 때 호출할 함수 (기본값: 빈 함수)\n
+        interpolation: 보간 함수 (기본값: 선형 보간)
+
+        '''
+        # attributes가 리스트나 튜플이 아니면 리스트로 변환
+        if not isinstance(attributes, (list, tuple)):
+            attributes = [attributes]
+            ends = [ends]
+        t_s = np.linspace(0,1,steps)
+        insts = {
+            attr: [cls.__interpolate(getattr(obj, attr), ends[i], t, interpolation) for t in t_s]
+            for i, attr in enumerate(attributes)
+        }
+        cls.__interpolablePipeline.append({"obj":obj,"attributes":attributes,"ends":ends,"insts":insts,"timer":RTimer(frameDuration),"callback":callback,"interpolation":interpolation})
+        return
+
+    @classmethod
+    def easein(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: x**2.5)
+        return
+
+    @classmethod
+    def easeout(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: 1-(1-x)**2.5)
+        return
+    
+    @classmethod
+    def smooth(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10))
+        return
+
+    @classmethod
+    def bounce(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=cls.__bounce)
+        return
+
+    @classmethod
+    def __interpolate(cls,a, b, t, interpolation=lambda x:x):
+        """ a와 b 사이를 t만큼 보간하고, 벡터 혹은 스칼라 값을 처리합니다.
+        :param a: 시작 값 또는 벡터
+        :param b: 끝 값 또는 벡터
+        :param t: 보간 계수 (0에서 1 사이)
+        :param mode: 보간 모드 ('linear', 'exponential', 'bounce', 'elastic', 'quadratic')
+        :param smoothness: 부드러움 조절 인자
+        :return: 보간된 값 또는 벡터
+        """
+
+        # t 값이 범위를 넘지 않도록 클램핑
+        t = np.clip(t, 0.0, 1.0)
+        t = interpolation(t)
+        # 벡터 또는 스칼라 보간 처리
+        if isinstance(a, (list, tuple, np.ndarray)):
+            a = np.array(a)
+            b = np.array(b)
+        return a + (b - a) * t
+    
+    @classmethod
+    def __bounce(cls, t):
+        """ 바운스 보간 (강도 조절 가능) """
+
+        if t < 1 / 2.75:
+            return (7.5625 * t * t)
+        elif t < 2 / 2.75:
+            t -= 1.5 / 2.75
+            return (7.5625 * t * t + 0.75)
+        elif t < 2.5 / 2.75:
+            t -= 2.25 / 2.75
+            return (7.5625 * t * t + 0.9375)
+        else:
+            t -= 2.625 / 2.75
+            return (7.5625 * t * t + 0.984375)
+
+    @classmethod
+    def _update(cls):
+        for interpolable in cls.__interpolablePipeline:
+            if interpolable["timer"].isOver():
+                for attr in interpolable["attributes"]:
+                    setattr(interpolable["obj"],attr,interpolable["insts"][attr].pop(0))
+                if len(interpolable["insts"][interpolable["attributes"][0]])==0:
+                    cls.__interpolablePipeline.remove(interpolable)
+                    interpolable["callback"]()
+                interpolable["timer"].reset()
+        return
+
+    None 
+
+class interpolableObj:
+    def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        return
+    
+    def easeout(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        interpolateManager.easeout(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        return
+    
+    def smooth(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        interpolateManager.smooth(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        return
+    
+    def bounce(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+        interpolateManager.bounce(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        return
+    
+    def interpolate(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x):
+        interpolateManager.interpolate(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=interpolation)
+        return

@@ -189,6 +189,7 @@ class Rs:
 
         from .motion import RMotion
         RMotion._motionUpdate() # 모션 업데이트
+        interpolateManager._update() # 보간 업데이트
 
         Rs.__lastState=state
     
@@ -952,7 +953,7 @@ class REMOGame:
 ### Graphic Objects ###
 
 #abstract class for graphic Object
-class graphicObj():
+class graphicObj(interpolableObj):
 
 
     ##포지션 편집 및 참조 기능
