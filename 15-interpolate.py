@@ -93,7 +93,7 @@ class mainScene(Scene):
             self.testObj2.alpha = 255
             self.testObj2.scale = 1
             self.testObj2.angle = 0
-            self.testObj2.easeout(["pos","scale","alpha","angle"],[RPoint(1000,500),3,0,50],callback=disappear)
+            self.testObj2.easeout(["pos","scale","alpha","angle"],[RPoint(1000,500),3,0,50],callback=disappear,revert=True)
         disappear()
         self.layout = buttonLayout(["Test","Test2","Test3"],RPoint(2300,100))
         self.layout.alpha = 0
@@ -101,8 +101,10 @@ class mainScene(Scene):
             print("Bounce!")
             self.layout.alpha = 0
             self.layout.pos = RPoint(2300,100)
-            self.layout.bounce(["pos","alpha"],[RPoint(1200,100),255],callback=bouncebounce)
+            self.layout.bounce(["pos","alpha"],[RPoint(1200,100),255],callback=bouncebounce,revert=True)
+
         bouncebounce()
+
 
         self.unfold = False
         return

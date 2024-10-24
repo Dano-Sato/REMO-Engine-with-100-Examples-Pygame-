@@ -288,7 +288,7 @@ class interpolateManager:
     DEFAULT_STEPS = 50
     DEFAULT_FRAME_DURATION = 1000/60
     @classmethod
-    def interpolate(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x):
+    def interpolate(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x,revert=False):
         '''
         지정한 오브젝트의 속성을 서서히 변화시키는 함수입니다.\n
         obj: 변화시킬 오브젝트\n
@@ -297,7 +297,8 @@ class interpolateManager:
         frameDuration: 한 프레임당 지속 시간 (기본값: 1000/60 밀리초)\n
         steps: 변화시킬 단계 수 (기본값: 50)\n
         callback: 변화가 끝났을 때 호출할 함수 (기본값: 빈 함수)\n
-        interpolation: 보간 함수 (기본값: 선형 보간)
+        interpolation: 보간 함수 (기본값: 선형 보간) \n
+        revert: True일 경우, 보간이 끝난 후 다시 되돌아갑니다. (역재생) \n
 
         '''
         # attributes가 리스트나 튜플이 아니면 리스트로 변환
@@ -309,39 +310,45 @@ class interpolateManager:
             attr: [cls.__interpolate(getattr(obj, attr), ends[i], t, interpolation) for t in t_s]
             for i, attr in enumerate(attributes)
         }
+
+        # reset=True일 경우 insts를 뒤집어서 원상복구 추가
+        if revert:
+            for attr in insts:
+                insts[attr].extend(insts[attr][::-1])  # 뒤집어서 리스트에 추가
+
         cls.__interpolablePipeline.append({"obj":obj,"attributes":attributes,"ends":ends,"insts":insts,"timer":RTimer(frameDuration),"callback":callback,"interpolation":interpolation})
         return
 
     @classmethod
-    def easein(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+    def easein(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         점점 가속되는 보간을 수행합니다.
         '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: x**2.5)
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: x**2.5,revert=revert)
         return
 
     @classmethod
-    def easeout(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+    def easeout(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         점점 감속되는 보간을 수행합니다.
         '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: 1-(1-x)**2.5)
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: 1-(1-x)**2.5,revert=revert)
         return
     
     @classmethod
-    def smooth(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+    def smooth(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         시작과 끝이 부드러운 보간을 수행합니다.
         '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10))
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10),revert=revert)
         return
 
     @classmethod
-    def bounce(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+    def bounce(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         통통 튀는 듯한 보간을 수행합니다.
         '''
-        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=cls.__bounce)
+        cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=cls.__bounce,revert=revert)
         return
 
     @classmethod
@@ -399,47 +406,47 @@ class interpolateManager:
 
 class interpolableObj:
     
-    def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+    def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         가진 인자(pos,center,color 등)에 대해 점점 가속되는 보간을 수행합니다.
         '''
-        interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
         return
     
-    def easeout(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+    def easeout(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         가진 인자(pos,center,color 등)에 대해 점점 감속되는 보간을 수행합니다.
         '''
 
-        interpolateManager.easeout(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        interpolateManager.easeout(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
         return
     
-    def smooth(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+    def smooth(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         가진 인자(pos,center,color 등)에 대해 시작과 끝이 부드러운 보간을 수행합니다.
         '''
-        interpolateManager.smooth(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        interpolateManager.smooth(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
         return
     
-    def bounce(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
+    def bounce(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,revert=False):
         '''
         가진 인자(pos,center,color 등)에 대해 통통 튀는 듯한 보간을 수행합니다
         '''
-        interpolateManager.bounce(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
+        interpolateManager.bounce(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,revert=revert)
         return
     
-    def interpolate(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x):
+    def interpolate(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None,interpolation = lambda x:x,revert=False):
         '''
         가진 인자(pos,center,color 등)에 대해 보간을 수행합니다.
         '''
-        interpolateManager.interpolate(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=interpolation)
+        interpolateManager.interpolate(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=interpolation,revert=revert)
         return
     
-    def slidein(self,delta=RPoint(50,0),*,speed=1.5,callback=lambda:None):
+    def slidein(self,delta=RPoint(50,0),*,speed=1.5,callback=lambda:None,revert=False):
         '''
         오브젝트를 슬라이딩 시키면서 나타나게 하는 함수입니다.\n
         '''
         self.pos -= delta
         self.alpha = 0
         steps = int(interpolateManager.DEFAULT_STEPS // speed)
-        self.easeout(["pos","alpha"],[self.pos+delta,255],steps=steps,callback=callback)
+        self.easeout(["pos","alpha"],[self.pos+delta,255],steps=steps,callback=callback,revert=revert)
