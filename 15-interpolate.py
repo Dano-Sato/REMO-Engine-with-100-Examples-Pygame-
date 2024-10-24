@@ -2,14 +2,6 @@ from REMOLib import *
 import numpy as np
 
 
-
-class interpolateMode(Enum):
-    LINEAR = auto()
-    EXPONENTIAL = auto()
-    BOUNCE = auto()
-    ELASTIC = auto()
-    QUADRATIC = auto()
-
 class RMath:
     @classmethod
     def _interpolate(cls,a, b, t, interpolation=lambda x:x):
@@ -94,11 +86,23 @@ class mainScene(Scene):
         self.testObj = textObj("TEST",size=30)
         self.start = RPoint(300,500)
         self.dest = RPoint(1300,500)
-        self.testObj2 = textObj("TEST 2",size=30)
-        self.testObj2.easein(["center","color","size"],[RPoint(1000,500),Cs.darkred,50])
-        self.layout = buttonLayout(["Test","Test2","Test3"],RPoint(1300,100))
+        self.testObj2 = imageObj("coin.png",pos=RPoint(200,500))
+
+        def disappear():
+            self.testObj2.pos = RPoint(200,500)
+            self.testObj2.alpha = 255
+            self.testObj2.scale = 1
+            self.testObj2.angle = 0
+            self.testObj2.easeout(["pos","scale","alpha","angle"],[RPoint(1000,500),3,0,50],callback=disappear)
+        disappear()
+        self.layout = buttonLayout(["Test","Test2","Test3"],RPoint(2300,100))
         self.layout.alpha = 0
-        self.layout.easeout(["pos","alpha"],[RPoint(1000,100),255])
+        def bouncebounce():
+            print("Bounce!")
+            self.layout.alpha = 0
+            self.layout.pos = RPoint(2300,100)
+            self.layout.bounce(["pos","alpha"],[RPoint(1200,100),255],callback=bouncebounce)
+        bouncebounce()
 
         self.unfold = False
         return

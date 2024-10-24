@@ -314,21 +314,33 @@ class interpolateManager:
 
     @classmethod
     def easein(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        '''
+        점점 가속되는 보간을 수행합니다.
+        '''
         cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: x**2.5)
         return
 
     @classmethod
     def easeout(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        '''
+        점점 감속되는 보간을 수행합니다.
+        '''
         cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda x: 1-(1-x)**2.5)
         return
     
     @classmethod
     def smooth(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        '''
+        시작과 끝이 부드러운 보간을 수행합니다.
+        '''
         cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10))
         return
 
     @classmethod
     def bounce(cls,obj,attributes,ends,*,frameDuration=DEFAULT_FRAME_DURATION,steps=DEFAULT_STEPS,callback=lambda:None):
+        '''
+        통통 튀는 듯한 보간을 수행합니다.
+        '''
         cls.interpolate(obj,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback,interpolation=cls.__bounce)
         return
 
@@ -370,6 +382,9 @@ class interpolateManager:
 
     @classmethod
     def _update(cls):
+        '''
+        시간에 따른 보간을 업데이트합니다.
+        '''
         for interpolable in cls.__interpolablePipeline:
             if interpolable["timer"].isOver():
                 for attr in interpolable["attributes"]:
@@ -383,6 +398,7 @@ class interpolateManager:
     None 
 
 class interpolableObj:
+    
     def easein(self,attributes,ends,*,frameDuration=interpolateManager.DEFAULT_FRAME_DURATION,steps=interpolateManager.DEFAULT_STEPS,callback=lambda:None):
         interpolateManager.easein(self,attributes,ends,frameDuration=frameDuration,steps=steps,callback=callback)
         return
