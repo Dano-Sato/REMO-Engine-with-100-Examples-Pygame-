@@ -284,7 +284,7 @@ class EventHandler:
 
 
 class interpolateManager:
-    __interpolablePipeline = []
+    __interpolablePipeline = {}
     DEFAULT_STEPS = 50
     DEFAULT_FRAME_DURATION = 1000/60
     @classmethod
@@ -316,8 +316,9 @@ class interpolateManager:
         if revert:
             for attr in insts:
                 insts[attr].extend(insts[attr][::-1])  # 뒤집어서 리스트에 추가
+      
 
-        cls.__interpolablePipeline.append({
+        cls.__interpolablePipeline[id(obj)]={
             "obj": obj,
             "attributes": attributes,
             "ends": ends,
@@ -326,7 +327,7 @@ class interpolateManager:
             "callback": callback,
             "interpolation": interpolation,
             "on_update": on_update
-        })
+        }
         return
 
     @classmethod
@@ -360,19 +361,29 @@ class interpolateManager:
         '''
         시간에 따른 보간을 업데이트합니다.
         '''
-        for interpolable in cls.__interpolablePipeline:
+        keys_to_remove = []
+
+        for obj_id, interpolable in cls.__interpolablePipeline.items():
             if interpolable["timer"].isOver():
+                # 각 속성 업데이트
                 for attr in interpolable["attributes"]:
                     setattr(interpolable["obj"], attr, interpolable["insts"][attr].pop(0))
-                
-                # on_update 함수를 실행하여 업데이트 이벤트 발생
-                interpolable["on_update"]()
 
+                # on_update 함수를 실행하여 업데이트 이벤트 발생
+                if interpolable["on_update"]:
+                    interpolable["on_update"]()
+
+                # 모든 insts가 완료되었는지 확인하고 callback 실행 후 제거
                 if len(interpolable["insts"][interpolable["attributes"][0]]) == 0:
-                    cls.__interpolablePipeline.remove(interpolable)
-                    interpolable["callback"]()
-                
+                    keys_to_remove.append(obj_id)  # 나중에 제거할 키 추적
+                    if interpolable["callback"]:
+                        interpolable["callback"]()
+
                 interpolable["timer"].reset()
+
+        # 처리 후에 사전에서 키 제거
+        for key in keys_to_remove:
+            del cls.__interpolablePipeline[key]
         return
 
     @classmethod
