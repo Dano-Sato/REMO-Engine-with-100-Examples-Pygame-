@@ -97,6 +97,7 @@ class mainScene(Scene):
             self.testObj2.scale = 1
             self.testObj2.angle = 0
             self.testObj2.easeout(["pos","scale","alpha","angle"],[RPoint(1000,500),3,0,50],callback=disappear,revert=True)
+            print("Disappear!")
         disappear()
         self.layout = buttonLayout(["Test","Test2","Test3"],RPoint(2300,100))
         self.layout.alpha = 0
