@@ -27,6 +27,7 @@ class loading:
         '''
         ## 필수 업데이트들 처리
         RMotion._motionUpdate() # 모션 업데이트
+        interpolateManager._update() # 보간 업데이트
 
 
         ## 화면 업데이트
@@ -52,6 +53,8 @@ class loading:
         cls.progressBar.y = Rs.screenRect().height - cls.progressBar.rect.height - 50
         cls.renderLoadingScreen = cls.drawDefault
         cls.bgColor = None
+        cls.centerText.slidein()
+
 
     @classmethod
     def custom(cls,*,caption="",bgColor=None,textColor=None,barColor=None,captionColor=None):
@@ -61,6 +64,7 @@ class loading:
         if caption:
             cls.caption = textObj(caption,size=30,color=Cs.grey75)
             cls.caption.center = Rs.screenRect().center + RPoint(0,200)
+            cls.caption.slidein()
         if bgColor:
             cls.bgColor = bgColor
         if textColor:
@@ -99,9 +103,9 @@ class mainScene(Scene):
         for i in range(100000):
             # 무거운 함수들 (팩토리얼, 오브젝트 생성 등)
             math.factorial(i%1000)
-            if i%100==0:
+            if i%1000==0:
                 objs.append(textObj(f"{i}",size=20))
-                loading.updateProgress(i/1000)
+                loading.updateProgress(i/100)
         loading.updateProgress(100)
         self.layout = scrollLayout(pygame.Rect(0,0,500,1000),childs=objs)
         return

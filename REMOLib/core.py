@@ -1286,6 +1286,12 @@ class graphicObj(interpolableObj):
             self._hidedDepth.add(depth)
             self._clearGraphicCache()
 
+    def isHided(self,depth):
+        '''
+        해당 depth를 가진 차일드가 숨겨져 있는지를 반환한다.
+        '''
+        return depth in self._hidedDepth
+
     def getChilds(self,depth=0) -> list[graphicObj]:
         '''
         해당 depth를 가진 차일드들을 반환한다.

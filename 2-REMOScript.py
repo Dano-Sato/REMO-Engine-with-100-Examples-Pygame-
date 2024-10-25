@@ -51,6 +51,7 @@ class mainScene(Scene):
         None
 
     def init(self):
+        self.menus.slidein()
         return
     def update(self):
 
