@@ -362,7 +362,6 @@ class interpolateManager:
         시간에 따른 보간을 업데이트합니다.
         '''
         keys_to_remove = []
-        callbacks_to_execute = []
 
         for obj_id, interpolable in cls.__interpolablePipeline.items():
             if interpolable["timer"].isOver():
@@ -377,18 +376,14 @@ class interpolateManager:
                 # 모든 insts가 완료되었는지 확인하고 callback 실행 후 제거
                 if len(interpolable["insts"][interpolable["attributes"][0]]) == 0:
                     keys_to_remove.append(obj_id)  # 나중에 제거할 키 추적
-                    if interpolable["callback"]:  # 콜백을 대기열에 추가
-                        callbacks_to_execute.append(interpolable["callback"])
+                    if interpolable["callback"]:
+                        interpolable["callback"]()
+
                 interpolable["timer"].reset()
 
         # 처리 후에 사전에서 키 제거
         for key in keys_to_remove:
             del cls.__interpolablePipeline[key]
-
-        # 제거가 완료된 후에 콜백 실행
-        for callback in callbacks_to_execute:
-            callback()            
-
         return
 
     @classmethod

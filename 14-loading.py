@@ -31,12 +31,10 @@ class loading:
 
 
         ## 화면 업데이트
-        Rs.screen.fill(Cs.black) ## 검은 화면
+        Rs.fillScreen(Cs.black) ## 검은 화면
         cls.renderLoadingScreen()
         Rs._draw()
-        Rs._screenCapture = Rs.screen.copy()
-        Rs._screenBuffer = pygame.transform.smoothscale(Rs._screenCapture,Rs.getWindowRes())
-        Rs.window.blit(Rs._screenBuffer,(0,0))
+        Rs.render_engine.render(Rs.source_layer.texture,Rs.render_engine.screen,scale=Rs._scaler)
         pygame.display.flip()        
 
         
@@ -103,9 +101,9 @@ class mainScene(Scene):
         for i in range(100000):
             # 무거운 함수들 (팩토리얼, 오브젝트 생성 등)
             math.factorial(i%1000)
-            if i%1000==0:
+            if i%100==0:
                 objs.append(textObj(f"{i}",size=20))
-                loading.updateProgress(i/100)
+                loading.updateProgress(i/1000)
         loading.updateProgress(100)
         self.layout = scrollLayout(pygame.Rect(0,0,500,1000),childs=objs)
         return

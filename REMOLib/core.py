@@ -47,6 +47,7 @@ environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
 
 
 import pygame,time,math,copy,pickle,random,pandas
+from .pygame_render import RenderEngine
 import sys,os
 try:
     import pygame.freetype as freetype
@@ -74,39 +75,40 @@ class Rs:
     draw_fps = 144
     __window_resolution = (800,600) # 게임 윈도우 해상도
 
-
-    def getWindowRes() -> typing.Tuple[int,int]:
+    @classmethod
+    def getWindowRes(cls) -> typing.Tuple[int, int]:
         '''
         윈도우 해상도를 반환한다.\n
         '''
-        if Rs.isFullScreen():
-            return Rs.fullScreenRes
+        if cls.isFullScreen():
+            return cls.fullScreenRes
         else:
-            return Rs.__window_resolution
+            return cls.__window_resolution
 
-    #윈도우 해상도를 변화시킨다.    
-    def setWindowRes(res:typing.Tuple[int,int]):
+    # 윈도우 해상도를 변화시킨다.    
+    @classmethod
+    def setWindowRes(cls, res: typing.Tuple[int, int],*,fullscreen=False):
         '''
         윈도우 해상도를 설정한다.\n
         res : (가로,세로) 튜플\n
         주 모니터의 최대 해상도보다 클 경우 강제로 조정된다.
         '''
-        ##주 모니터의 최대 해상도보다 클 경우 강제 조정
-        ##Test
-        max_res = Rs.fullScreenRes
-        if res[0]>max_res[0] or res[1]>max_res[1]:
+        # 주 모니터의 최대 해상도보다 클 경우 강제 조정
+        max_res = cls.fullScreenRes
+        if res[0] > max_res[0] or res[1] > max_res[1]:
             res = max_res
-        Rs.__window_resolution = res
-        Rs.__updateWindow()
-
+        if fullscreen:
+            cls.__fullScreen = fullscreen
+        cls.__window_resolution = res
+        cls.__updateWindow()
 
     screen_size = (1920,1080) # 게임을 구성하는 실제 스크린의 픽셀수
     screen = pygame.Surface.__new__(pygame.Surface)
     _screenCapture  = None
-    _screenBuffer = pygame.Surface.__new__(pygame.Surface)
 
 
     __fullScreen = False # 풀스크린 여부를 체크하는 인자
+    fullScreenRes = (1920,1080) # 풀스크린 해상도
     windowFlag = 0 # 파이게임 창 플래그
     events = [] # 파이게임 이벤트를 저장하는 인자
     draggedObj = None # 드래깅되는 오브젝트를 추적하는 인자
@@ -118,6 +120,8 @@ class Rs:
     __lastKeyState = None # 마지막의 키 상태를 저장하는 인자.
     __mousePos = RPoint(0,0)
     _mouseTransformer = (1,1) ##마우스 위치를 디스플레이->게임스크린으로 보내기 위해 필요한 변환인자
+
+    render_engine = None
     @classmethod
     #internal update function
     def _update(cls):
@@ -199,8 +203,6 @@ class Rs:
         
     @classmethod
     def _draw(cls):
-        ##배경화면을 검게 채운다.
-        Rs.window.fill(Cs.black)
         ##등록된 팝업들을 그린다.
         for popup in Rs.__popupPipeline:
             Rs.__popupPipeline[popup].draw()
@@ -221,36 +223,49 @@ class Rs:
         '''
         풀스크린 여부를 반환한다.\n
         '''
-        return Rs.__fullScreen
+        return cls.__fullScreen
 
     @classmethod
     def toggleFullScreen(cls):
         '''
         풀스크린 모드를 토글한다.\n
         '''
-        Rs.__fullScreen = not Rs.isFullScreen()
-        Rs.__updateWindow()
-
+        cls.setFullScreen(not cls.isFullScreen())
     
     @classmethod
-    def setFullScreen(cls,t:bool=True):
-        Rs.__fullScreen = t
-        Rs.__updateWindow()
+    def setFullScreen(cls, t: bool = True):
+        cls.__fullScreen = t
+        cls.__updateWindow()
 
     @classmethod
     def screenRect(cls) -> pygame.Rect:
         return cls.screen.get_rect()
+
+
     @classmethod
     def __updateWindow(cls):
-        if Rs.isFullScreen():
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),pygame.FULLSCREEN | Rs.windowFlag)
-        else:
-            Rs.window = pygame.display.set_mode(Rs.getWindowRes(),Rs.windowFlag)
-        #마우스 위치를 윈도우 해상도->게임 스크린으로 보내는 변환자
-        x,y = Rs.getWindowRes()
-        Rs._mouseTransformer=(Rs.screen_size[0]/x,Rs.screen_size[1]/y)
+        if cls.render_engine:
+            cls.render_engine.release_opengl_resources()
+            cls.graphicCache.clear()
+            pygame.display.quit()
+            pygame.display.init()
 
-        Rs.window.fill(Cs.black)
+        print("fullscreen",cls.isFullScreen())
+        cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen())
+        cls.source_layer = cls.render_engine.make_layer(size=cls.screen_size)
+        cls.window = pygame.display.get_surface()
+        
+        '''
+        if cls.isFullScreen():
+            cls.window = pygame.display.set_mode(cls.getWindowRes(), pygame.FULLSCREEN | cls.windowFlag)
+        else:
+            cls.window = pygame.display.set_mode(cls.getWindowRes(), cls.windowFlag)
+        '''
+        
+        # 마우스 위치를 윈도우 해상도 -> 게임 스크린으로 보내는 변환자
+        x, y = cls.getWindowRes()
+        cls._mouseTransformer = (cls.screen_size[0] / x, cls.screen_size[1] / y)
+        cls._scaler = (x / cls.screen_size[0], y / cls.screen_size[1])
 
 
 
@@ -427,12 +442,13 @@ class Rs:
     @classmethod
     #Fill Screen with Color
     def fillScreen(cls,color):
-        screenRect = Rs.screen.get_rect()
-        Rs.fillRect(color,screenRect)
-
+        Rs.source_layer.clear(color)
     #Fill Rectangle with color
     @classmethod
     def fillRect(cls,color,rect,*,special_flags=0):
+        '''
+        DEPRECATED
+        '''
         Rs.screen.fill(color,rect,special_flags)
 
     #폰트 파이프라인(Font Pipeline)
@@ -561,36 +577,41 @@ class Rs:
         '''
         Rs.__animationPipeline.clear()
         Rs.__fadeAnimationPipeline.clear()        
+
+
     ##스크린샷 - 현재 스크린을 캡쳐하여 저장한다.
     screenShot = None
     #스크린샷 캡쳐
     @classmethod
-    def captureScreenShot(cls):        
-        Rs.screenShot = Rs._screenCapture.copy() #마지막으로 버퍼에 남아있는 그림을 가져온다.
+    def captureScreenShot(cls):  
+        if cls.screenShot:
+            cls.screenShot.release()      
+        cls.screenShot = Rs.render_engine.copy(Rs.source_layer.texture) #마지막으로 버퍼에 남아있는 그림을 가져온다.
     
-        return Rs.screenShot
+        return cls.screenShot
 
     @classmethod
     def drawScreenShot(cls):
-        Rs.screen.blit(Rs.screenShot,(0,0))
+        cls.render_engine.render(cls.screenShot, Rs.source_layer, position=(0, 0))
         
     ###User Input Functions###
     
-    #Mouse Click Detector
+    # Mouse Click Detector
     @classmethod
     def mousePos(cls) -> RPoint:
-        return Rs.__mousePos
+        return cls.__mousePos
+
     @classmethod
     def userJustLeftClicked(cls) -> bool:
-        return Rs.__justClicked[0]
-    
+        return cls.__justClicked[0]
+
     @classmethod
     def userJustReleasedMouseLeft(cls) -> bool:
-        return Rs.__justReleased[0]
+        return cls.__justReleased[0]
 
     @classmethod
     def userJustReleasedMouseRight(cls) -> bool:
-        return Rs.__justReleased[2]
+        return cls.__justReleased[2]
 
     @classmethod
     def userIsLeftClicking(cls) -> bool:
@@ -602,42 +623,34 @@ class Rs:
 
     @classmethod
     def userJustRightClicked(cls) -> bool:
-        return Rs.__justClicked[2]
+        return cls.__justClicked[2]
 
-    #Key Push Detector
+    # Key Push Detector
     @classmethod
-    def userJustPressed(cls,key) -> bool:
-        if Rs.__lastKeyState == None:
+    def userJustPressed(cls, key) -> bool:
+        if cls.__lastKeyState is None:
             return False
         keyState = pygame.key.get_pressed()
-        if (Rs.__lastKeyState[key],keyState[key])==(False,True):
-            return True
-        else:
-            return False
-
+        return (cls.__lastKeyState[key], keyState[key]) == (False, True)
 
     @classmethod
-    def userJustReleased(cls,key) -> bool:
-        if Rs.__lastKeyState == None:
+    def userJustReleased(cls, key) -> bool:
+        if cls.__lastKeyState is None:
             return False
         keyState = pygame.key.get_pressed()
-        if (Rs.__lastKeyState[key],keyState[key])==(True,False):
-            return True
-        else:
-            return False
+        return (cls.__lastKeyState[key], keyState[key]) == (True, False)
 
     @classmethod
-    def userPressing(cls,key) -> bool:
+    def userPressing(cls, key) -> bool:
         '''
         키가 눌려져 있는지를 체크하는 함수 \n
         key: ex) pygame.K_LEFT        
         '''
         return pygame.key.get_pressed()[key]
-    
 
-    ##Drag and Drop Handler##
+    ## Drag and Drop Handler ##
     @classmethod
-    def dragEventHandler(cls,triggerObj,*,draggedObj=None,dragStartFunc=lambda:None,draggingFunc=lambda:None,dropFunc=lambda:None,filterFunc=lambda:True):
+    def dragEventHandler(cls, triggerObj, *, draggedObj=None, dragStartFunc=lambda: None, draggingFunc=lambda: None, dropFunc=lambda: None, filterFunc=lambda: True):
         '''
         Drag & Drop Event Handler \n
         triggerObj : 드래그가 촉발되는 객체 \n
@@ -648,15 +661,15 @@ class Rs:
         filterFunc : 해당 함수가 False를 반환하면 드래그가 시작되지 않는다. \n
         Scene의 update 함수 안에 넣어야 동작합니다.
         '''
-        if draggedObj==None:
+        if draggedObj == None:
             draggedObj = triggerObj
-        if Rs.userJustLeftClicked() and triggerObj.collideMouse() and filterFunc():
-            Rs.draggedObj = draggedObj
-            Rs.dragOffset = Rs.mousePos()-draggedObj.geometryPos
-            Rs.dropFunc = dropFunc
+        if cls.userJustLeftClicked() and triggerObj.collideMouse() and filterFunc():
+            cls.draggedObj = draggedObj
+            cls.dragOffset = cls.mousePos() - draggedObj.geometryPos
+            cls.dropFunc = dropFunc
             dragStartFunc()
-        if Rs.userIsLeftClicking() and Rs.draggedObj == draggedObj:
-            Rs.draggedObj.pos = Rs.mousePos()-Rs.dragOffset
+        if cls.userIsLeftClicking() and cls.draggedObj == draggedObj:
+            cls.draggedObj.pos = cls.mousePos() - cls.dragOffset
             draggingFunc()
 
 
@@ -668,6 +681,9 @@ class Rs:
     graphicCache ={}
     
     def drawArrow(start, end,*,lcolor=Cs.white, tricolor=Cs.white,trirad=40, thickness=20,alpha=255):
+        '''
+        DEPRECATED\n
+        '''
         if type(start)==RPoint:
             start = start.toTuple()
         if type(end)==RPoint:
@@ -700,6 +716,9 @@ class Rs:
         Rs.screen.blit(screen,(0,0))
         
     def drawLine(color,point1,point2,*,width=1):
+        '''
+        DEPRECATED\n
+        '''
         pygame.draw.line(Rs.screen,color,Rs.Point(point1).toTuple(),Rs.Point(point2).toTuple(),width)
         
         
@@ -863,19 +882,53 @@ class REMOGame:
                 pass # Windows XP doesn't support monitor scaling, so just do nothing.
 
         pygame.init()
+        x,y = screen_size
+        
         Rs.windowFlag = flags
-        info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
-        Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
-        Rs.__fullScreen=fullscreen
+
+
+        ### 화면을 강제로 현재 모니터의 최대 해상도로 맞추는 과정 
+
+        from screeninfo import get_monitors
+
+        import ctypes
+        def get_active_monitor():
+            # 현재 활성 윈도우의 핸들 가져오기
+            user32 = ctypes.windll.user32
+            h_wnd = user32.GetForegroundWindow()
+
+            # 윈도우 위치 및 크기 가져오기
+            rect = ctypes.wintypes.RECT()
+            ctypes.windll.user32.GetWindowRect(h_wnd, ctypes.pointer(rect))
+
+            # 모든 모니터 확인. 어플의 중앙이 어느 모니터에 있는지 확인
+            monitors = get_monitors()
+            c = (rect.left + rect.right) //2
+            for monitor in monitors:
+                if (monitor.x <= c <= monitor.x + monitor.width):
+                    return monitor
+
+            return None
+
+        # 현재 활성화된 모니터 확인
+        active_monitor = get_active_monitor()
+
+        if active_monitor:
+            print(f"Active Monitor Resolution: {active_monitor.width}x{active_monitor.height}")
+            x = active_monitor.width
+            y = active_monitor.height
+            Rs.fullScreenRes = (x,y)
+        else:
+            print("Active monitor not found.")
+            info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
+            Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
         Rs.screen_size = screen_size
-        Rs.setWindowRes(window_resolution)
+        Rs.setWindowRes(window_resolution,fullscreen=fullscreen)
         pygame.display.set_caption(caption)
         REMOGame._lastStartedWindow = self
         # Fill the background with white
         Rs.screen = pygame.Surface(screen_size,pygame.SRCALPHA,32).convert_alpha()
-        Rs._screenBuffer = Rs.screen.copy()
         Rs.screen.fill(Cs.white)
-        Rs.setFullScreen(fullscreen)
 
 
     def setWindowTitle(self,title):
@@ -903,12 +956,13 @@ class REMOGame:
         REMOGame.__showBenchmark = True
 
     def draw(self):
-        Rs.screen.fill(Cs.black) ## 검은 화면
+        ##배경화면을 검게 채운다.
+        Rs.render_engine.clear(0,0,0)
+        Rs.source_layer.clear(0,0,0)
         REMOGame.currentScene.draw()
         Rs._draw()
-        Rs._screenCapture = Rs.screen.copy()
-        Rs._screenBuffer = pygame.transform.smoothscale(Rs._screenCapture,Rs.getWindowRes())
-        Rs.window.blit(Rs._screenBuffer,(0,0))
+        Rs.render_engine.render(Rs.source_layer.texture,Rs.render_engine.screen,scale=Rs._scaler)
+
         if REMOGame.__showBenchmark:
             Rs.drawBenchmark()
         pygame.display.flip()
@@ -1139,7 +1193,7 @@ class graphicObj(interpolableObj):
     @property
     def boundary(self) -> pygame.Rect:
         if id(self) in Rs.graphicCache:
-            cache,pos = Rs.graphicCache[id(self)]
+            cache,pos,_ = Rs.graphicCache[id(self)]
             return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
 
         r = self.geometry
@@ -1176,7 +1230,8 @@ class graphicObj(interpolableObj):
         0~255 사이의 알파값을 설정합니다. 255:완전 불투명 0: 투명
         '''
         self._alpha = alpha
-        self._clearGraphicCache()
+        if self.parent:
+            self._clearGraphicCache()
 
     @property
     def graphic(self) -> pygame.Surface:
@@ -1221,7 +1276,7 @@ class graphicObj(interpolableObj):
         for depth in negative_depths:
             l = self.childs[depth]
             for c in l:
-                ccache,cpos = c._getCache()
+                ccache,cpos,_ = c._getCache()
                 p = cpos-bp
                 cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
 
@@ -1234,7 +1289,7 @@ class graphicObj(interpolableObj):
                 viewport = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
                 gp = self.geometryPos
                 for c in l:
-                    ccache,cpos = c._getCache()
+                    ccache,cpos,_ = c._getCache()
                     cache_boundary = pygame.Rect(cpos.x,cpos.y,ccache.get_rect().w,ccache.get_rect().h)
 
                     if cache_boundary.colliderect(self.geometry):
@@ -1243,12 +1298,13 @@ class graphicObj(interpolableObj):
                 cache.blit(viewport,(gp-bp).toTuple())
             else:
                 for c in l:
-                    ccache,cpos = c._getCache()
+                    ccache,cpos,_ = c._getCache()
                     p = cpos-bp
                     cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
 
         cache.set_alpha(self.alpha)
-        return [cache,bp]
+        texture = Rs.render_engine.surface_to_texture(cache)
+        return [cache,bp,texture]
 
     #object의 차일드를 포함한 그래픽을 캐싱한다.
     def _cacheGraphic(self):
@@ -1263,6 +1319,7 @@ class graphicObj(interpolableObj):
         if hasattr(self,"parent") and self.parent:
             self.parent._clearGraphicCache()
         if id(self) in Rs.graphicCache:
+            Rs.graphicCache[id(self)][2].release()
             Rs.graphicCache.pop(id(self))
 
     ##객체 소멸시 캐시청소를 해야 한다.
@@ -1358,8 +1415,9 @@ class graphicObj(interpolableObj):
             return
         if id(self) not in Rs.graphicCache:
             self._cacheGraphic()
-        cache,p = self._getCache()
-        Rs.screen.blit(cache,p.toTuple())
+        _,p,texture = self._getCache()
+        
+        Rs.render_engine.render(texture,Rs.source_layer,position=p.toTuple(),alpha=self.alpha)
 
                 
     def collidepoint(self,p):
@@ -1940,7 +1998,7 @@ class longTextObj(layoutObj,localizable):
             font = Rs.getDefaultFont("default")["font"]
         if size==None:
             size = Rs.getDefaultFont("default")["size"]
-        self.alpha = alpha 
+        self._alpha = alpha 
         self._updateTextObj(pos,text,font,size,color,textWidth)
         self._text = text
         self._font=font
