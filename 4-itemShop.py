@@ -44,7 +44,7 @@ class mainScene(Scene):
         ##스크롤 레이아웃 테스트
         ##테스트케이스: 객체가 적을때, 많을때, 아주 많을때
         ##스크롤레이아웃이 무엇인가의 자식 객체가 되었을 때
-        self.testlayout = scrollLayout(pygame.Rect(20,80,220,500),isVertical=True)
+        self.testlayout = scrollLayout(pygame.Rect(20,80,220,500),isVertical=True,enableMouseWheel=True)
         self.testBg = rectObj(pygame.Rect(100,100,300,700),color=Cs.dark(Cs.grey))
         self.testDrag = rectObj(pygame.Rect(0,0,300,50),color=Cs.grey)
         for i in range(20):

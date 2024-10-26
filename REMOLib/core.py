@@ -251,7 +251,6 @@ class Rs:
             pygame.display.quit()
             pygame.display.init()
 
-        print("fullscreen",cls.isFullScreen())
         cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen(),resizable=Rs.windowFlag & pygame.RESIZABLE)
         cls.source_layer = cls.render_engine.make_layer(size=cls.screen_size)
         cls.window = pygame.display.get_surface()
@@ -2402,8 +2401,21 @@ class sliderObj(rectObj):
         else:
             self.button.center = RPoint(l,self.thickness//2)
             self.gauge.rect = pygame.Rect(0,0,l,self.thickness)
+    
+    def updateByMouseWheel(self,scrollDirection=True,scrollSpeed=2):
+        for event in Rs.events:
+            if event.type == pygame.MOUSEWHEEL:
+                if scrollDirection:
+                    self.value -= (event.y*scrollSpeed)/100
+                else:
+                    self.value += (event.y*scrollSpeed)/100
+                self.value = max(0,self.value)
+                self.value = min(1,self.value)
+                self.adjustObj()
+                self.__function()
 
     def update(self):
+
         ## 이 부분 dragEventHandler로 처리 할 수 있을듯 하다.
         if Rs.userJustLeftClicked() and (self.collideMouse() or self.button.collideMouse()):
             Rs.draggedObj = self
@@ -2478,7 +2490,7 @@ class scrollLayout(layoutObj):
             s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
         return s_pos
 
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True,enableMouseWheel=False):
         '''
         spacing: 차일드 사이의 간격\n
         isVertical: 수직 스크롤인지 수평 스크롤인지\n
@@ -2503,6 +2515,7 @@ class scrollLayout(layoutObj):
 
         self.scrollBar.setParent(self,depth=1) ##스크롤바는 레이아웃의 뎁스 1 자식으로 설정됩니다.
         self.scrollBar.pos =self.getScrollbarPos()
+        self.enableMouseWheel = enableMouseWheel
 
         ##스크롤바를 조작했을 때 레이아웃을 조정합니다.
         def __ScrollHandle():
@@ -2521,6 +2534,10 @@ class scrollLayout(layoutObj):
 
     def update(self):
 
+        if self.enableMouseWheel:
+            self.scrollBar.updateByMouseWheel()
+
+
         ##마우스 클릭에 대한 업데이트
         for child in self.childs[0]:
             # child가 update function이 있을 경우 실행한다.
@@ -2532,6 +2549,8 @@ class scrollLayout(layoutObj):
 
 
         return
+    
+
 
 
 # 카드를 일렬로 배치하기 위해 존재하는 레이아웃 오브젝트입니다.
