@@ -251,7 +251,7 @@ class Rs:
             pygame.display.init()
 
         print("fullscreen",cls.isFullScreen())
-        cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen())
+        cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen(),resizable=Rs.windowFlag & pygame.RESIZABLE)
         cls.source_layer = cls.render_engine.make_layer(size=cls.screen_size)
         cls.window = pygame.display.get_surface()
         
