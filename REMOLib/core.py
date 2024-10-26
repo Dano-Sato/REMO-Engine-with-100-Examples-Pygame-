@@ -247,6 +247,7 @@ class Rs:
         if cls.render_engine:
             cls.render_engine.release_opengl_resources()
             cls.graphicCache.clear()
+            cls.source_layer.release()
             pygame.display.quit()
             pygame.display.init()
 
@@ -266,7 +267,6 @@ class Rs:
         x, y = cls.getWindowRes()
         cls._mouseTransformer = (cls.screen_size[0] / x, cls.screen_size[1] / y)
         cls._scaler = (x / cls.screen_size[0], y / cls.screen_size[1])
-
 
 
     ##기타 함수
@@ -1319,7 +1319,6 @@ class graphicObj(interpolableObj):
         if hasattr(self,"parent") and self.parent:
             self.parent._clearGraphicCache()
         if id(self) in Rs.graphicCache:
-            Rs.graphicCache[id(self)][2].release()
             Rs.graphicCache.pop(id(self))
 
     ##객체 소멸시 캐시청소를 해야 한다.
@@ -1415,8 +1414,9 @@ class graphicObj(interpolableObj):
             return
         if id(self) not in Rs.graphicCache:
             self._cacheGraphic()
-        _,p,texture = self._getCache()
-        
+        sfc,p,texture = self._getCache()
+        if texture.glo == 0: ##texture가 released된 경우
+            texture = Rs.render_engine.surface_to_texture(sfc)
         Rs.render_engine.render(texture,Rs.source_layer,position=p.toTuple(),alpha=self.alpha)
 
                 

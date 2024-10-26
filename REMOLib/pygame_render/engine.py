@@ -13,7 +13,9 @@ from .layer import Layer
 from .shader import Shader
 from .util import normalize_color_arguments, create_rotated_rect, to_dest_coords, to_source_coords, get_bounding_rectangle
 from PIL import Image
-
+import xxhash
+from collections import OrderedDict
+import gc
 
 class RenderEngine:
     """
@@ -74,6 +76,8 @@ class RenderEngine:
         pygame.display.set_mode(
             self._screen_res, flags, depth=depth, display=display, vsync=vsync)
 
+        self.texture_cache = OrderedDict()
+        self.max_texture_cache_size = 200
         # Create an OpenGL context
         self._ctx = moderngl.create_context()
 
@@ -82,7 +86,7 @@ class RenderEngine:
         self._ctx.blend_func = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA,
                                 moderngl.ONE, moderngl.ONE_MINUS_SRC_ALPHA)
         self._ctx.blend_equation = moderngl.FUNC_ADD
-
+        self._ctx.gc_mode = 'auto' 
         # Create screen layer
         self._screen = Layer(None, self._ctx.screen)
         self._ctx.screen
@@ -152,9 +156,22 @@ class RenderEngine:
         img_flip = pygame.transform.flip(sfc, False, True)
         img_data = pygame.image.tostring(img_flip, "RGBA")
 
-        tex = self._ctx.texture(sfc.get_size(), components=4, data=img_data)
-        tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        return tex
+        key = xxhash.xxh64(img_data).hexdigest()
+
+        if key in self.texture_cache:
+            return self.texture_cache[key]
+        else:
+            # 캐시 크기 초과 시 가장 오래된 항목 제거
+            if len(self.texture_cache) > self.max_texture_cache_size:
+                self.texture_cache.popitem(last=False)
+
+
+            tex = self._ctx.texture(sfc.get_size(), components=4, data=img_data)
+            tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+            self.texture_cache[key] = tex
+
+
+            return tex
 
     def load_texture(self, path: str) -> moderngl.Texture:
         """
@@ -669,6 +686,10 @@ class RenderEngine:
         self._shader_draw.release()
         self._screen.framebuffer.release()
         self._ctx.release()
+
+        for tex in self.texture_cache.values():
+            tex.release()
+        self.texture_cache.clear()
 
         self._shader_draw = None
         self._screen = None

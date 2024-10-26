@@ -567,3 +567,5 @@ class interpolableObj:
         self.alpha = 0
         steps = int(interpolateManager.DEFAULT_STEPS // speed)
         self.easeout(["pos", "alpha"], [self.pos + delta, 255], steps=steps, callback=callback, revert=revert, on_update=on_update)
+
+
