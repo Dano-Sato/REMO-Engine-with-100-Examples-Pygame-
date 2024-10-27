@@ -16,10 +16,10 @@ class mainScene(Scene):
         self.layout.bounce(["pos"],[RPoint(1000,100)],revert=True)
 
         self.imgs = []
-        for i in range(40):
+        for i in range(20):
             img = imageObj("test2.png",pos=RPoint(100*i,100),scale=0.5)
             self.imgs.append(img)
-            img.bounce(["pos","alpha"],[RPoint(1500,100),0],revert=True)
+            img.bounce(["pos","alpha","angle"],[RPoint(1500,100),0,360],revert=True)
 
         self.test_angle = 120
         self.test_size = (100,100)

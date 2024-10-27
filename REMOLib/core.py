@@ -110,6 +110,8 @@ class Rs:
     __fullScreen = False # 풀스크린 여부를 체크하는 인자
     fullScreenRes = (1920,1080) # 풀스크린 해상도
     windowFlag = 0 # 파이게임 창 플래그
+    caption = "REMO Game" # 게임 캡션
+    gameIcon = None # 게임 아이콘
     events = [] # 파이게임 이벤트를 저장하는 인자
     draggedObj = None # 드래깅되는 오브젝트를 추적하는 인자
     dropFunc = lambda:None # 드래깅이 끝났을 때 실행되는 함수
@@ -254,6 +256,9 @@ class Rs:
         cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen(),resizable=Rs.windowFlag & pygame.RESIZABLE)
         cls.source_layer = cls.render_engine.make_layer(size=cls.screen_size)
         cls.window = pygame.display.get_surface()
+        pygame.display.set_caption(Rs.caption)
+        if Rs.gameIcon:
+            Rs.setIcon(Rs.gameIcon)
         
         '''
         if cls.isFullScreen():
@@ -733,6 +738,7 @@ class Rs:
     ##디스플레이 아이콘을 바꾼다.
     @classmethod
     def setIcon(cls,img):
+        cls.gameIcon = img
         img = REMODatabase.getImage(img)
         pygame.display.set_icon(img)
 
@@ -922,8 +928,8 @@ class REMOGame:
             info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
             Rs.fullScreenRes = (info.current_w,info.current_h) ##풀스크린의 해상도를 확인한다.
         Rs.screen_size = screen_size
+        Rs.caption = caption
         Rs.setWindowRes(window_resolution,fullscreen=fullscreen)
-        pygame.display.set_caption(caption)
         REMOGame._lastStartedWindow = self
         # Fill the background with white
         Rs.screen = pygame.Surface(screen_size,pygame.SRCALPHA,32).convert_alpha()
