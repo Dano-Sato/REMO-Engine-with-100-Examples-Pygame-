@@ -285,10 +285,11 @@ class EventHandler:
 
 class interpolateManager:
     __interpolablePipeline = {}
+    __shownObjs = {}
     DEFAULT_STEPS = 50
     DEFAULT_FRAME_DURATION = 1000/60
     @classmethod
-    def interpolate(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None):
+    def interpolate(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None, show=False):
         '''
         지정한 오브젝트의 속성을 서서히 변화시키는 함수입니다.
         obj: 변화시킬 오브젝트
@@ -300,6 +301,7 @@ class interpolateManager:
         interpolation: 보간 함수 (기본값: 선형 보간)
         revert: True일 경우, 보간이 끝난 후 다시 되돌아갑니다. (역재생)
         on_update: 보간이 업데이트될 때마다 호출되는 함수
+        show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
         '''
         # attributes가 리스트나 튜플이 아니면 리스트로 변환
         if not isinstance(attributes, (list, tuple)):
@@ -316,6 +318,9 @@ class interpolateManager:
         if revert:
             for attr in insts:
                 insts[attr].extend(insts[attr][::-1])  # 뒤집어서 리스트에 추가
+
+        if show:
+            cls.__shownObjs[id(obj)] = obj
       
 
         cls.__interpolablePipeline[id(obj)]={
@@ -326,33 +331,34 @@ class interpolateManager:
             "timer": RTimer(frameDuration),
             "callback": callback,
             "interpolation": interpolation,
-            "on_update": on_update
+            "on_update": on_update,
+            "show": show
         }
         return
 
     @classmethod
-    def easein(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
-        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: x**2.5, revert=revert, on_update=on_update)
+    def easein(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: x**2.5, revert=revert, on_update=on_update, show=show)
         return
 
     @classmethod
-    def easeout(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
-        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: 1 - (1 - x)**2.5, revert=revert, on_update=on_update)
+    def easeout(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda x: 1 - (1 - x)**2.5, revert=revert, on_update=on_update, show=show)
         return
     
     @classmethod
-    def smooth(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
-        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10), revert=revert, on_update=on_update)
+    def smooth(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: t**3 * (t * (6 * t - 15) + 10), revert=revert, on_update=on_update, show=show)
         return
 
     @classmethod
-    def jump(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
-        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: 4 * t * (1-t), revert=revert, on_update=on_update)
+    def jump(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=lambda t: 4 * t * (1-t), revert=revert, on_update=on_update, show=show)
         return
 
     @classmethod
-    def bounce(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
-        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=cls.__bounce, revert=revert, on_update=on_update)
+    def bounce(cls, obj, attributes, ends, *, frameDuration=DEFAULT_FRAME_DURATION, steps=DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
+        cls.interpolate(obj, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=cls.__bounce, revert=revert, on_update=on_update, show=show)
         return
     
 
@@ -383,8 +389,20 @@ class interpolateManager:
 
         # 처리 후에 사전에서 키 제거
         for key in keys_to_remove:
+            if cls.__interpolablePipeline[key]["show"]:
+                del cls.__shownObjs[key]
             del cls.__interpolablePipeline[key]
         return
+    
+    @classmethod
+    def _draw(cls):
+        '''
+        보간 중인 오브젝트를 그립니다.
+        '''
+        for id in cls.__shownObjs:
+            cls.__shownObjs[id].draw()
+        return
+
 
     @classmethod
     def __interpolate(cls,a, b, t, interpolation=lambda x:x):
@@ -426,7 +444,7 @@ class interpolateManager:
 class interpolableObj:
     
      
-    def easein(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+    def easein(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
         '''
         점점 가속되는 보간을 수행합니다.
 
@@ -438,15 +456,16 @@ class interpolableObj:
             callback (function, optional): 보간 완료 후 호출되는 함수.
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
 
-        interpolateManager.easein(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        interpolateManager.easein(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update, show=show)
         return
     
-    def easeout(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+    def easeout(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
         '''
         점점 감속되는 보간을 수행합니다.
 
@@ -458,15 +477,16 @@ class interpolableObj:
             callback (function, optional): 보간 완료 후 호출되는 함수.
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
 
-        interpolateManager.easeout(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        interpolateManager.easeout(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update, show=show)
         return
     
-    def smooth(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+    def smooth(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
         '''
         시작과 끝이 부드러운 보간을 수행합니다.
 
@@ -478,15 +498,16 @@ class interpolableObj:
             callback (function, optional): 보간 완료 후 호출되는 함수.
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
 
-        interpolateManager.smooth(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        interpolateManager.smooth(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update, show=show)
         return
     
-    def jump(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+    def jump(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
         '''
         점프하는 듯한 보간을 수행합니다.
 
@@ -498,15 +519,16 @@ class interpolableObj:
             callback (function, optional): 보간 완료 후 호출되는 함수.
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
 
-        interpolateManager.jump(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        interpolateManager.jump(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update, show=show)
         return
     
-    def bounce(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None):
+    def bounce(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, revert=False, on_update=lambda: None, show=False):
         '''
         통통 튀는 듯한 보간을 수행합니다.
 
@@ -518,16 +540,17 @@ class interpolableObj:
             callback (function, optional): 보간 완료 후 호출되는 함수.
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
 
 
-        interpolateManager.bounce(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update)
+        interpolateManager.bounce(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, revert=revert, on_update=on_update, show=show)
         return
     
-    def interpolate(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None):
+    def interpolate(self, attributes, ends, *, frameDuration=interpolateManager.DEFAULT_FRAME_DURATION, steps=interpolateManager.DEFAULT_STEPS, callback=lambda: None, interpolation=lambda x: x, revert=False, on_update=lambda: None, show=False):
         '''
         주어진 보간 함수를 이용해 보간을 수행합니다.
 
@@ -540,11 +563,12 @@ class interpolableObj:
             interpolation (function, optional): 보간 함수 (기본값: 선형 보간).
             revert (bool, optional): True일 경우 원래 상태로 복귀. (역재생)
             on_update (function, optional): 각 프레임마다 호출되는 함수.
+            show: 보간 중인 오브젝트를 화면에 표시할지 여부 (*False일 경우 명시적으로 draw() 호출 필요)
 
         Returns:
             None
         '''
-        interpolateManager.interpolate(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=interpolation, revert=revert, on_update=on_update)
+        interpolateManager.interpolate(self, attributes, ends, frameDuration=frameDuration, steps=steps, callback=callback, interpolation=interpolation, revert=revert, on_update=on_update, show=show)
         return
     
     def slidein(self, delta=RPoint(50, 0), *, speed=1.5, callback=lambda: None, revert=False, on_update=lambda: None):

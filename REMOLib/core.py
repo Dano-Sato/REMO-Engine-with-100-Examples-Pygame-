@@ -276,7 +276,7 @@ class Rs:
     ##기타 함수
     @classmethod
     #Return copied graphics object
-    def copy(cls,obj) -> graphicObj:
+    def copy(cls,obj:graphicObj) -> graphicObj:
         '''
         그래픽 객체를 복사. (graphicObj)
         '''
@@ -287,7 +287,7 @@ class Rs:
         return new_obj
 
     @classmethod
-    def copyImage(cls,obj) -> imageObj:
+    def copyImage(cls,obj:imageObj) -> imageObj:
         '''
         이미지 객체를 복사. (imageObj)
         '''
@@ -966,6 +966,7 @@ class REMOGame:
         Rs.source_layer.clear(0,0,0)
         REMOGame.currentScene.draw()
         Rs._draw()
+        interpolateManager._draw()
         Rs.render_engine.render(Rs.source_layer.texture,Rs.render_engine.screen,scale=Rs._scaler)
 
         if REMOGame.__showBenchmark:

@@ -131,6 +131,10 @@ class mainScene(Scene):
             if self.t >= 1:
                 self.unfold = False
                 self.t = 0
+        if Rs.userJustPressed(pygame.K_z):
+            temp_obj = textObj("TEST",size=150)
+            temp_obj.center = Rs.screenRect().center
+            temp_obj.easeout(["size","alpha"],[30,0],show=True)
         self.layout.update()
         
         return
