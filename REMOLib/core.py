@@ -1960,6 +1960,9 @@ class layoutObj(graphicObj):
     def __len__(self):
         return len(self.childs[0])
 
+    # __iter__ 메서드를 오버라이드하여 childs를 순회하도록 설정
+    def __iter__(self):
+        return iter(self.childs[0])
          
 #긴 텍스트를 처리하기 위한 오브젝트.
 class longTextObj(layoutObj,localizable):
