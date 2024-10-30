@@ -167,7 +167,7 @@ class RenderEngine:
 
 
             tex = self._ctx.texture(sfc.get_size(), components=4, data=img_data)
-            tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
             self.texture_cache[key] = tex
 
 
@@ -212,7 +212,7 @@ class RenderEngine:
         tex = self.ctx.texture(size, components, data, samples=samples,
                                alignment=alignment, dtype=dtype,
                                internal_format=internal_format)
-        tex.filter = (NEAREST, NEAREST)
+        tex.filter = (moderngl.LINEAR,moderngl.LINEAR)
         fbo = self.ctx.framebuffer([tex])
         return Layer(tex, fbo)
 
