@@ -1320,11 +1320,9 @@ class graphicObj(interpolableObj):
     ##그래픽 캐시 관련 함수 ##
     #오브젝트의 캐시 이미지를 만든다.
     def _getCache(self):
-        if id(self) in Rs.graphicCache:
-            try:
-                return Rs.graphicCache[id(self)]
-            except:
-                pass
+        cached_result = Rs.graphicCache.get(id(self))
+        if cached_result:
+            return cached_result
 
         # id가 없으므로 childs의 재귀적 union을 통해 전체 영역을 계산
         r = self.boundary
@@ -1381,10 +1379,7 @@ class graphicObj(interpolableObj):
 
     #object의 차일드를 포함한 그래픽을 캐싱한다.
     def _cacheGraphic(self):
-        try:
-            Rs.graphicCache[id(self)]=self._getCache()
-        except:
-            pass
+        Rs.graphicCache[id(self)]=self._getCache()
 
     ##캐시 청소 (그래픽을 새로 그리거나 위치를 옮길 때 캐시 청소가 필요)    
     def _clearGraphicCache(self):

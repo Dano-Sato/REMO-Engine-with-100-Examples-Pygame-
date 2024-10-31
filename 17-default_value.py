@@ -21,7 +21,11 @@ class mainScene(Scene):
         self.button.pos = RPoint(300,100)
 
         self.bLayout = buttonLayout(["Game Start Start","Exit","C","D"],RPoint(600,100),buttonAlpha=255,spacing=15)
-    
+
+        self.test_sprite = imageObj("test2.png",pos=RPoint(100,300),scale=0.5) 
+        rect = rectObj(pygame.Rect(0,0,100,100))
+        rect.setParent(self.test_sprite)
+        self.test_sprite.easeout(["angle"],[360])
         return
     def init(self):
         return
@@ -33,6 +37,7 @@ class mainScene(Scene):
         self.layout.draw()
         self.button.draw()
         self.bLayout.draw()
+        self.test_sprite.draw()
         return
 
 

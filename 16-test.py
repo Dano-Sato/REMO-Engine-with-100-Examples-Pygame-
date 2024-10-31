@@ -16,10 +16,10 @@ class mainScene(Scene):
         self.layout.bounce(["pos"],[RPoint(1000,100)],revert=True)
 
         self.imgs = []
-        for i in range(140):
+        for i in range(30):
             img = imageObj("test2.png",pos=RPoint(10*i,100),scale=0.5)
             self.imgs.append(img)
-            img.bounce(["pos","alpha"],[RPoint(1500,100),0],revert=True)
+            img.bounce(["pos","alpha","angle"],[RPoint(1500,100),0,360],revert=True)
 
         self.test_angle = 120
         self.test_size = (100,100)
@@ -63,7 +63,7 @@ class Scenes:
 
 if __name__=="__main__":
     #Screen Setting
-    window = REMOGame(window_resolution=(3840,2160),screen_size=(2560,1440),fullscreen=False,caption="DEFAULT")
+    window = REMOGame(window_resolution=(2560,1440),screen_size=(2560,1440),fullscreen=False,caption="DEFAULT")
     window.setCurrentScene(Scenes.mainScene)
     window.run()
 

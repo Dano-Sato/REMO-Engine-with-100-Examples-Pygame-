@@ -101,11 +101,11 @@ class mainScene(Scene):
         for i in range(100000):
             # 무거운 함수들 (팩토리얼, 오브젝트 생성 등)
             math.factorial(i%1000)
-            if i%100==0:
-                objs.append(textObj(f"{i}",size=20))
+            if i%1000==0:
+                objs.append(textObj(f"{i}",size=30))
                 loading.updateProgress(i/1000)
         loading.updateProgress(100)
-        self.layout = scrollLayout(pygame.Rect(0,0,500,1000),childs=objs)
+        self.layout = scrollLayout(pygame.Rect(0,0,1000,1000),childs=objs)
         return
     def init(self):
         return
