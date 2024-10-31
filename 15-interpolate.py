@@ -120,6 +120,7 @@ class mainScene(Scene):
             self.testObj.center = RMath.bounce(self.start,self.dest,self.t)
             self.testObj.size = RMath.bounce(30,70,self.t)
             self.testObj.color = RMath.bounce(Cs.white,Cs.cornflowerblue,self.t)
+            self.testObj.angle = RMath.bounce(0,360,self.t)
             if self.t >= 1:
                 self.unfold = True
                 self.t = 0
@@ -128,6 +129,7 @@ class mainScene(Scene):
             self.testObj.center = RMath.easein(self.dest,self.start,self.t)
             self.testObj.size = RMath.easein(70,30,self.t)
             self.testObj.color = RMath.easein(Cs.cornflowerblue,Cs.white,self.t)
+            self.testObj.angle = RMath.easein(360,0,self.t)
             if self.t >= 1:
                 self.unfold = False
                 self.t = 0

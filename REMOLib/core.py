@@ -1651,8 +1651,6 @@ class textObj(graphicObj,localizable):
             font = Rs.getDefaultFont("default")["font"]
         if size==None:
             size = Rs.getDefaultFont("default")["size"]
-        self.graphic = Rs.getFont(font).render(text,color,None,size=size,rotation=angle,style=style)[0].convert_alpha()
-        self.graphic_n = Rs.getFont(font).render(text,color,None,size=size,rotation=angle,style=style)[0].convert_alpha()
         self.__style = style
         self._rect = self.graphic.get_rect()
         self.__color = color
@@ -1660,19 +1658,18 @@ class textObj(graphicObj,localizable):
         self.__angle = angle
         self.__font = font
         self.__text = text
+        self.__update_text_graphics()
+
         self.pos = Rs.Point(pos)
     @property
     def color(self) -> typing.Tuple[int,int,int]:
         return self.__color
 
-    #컬러값을 변경할 때는 영역이 바뀌지 않는다.
     @color.setter
     def color(self,_color:typing.Tuple[int,int,int]):
-        temp = copy.copy(self.rect)
         self.__color = _color
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.rect = copy.copy(temp)
-        self._clearGraphicCache()
+        self.__update_text_graphics()
+
 
     @property
     def size(self) -> float:
@@ -1680,17 +1677,15 @@ class textObj(graphicObj,localizable):
     @size.setter
     def size(self,_size:float):
         self.__size = _size
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
+        self.__update_text_graphics()
 
     @property
     def angle(self) -> int:
         return self.__angle
     @angle.setter
     def angle(self,_angle:int):
-        self.__angle = _angle
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
+        self.__angle = int(_angle)
+        self.__update_text_graphics()
 
     @property
     def font(self) -> str:
@@ -1698,8 +1693,7 @@ class textObj(graphicObj,localizable):
     @font.setter
     def font(self,_font:str):
         self.__font = _font
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
+        self.__update_text_graphics()
 
     @property
     def text(self) ->str:
@@ -1707,6 +1701,9 @@ class textObj(graphicObj,localizable):
     @text.setter
     def text(self,_text:str):
         self.__text = _text
+        self.__update_text_graphics()
+
+    def __update_text_graphics(self):
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
         
