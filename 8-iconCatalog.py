@@ -65,14 +65,14 @@ class mainScene(Scene):
         if mainScene.IconDescriptionObj != None and description == mainScene.IconDescriptionObj.text:
             return ##이미 같은 아이콘에 대한 설명이 나타나고 있을 때, 다시 설정하지 않는다.
 
-        mainScene.bigIcon = imageObj(path,scale=2)
-        mainScene.bigIcon.center = RPoint(1670,530)
+        mainScene.bigIcon = imageObj(path,scale=3)
+        mainScene.bigIcon.midright = Rs.screenRect().midright + RPoint(-150,0)
         _bg = rectObj(mainScene.bigIcon.offsetRect.inflate(40,40),color=Cs.grey,edge=4)
         _bg.setParent(mainScene.bigIcon,depth=-1)
 
-        mainScene.IconDescriptionObj = textObj(description,size=30,color=Cs.white)
+        mainScene.IconDescriptionObj = textObj(description,color=Cs.white)
         if mainScene.IconDescriptionObj.rect.width > 500:
-            mainScene.IconDescriptionObj.size = 25
+            mainScene.IconDescriptionObj.size = 35
         mainScene.IconDescriptionObj.center = mainScene.bigIcon.midbottom+RPoint(0,80)
         bg = rectObj(mainScene.IconDescriptionObj.offsetRect.inflate(20,20),color=Cs.grey,edge=2)
         bg.setParent(mainScene.IconDescriptionObj,depth=-1)
@@ -80,9 +80,9 @@ class mainScene(Scene):
     def initOnce(self):
         self.title = textObj("REMO Icon Catalog",size=50,color=Cs.white)
         self.title.midtop = RPoint(Rs.screen.get_rect().midtop)+RPoint(0,50)
-        self.description = textObj("Icons class의 Icon들을 확인하는 카탈로그입니다.",size=30,color=Cs.white)
+        self.description = textObj("Icons class의 Icon들을 확인하는 카탈로그입니다.",color=Cs.white)
         self.description.midtop = RPoint(self.title.rect.midbottom)+RPoint(0,20)
-        self.catalogLayout = scrollLayout(pygame.Rect(20,20,950,840),isVertical=True)
+        self.catalogLayout = scrollLayout(pygame.Rect(20,20,1060,1120),isVertical=True,enableMouseWheel=True)
         self.catalogLayout.midbottom = RPoint(Rs.screen.get_rect().midbottom)+RPoint(0,-50)
 
 
@@ -152,7 +152,7 @@ class Scenes:
 
 if __name__=="__main__":
     #Screen Setting
-    window = REMOGame(window_resolution=(1920,1080),screen_size=(1920,1080),fullscreen=False,caption="REMO Icon Catalog")
+    window = REMOGame(window_resolution=(1920,1080),screen_size=(2560,1440),fullscreen=False,caption="REMO Icon Catalog")
     window.setCurrentScene(Scenes.mainScene)
     window.run()
 

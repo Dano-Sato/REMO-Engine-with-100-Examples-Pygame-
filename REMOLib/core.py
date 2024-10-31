@@ -69,6 +69,11 @@ class AnimationMode(Enum):
     Looped = 1
     PlayOnce = 2    
 
+class REMODefaults:
+    button_size = pygame.Rect(0,0,200,70)
+    font_size = 40
+    spacing = 15
+
 ## REMO Standalone
 class Rs:
     update_fps = 60
@@ -460,8 +465,8 @@ class Rs:
 
     ##기본 폰트 설정
     __defaultFontPipeline = {
-        "default":{ "font":"korean_button.ttf","size":15},
-        "button":{"font":"korean_button.ttf","size":30},
+        "default":{ "font":"korean_button.ttf","size":REMODefaults.font_size},
+        "button":{"font":"korean_button.ttf","size":REMODefaults.font_size},
     }
     #기본 설정된 폰트를 변경
     @classmethod
@@ -514,6 +519,7 @@ class Rs:
         '''
         textObj 선언할 필요 없이 화면에 문자열을 그린다. \n
         텍스트의 경계를 반환한다.\n
+        DEPRECATED
         '''
         if font == None:
             font = Rs.__sysFontName
@@ -861,6 +867,68 @@ class Rs:
         import threading
         threading.Thread(target=f).start()
 
+    @classmethod
+    def makeOptionLayout(cls,sheet,curState=None,settingFunc=lambda:None,buttonSize=REMODefaults.button_size,buttonColor=Cs.tiffanyBlue):
+        '''
+        옵션 레이아웃을 생성하는 함수입니다. 각 옵션은 버튼 형태로 표시되며, 선택된 옵션에 따라 색상과 상태가 업데이트됩니다.
+
+        Parameters
+        ----------
+        sheet : dict
+            버튼에 연결될 옵션들을 담은 딕셔너리입니다. 형식은 {'옵션명': 옵션값}으로, 옵션명은 버튼에 표시될 텍스트, 옵션값은 설정할 상태를 의미합니다.
+        curState : any, optional
+            현재 선택된 옵션 값으로, 선택된 옵션은 버튼 색상을 진하게 표시하고 비활성화합니다.
+        settingFunc : function, optional
+            버튼 클릭 시 실행될 함수입니다. `settingFunc(option)` 형태로 호출되며, 선택된 옵션 값을 인자로 받습니다.
+        buttonSize : pygame.Rect, optional
+            버튼의 크기를 정의하는 Rect 객체입니다. 기본값은 (0, 0, 200, 50)입니다.
+        buttonColor : tuple, optional
+            버튼의 기본 색상입니다. 기본값은 Cs.tiffanyBlue입니다.
+
+        Returns
+        -------
+        layoutObj
+            생성된 버튼 레이아웃 객체를 반환합니다.
+        '''
+
+        ##버튼 레이아웃 생성##
+        layout = layoutObj(rect=buttonSize,isVertical=False)
+            
+
+        ##버튼 생성##
+        for option in sheet:
+
+            ##선택된 옵션은 색을 진하게, 선택되지 않은 옵션은 밝게
+            if sheet[option] == curState:
+                _color = Cs.dark(buttonColor)
+                _enabled = False
+            else:
+                _color = buttonColor
+                _enabled = True
+
+            button = textButton(str(option),buttonSize,color=_color,enabled=_enabled)
+            button._option_key = sheet[option]
+                
+            ##함수 제너레이터
+            def f(_option):
+                def _():
+                    settingFunc(_option) ##옵션 설정 함수 실행
+                    for button in layout.getChilds():
+                        ##선택된 버튼은 색을 진하게, 선택되지 않은 버튼은 밝게
+                        if button._option_key == _option:
+                            button.color = Cs.dark(buttonColor)
+                            button.enabled = False
+                        else:
+                            button.color = buttonColor
+                            button.enabled = True
+                            
+                return _
+            button.connect(f(sheet[option]))
+            button.setParent(layout)
+        
+
+        return layout        
+
 
 
 ## Base Game class
@@ -919,7 +987,6 @@ class REMOGame:
         active_monitor = get_active_monitor()
 
         if active_monitor:
-            print(f"Active Monitor Resolution: {active_monitor.width}x{active_monitor.height}")
             x = active_monitor.width
             y = active_monitor.height
             Rs.fullScreenRes = (x,y)
@@ -1867,7 +1934,7 @@ class spriteObj(imageObj):
 #spacing : 오브젝트간 간격
 #pad : layout.pos와 첫 오브젝트간의 간격
 class layoutObj(graphicObj):
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=10,childs=[],isVertical=True):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,pos=None,spacing=REMODefaults.spacing,childs=[],isVertical=True):
         '''
         그래픽 오브젝트를 일렬로 정렬하는 레이아웃 오브젝트입니다.
         childs[0] (depth 0)의 오브젝트들이 정렬됩니다.
@@ -2165,7 +2232,7 @@ class monoTextButton(textObj,localizable,clickable):
 
             
 class textButton(rectObj,localizable,clickable):
-    def __init__(self,text:str="",rect:pygame.Rect=pygame.Rect(0,0,100,50),*,edge=1,radius=None,color=Cs.tiffanyBlue,
+    def __init__(self,text:str="",rect:pygame.Rect=REMODefaults.button_size,*,edge=1,radius=None,color=Cs.tiffanyBlue,
                  font:typing.Optional[str]=None,size:typing.Optional[int]=None,textColor = Cs.white,
                  enabled=True,func=lambda:None,alpha=245):
         '''
@@ -2461,10 +2528,10 @@ class buttonLayout(layoutObj):
     버튼들을 간편하게 생성할 수 있는 버튼용 레이아웃 \n
     example: buttonLayout(["Play Game","Config","Exit"],RPoint(50,50))    
     '''
-    def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=10,
-                 isVertical=True,buttonSize=RPoint(200,50),buttonColor = Cs.tiffanyBlue,
+    def __init__(self,buttonNames=[],pos=RPoint(0,0),*,spacing=REMODefaults.spacing,
+                 isVertical=True,buttonSize=REMODefaults.button_size.size,buttonColor = Cs.tiffanyBlue,
                  fontSize=None,textColor=Cs.white,font="korean_button.ttf",
-                 buttonAlpha=225):
+                 buttonAlpha=255):
         self.buttons = {}
         buttonSize = Rs.Point(buttonSize)
         buttonRect = pygame.Rect(0,0,buttonSize.x,buttonSize.y)
@@ -2512,7 +2579,7 @@ class scrollLayout(layoutObj):
             s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
         return s_pos
 
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=10,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True,enableMouseWheel=False):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=REMODefaults.spacing,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True,enableMouseWheel=False):
         '''
         spacing: 차일드 사이의 간격\n
         isVertical: 수직 스크롤인지 수평 스크롤인지\n
@@ -2578,7 +2645,7 @@ class scrollLayout(layoutObj):
 # 카드를 일렬로 배치하기 위해 존재하는 레이아웃 오브젝트입니다.
 class cardLayout(layoutObj):
 
-    def __init__(self,pos,spacing=10,maxWidth=500, isVertical=False):
+    def __init__(self,pos,spacing=REMODefaults.spacing,maxWidth=500, isVertical=False):
         """
         카드 레이아웃의 초기화 메서드입니다.
         
@@ -2653,7 +2720,7 @@ class cardLayout(layoutObj):
 class dialogObj(rectObj):
     def __init__(self,rect,title="",content="",buttons=[],*,radius=10,edge=1,color=Cs.black,alpha=255,
                  font="korean_button.ttf",title_size=40,content_size=30,textColor=Cs.white,
-                 spacing=20,buttonSize=(200,50)):
+                 spacing=25,buttonSize=(200,50)):
         '''
         dialogObj는 다이얼로그 창을 나타내는 오브젝트입니다.\n
         color: 팝업창의 색깔입니다.\n
