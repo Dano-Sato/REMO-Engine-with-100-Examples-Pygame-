@@ -1642,10 +1642,24 @@ class rectObj(graphicObj):
 
 class textObj(graphicObj,localizable):
     def __init__(self,text="",pos=(0,0),*,font=None,size=None,color=Cs.white,angle=0,style=freetype.STYLE_DEFAULT):
-        '''
-        size: 폰트 사이즈
-        angle: 폰트 회전 각도(int,시계방향)
-        '''
+        """
+        Parameters
+        ----------
+        text : str, optional
+            표시할 텍스트 문자열. 기본값은 빈 문자열("")입니다.
+        pos : tuple, optional
+            텍스트의 초기 위치를 설정하는 (x, y) 좌표입니다. 기본값은 (0, 0)으로, 화면의 좌상단을 의미합니다.
+        font : str, optional
+            사용할 폰트의 이름입니다. 지정하지 않으면 기본 폰트를 사용합니다.
+        size : int or float, optional
+            폰트의 크기. 지정하지 않으면 기본 폰트 크기를 사용합니다.
+        color : tuple, optional
+            텍스트 색상을 RGBA 형식으로 지정합니다. 기본값은 흰색입니다.
+        angle : int, optional
+            텍스트 회전 각도를 시계 방향으로 설정합니다. 기본값은 0도입니다.
+        style : int, optional
+            폰트 스타일을 설정합니다. 기본값은 freetype의 기본 스타일을 사용합니다.
+        """
         super().__init__()
         if font==None:
             font = Rs.getDefaultFont("default")["font"]

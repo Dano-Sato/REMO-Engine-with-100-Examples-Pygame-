@@ -382,16 +382,20 @@ class interpolateManager:
                 # 모든 insts가 완료되었는지 확인하고 callback 실행 후 제거
                 if len(interpolable["insts"][interpolable["attributes"][0]]) == 0:
                     keys_to_remove.append(obj_id)  # 나중에 제거할 키 추적
-                    if interpolable["callback"]:
-                        interpolable["callback"]()
 
                 interpolable["timer"].reset()
 
         # 처리 후에 사전에서 키 제거
         for key in keys_to_remove:
+            if cls.__interpolablePipeline[key]["callback"]:
+                callback = cls.__interpolablePipeline[key]["callback"]
+            else:
+                callback = lambda: None
+
             if cls.__interpolablePipeline[key]["show"]:
                 del cls.__shownObjs[key]
             del cls.__interpolablePipeline[key]
+            callback() # 제거 후 콜백 실행
         return
     
     @classmethod
