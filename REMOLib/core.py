@@ -247,6 +247,14 @@ class Rs:
     @classmethod
     def screenRect(cls) -> pygame.Rect:
         return cls.screen.get_rect()
+    
+    @classmethod
+    def set_cache_size(cls,size):
+        '''
+        텍스쳐 캐시 사이즈를 설정한다.\n
+        클 수록 렌더링 성능이 향상되지만, GPU 메모리를 더 많이 차지한다.\n
+        '''
+        cls.render_engine.max_texture_cache_size = size
 
 
     @classmethod
@@ -2352,7 +2360,7 @@ class textBubbleObj(longTextObj):
         # liveTimer를 텍스트 재생시간 + liveTimerDuration 후에 종료되도록 설정
         self.liveTimer = RTimer(text_duration + (liveTimerDuration if liveTimerDuration is not None else 0))
         if bgExist:
-            self.bg = textButton("", self.fullBoundary.inflate(40, 40), color=bgColor, enabled=False)
+            self.bg = textButton("", self.fullBoundary.inflate(50, 50), color=bgColor, enabled=False)
         else:
             self.bg = None
 
@@ -2413,7 +2421,7 @@ class textBubbleObj(longTextObj):
         말풍선 배경의 위치를 텍스트의 위치에 맞게 조정합니다.
         """
         if self.bg:
-            self.bg.pos = self.geometryPos - RPoint(20, 20)
+            self.bg.pos = self.geometryPos - RPoint(25, 25)
 
     def draw(self):
         if self.isVisible():
