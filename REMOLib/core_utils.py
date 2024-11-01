@@ -443,6 +443,13 @@ class interpolateManager:
         else:
             t -= 2.625 / 2.75
             return (7.5625 * t * t + 0.984375)
+        
+    @classmethod
+    def check_on_interpolation(cls,obj):
+        '''
+        해당 오브젝트가 보간 중인지 확인합니다.
+        '''
+        return id(obj) in cls.__interpolablePipeline 
 
 
 class interpolableObj:
@@ -596,4 +603,9 @@ class interpolableObj:
         steps = int(interpolateManager.DEFAULT_STEPS // speed)
         self.easeout(["pos", "alpha"], [self.pos + delta, 255], steps=steps, callback=callback, revert=revert, on_update=on_update)
 
+    def onInterpolation(self):
+        '''
+        해당 오브젝트가 보간 중인지 확인합니다.
+        '''
+        return interpolateManager.check_on_interpolation(self)
 

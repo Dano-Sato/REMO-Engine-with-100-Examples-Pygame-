@@ -154,7 +154,7 @@ class RenderEngine:
         """
 
         img_flip = pygame.transform.flip(sfc, False, True)
-        img_data = pygame.image.tostring(img_flip, "RGBA")
+        img_data = pygame.image.tobytes(img_flip, "RGBA")
 
         key = xxhash.xxh64(img_data).hexdigest()
 

@@ -107,6 +107,18 @@ class Rs:
         cls.__window_resolution = res
         cls.__updateWindow()
 
+    @classmethod
+    def forceChangeResolution(cls,res):
+        '''
+        화면 해상도와 게임의 픽셀수를 강제로 함께 변경하는 함수입니다.
+        '''
+        print(res)
+        cls.fullScreenRes = res
+        cls.screen_size = res
+        cls.screen = pygame.Surface(cls.screen_size,pygame.SRCALPHA,32).convert_alpha()
+        cls._screenBuffer = cls.screen.copy()
+        cls.setWindowRes(res)
+
     screen_size = (1920,1080) # 게임을 구성하는 실제 스크린의 픽셀수
     screen = pygame.Surface.__new__(pygame.Surface)
     _screenCapture  = None
