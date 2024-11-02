@@ -451,6 +451,16 @@ class interpolateManager:
         '''
         return id(obj) in cls.__interpolablePipeline 
 
+    @classmethod
+    def release(cls,obj):
+        '''
+        해당 오브젝트의 보간을 제거합니다.
+        '''
+        if cls.check_on_interpolation(obj):
+            if cls.__interpolablePipeline[id(obj)]["show"]:
+                del cls.__shownObjs[id(obj)]
+            del cls.__interpolablePipeline[id(obj)]
+        return
 
 class interpolableObj:
     

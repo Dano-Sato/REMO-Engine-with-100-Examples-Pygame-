@@ -1,4 +1,4 @@
-import os, pickle, pygame, pandas
+import os, pickle, pygame, pandas, json
 from enum import Enum, auto
 
 ##REMO Engine의 File I/O를 다루는 클래스.
@@ -127,6 +127,15 @@ class REMODatabase:
             control = 'xb'
         pickle.dump(data,open(path,control))
 
+    @classmethod
+    def saveJson(cls,path,data):
+        '''
+        path : 저장할 파일의 경로
+        data : 저장할 파이썬 객체(딕셔너리, 리스트 등)
+        '''
+        with open(path, 'w') as json_file:
+            json.dump(data, json_file, indent=4)  # indent=4로 사람이 읽기 쉽게 저장
+
     ##저장된 파이썬 객체를 불러온다.
     @classmethod
     def loadData(cls,path):
@@ -136,7 +145,15 @@ class REMODatabase:
         '''
         return pickle.load(open(path,'rb'))
     
-
+    @classmethod
+    def loadJson(cls,path):
+        '''
+        path : 불러올 파일의 경로\n
+        path에 저장된 파이썬 객체를 불러온다.
+        '''
+        with open(path, 'r') as json_file:
+            data = json.load(json_file)
+            return data
 
     ### 비주얼 노벨 계열 스크립트 파일 I/O 함수
     scriptPipeline ={}
