@@ -2720,8 +2720,10 @@ class cardLayout(layoutObj):
                 isCollide = True
                 break
         
+        need_refresh = False
 
         for child in self.getChilds():
+            p = child.pos
             if lastChild != None:
                 if child.collideMouse():
                     child.pos = child.pos.moveTo(lastChild.pos+self._makeVector(self._cardLength(child)),smoothness=smoothness)
@@ -2729,8 +2731,11 @@ class cardLayout(layoutObj):
                     child.pos = child.pos.moveTo(lastChild.pos+self._delta(lastChild,isCollide),smoothness=smoothness)
             else:
                 child.pos = self.pad
+            if child.pos != p:
+                need_refresh = True # 위치가 변경되었을 경우 캐시를 갱신할 필요가 있음
             lastChild = child
-        self._clearGraphicCache()
+        if need_refresh:
+            self._clearGraphicCache()
 
 
 ##다이얼로그 창을 나타내는 오브젝트
