@@ -457,11 +457,12 @@ class Rs:
         slider.connect(volumeUpdate)
         return slider
     @classmethod
-    def SEVolumeSlider(cls,pos=RPoint(0,0),length=300,thickness=13,color=Cs.white,isVertical=False):
+    def SEVolumeSlider(cls,pos=RPoint(0,0),length=300,thickness=13,color=Cs.white,isVertical=False,testFunc=lambda:None):
         '''
         효과음 볼륨 슬라이더 객체를 반환한다.\n
+        testFunc : 볼륨이 변경될 때 실행되는 함수 (테스트 효과음 재생 등을 넣으면 좋다.)\n
         '''
-        slider=sliderObj(pos=pos,length=length,thickness=thickness,color=color,isVertical=isVertical,value=1)
+        slider=sliderObj(pos=pos,length=length,thickness=thickness,color=color,isVertical=isVertical,value=1,callback=testFunc)
         def SEVolumeUpdate():
             Rs.setSEVolume(slider.value)
         slider.connect(SEVolumeUpdate)
@@ -2471,7 +2472,7 @@ class gridObj(layoutObj):
 ##스크롤바 혹은 슬라이더 바
 
 class sliderObj(rectObj):
-    def __init__(self,pos=RPoint(0,0),length=50,*,thickness=10,color=Cs.white,isVertical=True,value=0.0,function = lambda:None):
+    def __init__(self,pos=RPoint(0,0),length=50,*,thickness=10,color=Cs.white,isVertical=True,value=0.0,function = lambda:None,callback = lambda:None):
         pos=Rs.Point(pos)
         if isVertical:
             rect = pygame.Rect(pos.x,pos.y,thickness,length)
@@ -2492,6 +2493,7 @@ class sliderObj(rectObj):
         
         self.value = value
         self.__function = function
+        self.__callback = callback
         
         self.adjustObj()
         
@@ -2523,6 +2525,7 @@ class sliderObj(rectObj):
         ## 이 부분 dragEventHandler로 처리 할 수 있을듯 하다.
         if Rs.userJustLeftClicked() and (self.collideMouse() or self.button.collideMouse()):
             Rs.draggedObj = self
+            Rs.dropFunc = self.__callback
         if Rs.userIsLeftClicking() and Rs.draggedObj == self:
             if self.isVertical:
                 d = Rs.mousePos().y-self.geometryPos.y
