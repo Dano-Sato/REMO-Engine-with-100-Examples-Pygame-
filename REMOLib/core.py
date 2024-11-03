@@ -140,6 +140,9 @@ class Rs:
     __mousePos = RPoint(0,0)
     _mouseTransformer = (1,1) ##마우스 위치를 디스플레이->게임스크린으로 보내기 위해 필요한 변환인자
 
+    defaultUpdate = lambda:None # 기본 업데이트 함수
+    defaultDraw = lambda:None # 기본 드로우 함수
+
     render_engine = None
     @classmethod
     #internal update function
@@ -213,6 +216,7 @@ class Rs:
         from .motion import RMotion
         RMotion._motionUpdate() # 모션 업데이트
         interpolateManager._update() # 보간 업데이트
+        cls.defaultUpdate() # 기본 업데이트
 
         Rs.__lastState=state
     
@@ -380,6 +384,7 @@ class Rs:
     __currentMusic = None
     __musicVolumePipeline = {}
     __changeMusic = None
+    __isMuted = False
     #여기서의 volume값은 마스터값이 아니라 음원 자체의 볼륨을 조절하기 위한 것이다. 음원이 너무 시끄럽거나 할 때 값을 낮춰잡는 용도
     @classmethod
     def playMusic(cls,fileName:str,*,loops=-1,start=0.0,volume=1.0,fadein_ms=0):
@@ -390,7 +395,10 @@ class Rs:
         음원의 자체 볼륨이 너무 크거나 작거나 할 때 조정할 수 있다. 실제론 __masterVolume과 곱해진다.
         '''
         pygame.mixer.music.load(REMODatabase.getPath(fileName))
-        pygame.mixer.music.set_volume(volume*Rs.__masterVolume)
+        if Rs.__isMuted:
+            pygame.mixer.music.set_volume(0)
+        else:
+            pygame.mixer.music.set_volume(volume*Rs.__masterVolume)
         pygame.mixer.music.play(loops,start,fadein_ms)
         Rs.__currentMusic = fileName
         Rs.__musicVolumePipeline[Rs.currentMusic()] = volume ##볼륨 세팅값을 저장
@@ -411,29 +419,39 @@ class Rs:
     ##페이드아웃을 통해 자연스럽게 음악을 전환하는 기능        
     @classmethod
     def changeMusic(cls,fileName:str,_time=500,volume=1):
-        Rs.fadeoutMusic(_time)
-        Rs.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume,"fadein":_time}
+        cls.fadeoutMusic(_time)
+        cls.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume,"fadein":_time}
 
     @classmethod
     def currentMusic(cls):
-        return Rs.__currentMusic       
+        return cls.__currentMusic       
+    @classmethod
+    def setMute(cls,t:bool):
+        cls.__isMuted = t
+        cls.setVolume(cls.__masterVolume) # 볼륨을 다시 설정한다.
+    @classmethod
+    def isMuted(cls) -> bool:
+        return cls.__isMuted
     ##음악의 볼륨 값을 정한다.##
     @classmethod
     def setVolume(cls,volume:float):
-        Rs.__masterVolume = volume
-        if Rs.currentMusic() in Rs.__musicVolumePipeline:
-            pygame.mixer.music.set_volume(volume*Rs.__musicVolumePipeline[Rs.currentMusic()])
+        cls.__masterVolume = volume
+        if cls.__isMuted:
+            pygame.mixer.music.set_volume(0)
+            return
+        if cls.currentMusic() in cls.__musicVolumePipeline:
+            pygame.mixer.music.set_volume(volume*cls.__musicVolumePipeline[cls.currentMusic()])
         else:
             pygame.mixer.music.set_volume(volume)
     @classmethod
     def getVolume(cls) -> float:
-        return Rs.__masterVolume
+        return cls.__masterVolume
     @classmethod
     def setSEVolume(cls,volume:float):
-        Rs.__masterSEVolume = volume
+        cls.__masterSEVolume = volume
     @classmethod
     def getSEVolume(cls) -> float:
-        return Rs.__masterSEVolume
+        return cls.__masterSEVolume
         
 
     @classmethod
@@ -1055,6 +1073,7 @@ class REMOGame:
         REMOGame.currentScene.draw()
         Rs._draw()
         interpolateManager._draw()
+        Rs.defaultDraw()
         Rs.render_engine.render(Rs.source_layer.texture,Rs.render_engine.screen,scale=Rs._scaler)
 
         if REMOGame.__showBenchmark:
