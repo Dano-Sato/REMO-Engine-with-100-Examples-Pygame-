@@ -26,8 +26,8 @@ class mainScene(Scene):
         self.longTextBg.setAsViewport()
         self.name = textObj("Name: Radia",size=50)
         self.description = longTextObj("우클릭을 하면 이 창이 드래그됩니다. Radia is so cute, but she is 500 years old. She loves chess. 에라 모르겠다 그냥 아무글이나 좀 써보자 내가 아는 사람 얘기해 줄게 며칠전 사랑하던 그녀와 헤어진 그냥 아는 사람. ",
-                                       textWidth=850,size=25)
-        self.stats = textObj("공격력:1235,방어력:352,어쩌고 저쩌고",size=25)        
+                                       textWidth=850)
+        self.stats = textObj("공격력:1235,방어력:352,어쩌고 저쩌고")        
         self.textLayout = layoutObj(pos=(520,120),childs=[self.name,self.description,self.stats],spacing=30)
         self.textLayout.setParent(self.longTextBg)
 

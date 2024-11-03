@@ -501,6 +501,7 @@ class Rs:
 
     #폰트 파이프라인(Font Pipeline)
     __fontPipeline ={}
+    __fontCmapPipeline = {}
 
     ##기본 폰트 설정
     __defaultFontPipeline = {
@@ -534,11 +535,17 @@ class Rs:
         if '.ttf' in font:
             font = REMODatabase.getPath(font)
 
-            if font in list(Rs.__fontPipeline):
+            if font in Rs.__fontPipeline:
                 return Rs.__fontPipeline[font]
             else:
                     try:
+                        from fontTools.ttLib import TTFont
                         fontObj = freetype.Font(font,100)
+                        ttfont = TTFont(font,fontNumber=0)
+                        # 폰트 내 글리프 목록 가져오기
+                        cmap = ttfont['cmap'].getBestCmap()
+                        Rs.__fontCmapPipeline[font] = cmap
+
                     except:
                         print("Font import error in:"+font)
                         fontObj = freetype.SysFont('comicsansms',0)
@@ -550,6 +557,29 @@ class Rs:
                 fontObj = freetype.SysFont('comicsansms',0)
         cls.__fontPipeline[font]=fontObj
         return fontObj
+    
+    @classmethod
+    def getFontCmap(cls,font:str) -> dict:
+        '''
+        폰트의 cmap을 반환한다.\n
+        '''
+        if font == 'korean_button.ttf':
+            font = 'ngothic.ttf' # 배민도현체 글리프 관련 버그 해결을 위해 cmap을 변경        
+        font_name = font
+            
+        font = REMODatabase.getPath(font)
+        if font in Rs.__fontCmapPipeline:
+            return Rs.__fontCmapPipeline[font]
+        else:
+            try:
+                Rs.getFont(font_name)
+                if font in Rs.__fontCmapPipeline:
+                    return Rs.__fontCmapPipeline[font]
+                else:
+                    return {}
+
+            except:
+                return {}
 
     #color : Font color, font: Name of Font, size : size of font, bcolor: background color
     #Returns the boundary of text
@@ -1040,6 +1070,7 @@ class REMOGame:
         # Fill the background with white
         Rs.screen = pygame.Surface(screen_size,pygame.SRCALPHA,32).convert_alpha()
         Rs.screen.fill(Cs.white)
+
 
 
     def setWindowTitle(self,title):
@@ -1749,6 +1780,7 @@ class rectObj(graphicObj):
 
 
 class textObj(graphicObj,localizable):
+    fallback_fonts =["unifont_button.ttf","unifont_script.ttf","unifont_retro.ttf"]
     def __init__(self,text="",pos=(0,0),*,font=None,size=None,color=Cs.white,angle=0,style=freetype.STYLE_DEFAULT):
         """
         Parameters
@@ -1826,6 +1858,14 @@ class textObj(graphicObj,localizable):
         self.__update_text_graphics()
 
     def __update_text_graphics(self):
+        # 폰트 내 글리프 목록 가져오기
+        
+        cmap = Rs.getFontCmap(self.__font)
+        # 지원하지 않는 문자 찾기
+        unsupported_chars = [char for char in self.text if ord(char) not in cmap]
+        if unsupported_chars:
+            print(f"fallback occured in font: {self.__font}, Unsupported characters: {unsupported_chars}")
+            self.__font = "unifont_retro.ttf"
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
         self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
         
