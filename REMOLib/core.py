@@ -1114,6 +1114,8 @@ class graphicObj(interpolableObj):
     @pos.setter
     def pos(self,pos):
         delta = pos - self._pos
+        if delta == RPoint(0,0):
+            return
         self._pos = Rs.Point(pos)
         if self.parent==None and id(self) in Rs.graphicCache:
             Rs.graphicCache[id(self)][1]+=delta
@@ -1404,11 +1406,15 @@ class graphicObj(interpolableObj):
 
     ##캐시 청소 (그래픽을 새로 그리거나 위치를 옮길 때 캐시 청소가 필요)    
     def _clearGraphicCache(self):
-        # print(str(self),"cache cleared") ## for DEBUG
+        '''
+        간혹 최적화를 위해 print 찍어봐야 할 때가 있다.
+        그래픽을 새로 그려야 할 필요성이 있을 때 캐시를 청소한다.
+        '''
         if hasattr(self,"parent") and self.parent:
             self.parent._clearGraphicCache()
         if id(self) in Rs.graphicCache:
             Rs.graphicCache.pop(id(self))
+            #print(self,"cache cleared") ## for DEBUG
 
     ##객체 소멸시 캐시청소를 해야 한다.
     def __del__(self):
@@ -2245,7 +2251,14 @@ class monoTextButton(textObj,localizable,clickable):
             self.hideChilds(0)
 
         self.func = func #clicked function        
-
+    @property
+    def text(self):
+        return super().text
+    @text.setter
+    def text(self,_text):
+        textObj.text.fset(self,_text)
+        self.hoverObj.text = _text
+        self._clearGraphicCache()
             
 class textButton(rectObj,localizable,clickable):
     def __init__(self,text:str="",rect:pygame.Rect=REMODefaults.button_size,*,edge=1,radius=None,color=Cs.tiffanyBlue,
@@ -2720,10 +2733,8 @@ class cardLayout(layoutObj):
                 isCollide = True
                 break
         
-        need_refresh = False
 
         for child in self.getChilds():
-            p = child.pos
             if lastChild != None:
                 if child.collideMouse():
                     child.pos = child.pos.moveTo(lastChild.pos+self._makeVector(self._cardLength(child)),smoothness=smoothness)
@@ -2731,11 +2742,7 @@ class cardLayout(layoutObj):
                     child.pos = child.pos.moveTo(lastChild.pos+self._delta(lastChild,isCollide),smoothness=smoothness)
             else:
                 child.pos = self.pad
-            if child.pos != p:
-                need_refresh = True # 위치가 변경되었을 경우 캐시를 갱신할 필요가 있음
             lastChild = child
-        if need_refresh:
-            self._clearGraphicCache()
 
 
 ##다이얼로그 창을 나타내는 오브젝트
