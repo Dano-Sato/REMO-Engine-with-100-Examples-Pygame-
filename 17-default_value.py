@@ -17,7 +17,7 @@ class mainScene(Scene):
             texts.append(obj)
         self.layout = layoutObj(pos=RPoint(100,100),childs=texts,spacing=15)
 
-        self.button = textButton("TEST")
+        self.button = textButton("TEST test etes",font="test_unifont.ttf")
         self.button.pos = RPoint(300,100)
 
         self.bLayout = buttonLayout(["Game Start Start","Exit","C","D"],RPoint(600,100),buttonAlpha=255,spacing=15)

@@ -12,7 +12,7 @@ class scriptRenderLayouts:
         {
             "name-rect":pygame.Rect(300,600,200,60), #이름이 들어갈 사각형 영역
             'name-alpha':200, #이름 영역의 배경 알파값. 입력하지 않을경우 불투명(255)
-            "font":"korean_script.ttf", # 폰트. 기본으로 지원되는 한국어 폰트(맑은고딕). 영어 한국어 지원 가능
+            "font":"unifont_script.ttf", # 폰트. 기본으로 지원되는 한국어 폰트(맑은고딕). 영어 한국어 지원 가능
             "font-size":40, # 폰트 크기
             "script-rect":pygame.Rect(100,680,1700,380), ##스크립트가 들어갈 사각형 영역
             "script-pos":RPoint(200,710), ##스크립트 텍스트의 위치
