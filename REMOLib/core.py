@@ -419,6 +419,8 @@ class Rs:
     ##페이드아웃을 통해 자연스럽게 음악을 전환하는 기능        
     @classmethod
     def changeMusic(cls,fileName:str,_time=500,volume=1):
+        if Rs.__currentMusic==fileName:
+            return
         cls.fadeoutMusic(_time)
         cls.__changeMusic = {"Name":fileName,"Time":time.time()+_time/1000.0,"Volume":volume,"fadein":_time}
 
