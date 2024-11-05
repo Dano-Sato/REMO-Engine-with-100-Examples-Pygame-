@@ -2610,6 +2610,15 @@ class sliderObj(rectObj):
 
     def connect(self,func):
         self.__function = func
+
+    @property
+    def callback(self):
+        return self.__callback
+    
+    @callback.setter
+    def callback(self,func):
+        self.__callback = func
+
     def adjustObj(self):
         l = int(self.length*self.value)
         if self.isVertical:
