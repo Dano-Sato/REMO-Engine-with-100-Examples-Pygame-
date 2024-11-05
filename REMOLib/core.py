@@ -945,7 +945,7 @@ class Rs:
         future 함수를 통해 예약된 작업을 실행하는 함수.\n
         '''
         # 힙이 비어있지 않은 경우
-        if cls.tasks and cls.tasks[0][0] <= time.time():
+        while cls.tasks and cls.tasks[0][0] <= time.time():
             # 힙에서 작업을 꺼내서 실행
             func = heapq.heappop(cls.tasks)[1]
             func()
