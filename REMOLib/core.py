@@ -46,7 +46,7 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
 
 
-import pygame,time,math,copy,pickle,random,pandas
+import pygame,time,math,copy,pickle,random,pandas,heapq
 from .pygame_render import RenderEngine
 import sys,os
 try:
@@ -217,6 +217,7 @@ class Rs:
         RMotion._motionUpdate() # 모션 업데이트
         interpolateManager._update() # 보간 업데이트
         cls.defaultUpdate() # 기본 업데이트
+        cls._future_update()
 
         Rs.__lastState=state
     
@@ -926,17 +927,28 @@ class Rs:
         '''
         return Rs.__transitionTimer.isRunning()
     
+    tasks = []
     @classmethod
-    def future(cls,func,time):
+    def future(cls,func,delay):
         '''
         특정 함수를 특정 시간(ms) 뒤에 실행하는 함수.\n
         '''
-        def f():
-            import time as t
-            t.sleep(time/1000)
+
+        # 현재 시간 + 지연 시간을 계산하여 작업의 실행 시간을 설정
+        execution_time = time.time() + delay / 1000
+        # 작업을 힙에 추가
+        heapq.heappush(cls.tasks, (execution_time, func))
+    
+    @classmethod
+    def _future_update(cls):
+        '''
+        future 함수를 통해 예약된 작업을 실행하는 함수.\n
+        '''
+        # 힙이 비어있지 않은 경우
+        if cls.tasks and cls.tasks[0][0] <= time.time():
+            # 힙에서 작업을 꺼내서 실행
+            func = heapq.heappop(cls.tasks)[1]
             func()
-        import threading
-        threading.Thread(target=f).start()
 
     @classmethod
     def makeOptionLayout(cls,sheet,curState=None,settingFunc=lambda:None,buttonSize=REMODefaults.button_size,buttonColor=Cs.tiffanyBlue):
