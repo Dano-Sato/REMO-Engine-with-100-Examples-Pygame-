@@ -2620,7 +2620,7 @@ class sliderObj(rectObj):
         self.__callback = func
 
     def adjustObj(self):
-        l = int(self.length*self.value)
+        l = max(1,int(self.length*self.value))
         if self.isVertical:
             self.button.center = RPoint(self.thickness//2,l)
             self.gauge.rect = pygame.Rect(0,0,self.thickness,l)
