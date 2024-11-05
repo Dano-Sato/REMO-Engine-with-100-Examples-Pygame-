@@ -962,6 +962,7 @@ class Rs:
 
         ##버튼 레이아웃 생성##
         layout = layoutObj(rect=buttonSize,isVertical=False)
+        layout.buttonColor = buttonColor
             
 
         ##버튼 생성##
@@ -2255,6 +2256,12 @@ class clickable:
         '''
         self.func.remove(func)
 
+    def clear_function(self):
+        '''
+        모든 등록된 함수를 초기화한다.
+        '''
+        self.func.clear()
+
     def update(self):
         '''
         depth 0의 오브젝트를 밝은 효과 오브젝트라고 가정하고, 버튼 클릭 관련 이벤트를 처리한다.
@@ -2573,6 +2580,7 @@ class sliderObj(rectObj):
 
         super().__init__(rect,color=Cs.dark(color)) ## BUG
 
+        self._color = color
 
         self.gauge = rectObj(rect,color=color) # 슬라이더 바의 차오른 정도 표현 (게이지)
         self.gauge.setParent(self)        
@@ -2588,7 +2596,18 @@ class sliderObj(rectObj):
         self.__callback = callback
         
         self.adjustObj()
-        
+
+    @property
+    def color(self) -> typing.Tuple[int,int,int]:
+        return self._color
+
+    @color.setter
+    def color(self,color:typing.Tuple[int,int,int]):
+        self._color = color
+        self.gauge.color = color
+        self.button.color = color
+        self._clearGraphicCache()
+
     def connect(self,func):
         self.__function = func
     def adjustObj(self):
