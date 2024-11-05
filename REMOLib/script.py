@@ -22,6 +22,21 @@ class scriptRenderLayouts:
             ##"name-image":이름 영역의 이미지를 지정할 수 있습니다.
             ##"script-image" : 스크립트 영역의 이미지를 지정할 수 있습니다.
             ###
+        },
+        "default_2560_1440":
+        {
+            "name-rect":pygame.Rect(300,800,200,60), #이름이 들어갈 사각형 영역
+            'name-alpha':200, #이름 영역의 배경 알파값. 입력하지 않을경우 불투명(255)
+            "font":"unifont_script.ttf", # 폰트. 기본으로 지원되는 한국어 폰트(맑은고딕). 영어 한국어 지원 가능
+            "font-size":45, # 폰트 크기
+            "script-rect":pygame.Rect(100,880,2300,480), ##스크립트가 들어갈 사각형 영역
+            "script-pos":RPoint(200,910), ##스크립트 텍스트의 위치
+            "script-text-width":2000, ##스크립트의 좌우 텍스트 최대길이
+            "script-alpha":200 ## 스크립트 영역의 배경 알파값. 입력하지 않을경우 255(완전 불투명)
+            ### 추가 옵션들
+            ##"name-image":이름 영역의 이미지를 지정할 수 있습니다.
+            ##"script-image" : 스크립트 영역의 이미지를 지정할 수 있습니다.
+            ###
         }
         ##TODO: 유저 커스텀 레이아웃을 추가해 보세요. 네이밍 양식을 지켜서!
     }
@@ -70,7 +85,7 @@ class scriptRenderer():
 
 
     #textSpeed:값이 클수록 느리게 재생된다.
-    def __init__(self,fileName,*,textSpeed:float = 5.0,layout="default_1920_1080",endFunc = lambda :None):
+    def __init__(self,fileName,*,textSpeed:float = 5.0,layout="default_2560_1440",endFunc = lambda :None):
         '''
         textSpeed: 값이 클수록 느리게 재생된다.
         target_fps가 60보다 낮을 경우 캐릭터의 움직임이 느려질 수 있다.
