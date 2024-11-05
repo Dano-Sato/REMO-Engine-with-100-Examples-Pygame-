@@ -125,6 +125,12 @@ class RTimer:
             self.duration = duration
         self.startTime = pygame.time.get_ticks()
 
+    def end(self):
+        """
+        타이머를 종료합니다.
+        """
+        self.startTime = pygame.time.get_ticks() - self.duration
+
     def reset(self):
         """타이머를 리셋하고 다시 시작합니다."""
         self.start()
