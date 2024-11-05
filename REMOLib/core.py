@@ -1862,7 +1862,7 @@ class textObj(graphicObj,localizable):
         
         cmap = Rs.getFontCmap(self.__font)
         # 지원하지 않는 문자 찾기
-        unsupported_chars = [char for char in self.text if ord(char) not in cmap]
+        unsupported_chars = ''.join([char for char in self.text if ord(char) not in cmap])
         if unsupported_chars:
             print(f"fallback occured in font: {self.__font}, Unsupported characters: {unsupported_chars}")
             self.__font = "unifont_retro.ttf"
