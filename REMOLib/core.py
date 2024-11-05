@@ -2247,7 +2247,13 @@ class clickable:
         '''
         버튼을 눌렀을 때 실행될 함수를 등록한다.
         '''
-        self.func = func
+        self.func.append(func)
+    
+    def disconnect(self,func):
+        '''
+        등록된 함수를 해제한다.
+        '''
+        self.func.remove(func)
 
     def update(self):
         '''
@@ -2261,15 +2267,17 @@ class clickable:
                     self.showChilds(0) #마우스가 버튼 위에 있을 때 밝은 효과를 보여준다.
 
                 if Rs.userJustLeftClicked():
-                    self.func()
+                    for function in self.func:
+                        function()
             else:
                 self.hideChilds(0) # 마우스가 버튼 위에 없을 때 밝은 효과를 숨긴다.            
 
 ##이미지를 버튼으로 활용하는 오브젝트
 class imageButton(imageObj,clickable):
-    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,func=lambda:None,enabled=True,enableShadow=True):
+    def __init__(self,_imgPath=None,_rect=None,*,pos=None,angle=0,scale=1,func=None,enabled=True,enableShadow=True):
         '''
         이미지를 버튼으로 활용하는 오브젝트
+        func: 버튼 클릭시 실행할 함수 (인자가 없는 함수여야 함)
         '''
 
         super().__init__(_imgPath,_rect,pos=pos,angle=angle,scale=scale)
@@ -2278,7 +2286,10 @@ class imageButton(imageObj,clickable):
         self.hoverObj.pos = RPoint(0,0)
         self.hoverObj.setParent(self,depth=0)
         self.enabled = enabled
-        self.func = func
+        if func:
+            self.func = [func] #clicked function        
+        else:
+            self.func = []
         
         if enableShadow:
             self.shadow = Rs.copyImage(self) #그림자 효과를 보여줄 이미지
@@ -2294,7 +2305,7 @@ class monoTextButton(textObj,localizable,clickable):
     '''
     테두리가 없는 텍스트 버튼 오브젝트
     '''
-    def __init__(self,text:str="",pos:RPoint=RPoint(0,0),*,font=None,size=None,color=Cs.white,enabled=True,func=lambda:None,alpha=255):
+    def __init__(self,text:str="",pos:RPoint=RPoint(0,0),*,font=None,size=None,color=Cs.white,enabled=True,func=None,alpha=255):
         '''
         text: 버튼에 표시될 텍스트 \n
         pos: 버튼의 위치 \n
@@ -2312,7 +2323,10 @@ class monoTextButton(textObj,localizable,clickable):
         if not self.enabled:
             self.hideChilds(0)
 
-        self.func = func #clicked function        
+        if func:
+            self.func = [func] #clicked function        
+        else:
+            self.func = []
     @property
     def text(self):
         return super().text
@@ -2325,7 +2339,7 @@ class monoTextButton(textObj,localizable,clickable):
 class textButton(rectObj,localizable,clickable):
     def __init__(self,text:str="",rect:pygame.Rect=REMODefaults.button_size,*,edge=1,radius=None,color=Cs.tiffanyBlue,
                  font:typing.Optional[str]=None,size:typing.Optional[int]=None,textColor = Cs.white,
-                 enabled=True,func=lambda:None,alpha=245):
+                 enabled=True,func=None,alpha=245):
         '''
         text: 버튼에 표시될 텍스트 \n
         rect: 버튼의 위치와 크기 \n
@@ -2373,7 +2387,10 @@ class textButton(rectObj,localizable,clickable):
         if not self.enabled:
             self.hideChilds(0)
 
-        self.func = func #clicked function
+        if func:
+            self.func = [func] #clicked function        
+        else:
+            self.func = []
         self.alpha = alpha
         self.textObj.setParent(self,depth=1)
         self.textObj.center = self.offsetRect.center
