@@ -1586,6 +1586,8 @@ class graphicObj(interpolableObj):
         return self.collidepoint(Rs.mousePos())
     def isJustClicked(self):
         return Rs.userJustLeftClicked() and self.collidepoint(Rs.mousePos())
+    def isJustRightClicked(self):
+        return Rs.userJustRightClicked() and self.collidepoint(Rs.mousePos())
 
    ###merge method: 차일드와 현재의 객체를 병합한다.
     def merge(self):
