@@ -1547,7 +1547,9 @@ class graphicObj(interpolableObj):
     #Parent - Child 연결관계를 만듭니다.
     #depth는 차일드의 레이어를 의미합니다. depth가 음수이면 부모 아래에, 0 이상이면 부모 위에 그려집니다.
     def setParent(self,_parent,*,depth=0,index=None):
-
+        # 동일한 부모와 depth로 설정하는 경우 무시
+        if self.parent == _parent and self._depth == depth:
+            return
         ##기존 부모관계 청산
         if self.parent !=None:
             self.parent.childs[self._depth].remove(self)
@@ -1567,7 +1569,7 @@ class graphicObj(interpolableObj):
             if depth == 0 and hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 _parent.adjustLayout()
             self._depth = depth
-        self._clearGraphicCache()
+            _parent._clearGraphicCache()
 
 
     #Could be replaced
