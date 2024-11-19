@@ -969,7 +969,7 @@ class Rs:
             버튼의 기본 색상입니다. 기본값은 Cs.tiffanyBlue입니다.
         isVertical : bool, optional
             버튼을 세로로 배치할지 여부를 결정하는 변수입니다. 기본값은 False입니다.
-            
+
         Returns
         -------
         layoutObj
@@ -2829,11 +2829,11 @@ class cardLayout(layoutObj):
         else:
             return RPoint(l,0)
     #카드들의 간격을 정하는 함수
-    def _delta(self,c:graphicObj,isCollide):
+    def _delta(self,c:graphicObj,isCollide,lastChildCollide):
         if len(self)<=1:
             return RPoint(0,0)
         else:
-            if c.collideMouse():
+            if lastChildCollide:
                 return self._makeVector(self._cardLength(c))
             else:
                 if isCollide:
@@ -2846,29 +2846,40 @@ class cardLayout(layoutObj):
                 return self._makeVector(_spacing)
             
     #레이아웃 내부 객체 위치 조정 (override)
-    def adjustLayout(self,smoothness=3):
+    def adjustLayout(self, smoothness=3):
         """
-        레이아웃 내 카드들의 위치를 조정하는 함수입니다. 각 카드는 순서에 따라 일정 간격으로 배치됩니다.
-        
+        레이아웃 내 카드들의 위치를 조정합니다. 각 카드는 순서에 따라 일정 간격으로 배치됩니다.
+
         :param smoothness: 위치 이동 시 부드러움의 정도 (값이 클수록 느리고 부드럽게 이동)
         """
-        lastChild = None
-        isCollide = False
-        for child in self.getChilds():
-            if child.collideMouse():
-                isCollide = True
-                break
-        
+        childs = self.getChilds()
+        if not childs:
+            return  # 자식이 없으면 실행할 필요 없음
 
-        for child in self.getChilds():
-            if lastChild != None:
-                if child.collideMouse():
-                    child.pos = child.pos.moveTo(lastChild.pos+self._makeVector(self._cardLength(child)),smoothness=smoothness)
+        # `collideMouse` 결과를 사전에 저장
+        collide_results = [child.collideMouse() for child in childs]
+        isCollide = any(collide_results)
+
+        lastChild = None
+
+        # 위치 조정 루프
+        for idx, child in enumerate(childs):
+            if lastChild is not None:
+                # `collideMouse` 결과 재활용
+                if collide_results[idx]:
+                    target_pos = lastChild.pos + self._makeVector(self._cardLength(child))
                 else:
-                    child.pos = child.pos.moveTo(lastChild.pos+self._delta(lastChild,isCollide),smoothness=smoothness)
+                    lastChildCollide = collide_results[idx - 1] if idx > 0 else False
+                    target_pos = lastChild.pos + self._delta(lastChild, isCollide, lastChildCollide)
+
+                # 스무스 이동 조건 단축
+                if child.pos != target_pos:
+                    child.pos = child.pos.moveTo(target_pos, smoothness=smoothness)
             else:
                 child.pos = self.pad
+
             lastChild = child
+
 
 
 ##다이얼로그 창을 나타내는 오브젝트
