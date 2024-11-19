@@ -951,7 +951,7 @@ class Rs:
             func()
 
     @classmethod
-    def makeOptionLayout(cls,sheet,curState=None,settingFunc=lambda:None,buttonSize=REMODefaults.button_size,buttonColor=Cs.tiffanyBlue):
+    def makeOptionLayout(cls,sheet,curState=None,settingFunc=lambda:None,*,buttonSize=REMODefaults.button_size,buttonColor=Cs.tiffanyBlue,isVertical=False):
         '''
         옵션 레이아웃을 생성하는 함수입니다. 각 옵션은 버튼 형태로 표시되며, 선택된 옵션에 따라 색상과 상태가 업데이트됩니다.
 
@@ -967,7 +967,9 @@ class Rs:
             버튼의 크기를 정의하는 Rect 객체입니다. 기본값은 (0, 0, 200, 50)입니다.
         buttonColor : tuple, optional
             버튼의 기본 색상입니다. 기본값은 Cs.tiffanyBlue입니다.
-
+        isVertical : bool, optional
+            버튼을 세로로 배치할지 여부를 결정하는 변수입니다. 기본값은 False입니다.
+            
         Returns
         -------
         layoutObj
@@ -975,7 +977,7 @@ class Rs:
         '''
 
         ##버튼 레이아웃 생성##
-        layout = layoutObj(rect=buttonSize,isVertical=False)
+        layout = layoutObj(rect=buttonSize,isVertical=isVertical)
         layout.buttonColor = buttonColor
             
 
