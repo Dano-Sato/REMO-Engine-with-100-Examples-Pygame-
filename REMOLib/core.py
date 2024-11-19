@@ -1087,6 +1087,7 @@ class REMOGame:
         # Fill the background with white
         Rs.screen = pygame.Surface(screen_size,pygame.SRCALPHA,32).convert_alpha()
         Rs.screen.fill(Cs.white)
+        self.surface_pool = SurfacePoolManager()
 
 
 
@@ -1143,6 +1144,7 @@ class REMOGame:
 
         while self.running:
             try:
+                self.surface_pool.process_main_thread()
                 Rs._update()
                 # Did the user click the window close button?
                 Rs.events = pygame.event.get()
@@ -1160,6 +1162,7 @@ class REMOGame:
                 import traceback
                 traceback.print_exc()
                 self.running = False
+        self.surface_pool.shutdown()
 
 
     def paint(self):
@@ -1418,7 +1421,7 @@ class graphicObj(interpolableObj):
         r = self.boundary
         
         bp = RPoint(r.x,r.y) #position of boundary
-        cache = pygame.Surface((r.w,r.h),pygame.SRCALPHA,32).convert_alpha()
+        cache = REMOGame._lastStartedWindow.surface_pool.get_surface((r.w,r.h))
 
         depth_excluded = list(set(self.childs.keys())-self._hidedDepth)
         depth_excluded.sort()
@@ -1447,7 +1450,7 @@ class graphicObj(interpolableObj):
         for depth in positive_depths:
             l = self.childs[depth]
             if depth==0 and self.isViewport(): ##뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
-                viewport = pygame.Surface((self.rect.w,self.rect.h),pygame.SRCALPHA,32).convert_alpha()
+                viewport = REMOGame._lastStartedWindow.surface_pool.get_surface((self.rect.w,self.rect.h))
                 gp = self.geometryPos
                 for c in l:
                     ccache,cpos,_ = c._getCache()
@@ -1480,7 +1483,7 @@ class graphicObj(interpolableObj):
         if hasattr(self,"parent") and self.parent:
             self.parent._clearGraphicCache()
         if id(self) in Rs.graphicCache:
-            Rs.graphicCache.pop(id(self))
+            del Rs.graphicCache[id(self)]
             #print(self,"cache cleared") ## for DEBUG
 
     ##객체 소멸시 캐시청소를 해야 한다.
@@ -1524,7 +1527,7 @@ class graphicObj(interpolableObj):
             c.setParent(None)
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
-        self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
+        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h))
         self.graphic = self.graphic_n.copy()
         self._pos = RPoint(0,0)
         self.childs = defaultdict(list) ##차일드들을 depth별로 저장한다.
@@ -1750,7 +1753,7 @@ class imageObj(graphicObj):
 ##Rectangle Object. could be rounded
 class rectObj(graphicObj):
     def _makeRect(self,rect,color,edge,radius):
-        self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha()
+        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h))
         pygame.draw.rect(self.graphic_n,Cs.apply(color,0.7),pygame.Rect(0,0,rect.w,rect.h),border_radius=radius+1)
         pygame.draw.rect(self.graphic_n,Cs.apply(color,0.85),pygame.Rect(edge,edge,rect.w-2*edge,rect.h-2*edge),border_radius=radius+2)
 
@@ -2050,7 +2053,7 @@ class layoutObj(graphicObj):
         self.pad = RPoint(0,0) ## 레이아웃 오프셋
 
 
-        self.graphic_n = pygame.Surface((rect.w,rect.h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
+        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h)) # 빈 Surface
         self.graphic = self.graphic_n.copy()
         if pos==None:
             self.pos = RPoint(rect.x,rect.y)
@@ -2074,7 +2077,7 @@ class layoutObj(graphicObj):
         레이아웃의 경계를 depth 0에 해당하는 차일드에 맞게 조정한다.
         '''
         if self.childs[0]!=[]:
-            self.graphic_n = pygame.Surface((self.getBoundary(0).w,self.getBoundary(0).h),pygame.SRCALPHA,32).convert_alpha() # 빈 Surface
+            self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((self.getBoundary(0).w,self.getBoundary(0).h)) # 빈 Surface
             self.graphic = self.graphic_n.copy()
 
 
