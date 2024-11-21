@@ -2862,17 +2862,17 @@ class cardLayout(layoutObj):
             
         total_card_length = sum(self._cardLength(card) for card in cards)
         if total_card_length+(len(cards)-1)*self.spacing < self.maxWidth:
-            return self.spacing+self._cardLength(cards[-1])
+            return self.spacing+self._cardLength(cards[0])
 
         if collide_idx == len(cards)-1:
-            return (self.maxWidth-2*self._cardLength(cards[-1]))/(len(cards)-2)
+            return (self.maxWidth-2*self._cardLength(cards[0]))/(len(cards)-2)
         elif collide_idx == 0:
-            return (self.maxWidth-2*self._cardLength(cards[-1]))/(len(cards)-2)
+            return (self.maxWidth-2*self._cardLength(cards[0]))/(len(cards)-2)
         else:
             if collide_idx != -1:
-                return (self.maxWidth-3*self._cardLength(cards[-1]))/(len(cards)-3)
+                return (self.maxWidth-3*self._cardLength(cards[0]))/(len(cards)-3)
             else:
-                return (self.maxWidth-self._cardLength(cards[-1]))/(len(cards)-1)
+                return (self.maxWidth-self._cardLength(cards[0]))/(len(cards)-1)
         
     def adjustLayout(self, smoothness: int = 3) -> None:
         """레이아웃을 조정합니다."""
