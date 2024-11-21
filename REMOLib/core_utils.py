@@ -643,7 +643,7 @@ class SurfacePoolManager:
         # 마지막 요청 시간 추적
         self.last_request_time = {}
         # 설정
-        self.MAX_TARGET_SIZES = 50
+        self.MAX_TARGET_SIZES = 100
         self.REQUEST_THRESHOLD = 10  # 요청 횟수 임계값
         self.SIZE_EXPIRE_TIME = 20  # 20초간 요청 없으면 만료
         
