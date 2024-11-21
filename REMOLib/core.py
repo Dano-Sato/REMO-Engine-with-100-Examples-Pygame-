@@ -2842,84 +2842,80 @@ class scrollLayout(layoutObj):
 
 # 카드를 일렬로 배치하기 위해 존재하는 레이아웃 오브젝트입니다.
 class cardLayout(layoutObj):
+    def __init__(self, pos, spacing=REMODefaults.spacing, maxWidth=500, isVertical=False):
+        # Type hints 추가
+        self.maxWidth: int = maxWidth
+        super().__init__(pos=pos, spacing=spacing, isVertical=isVertical)
 
-    def __init__(self,pos,spacing=REMODefaults.spacing,maxWidth=500, isVertical=False):
-        """
-        카드 레이아웃의 초기화 메서드입니다.
-        
-        :param pos: 레이아웃의 시작 위치 (position)
-        :param spacing: 카드 간의 기본 간격
-        :param maxWidth: 카드가 배치되는 최대 길이 (수평 또는 수직)
-        :param isVertical: 카드가 수직으로 배치될지 여부 (True일 경우 수직, False일 경우 수평)
-        """
+    def _cardLength(self, child: graphicObj) -> int:
+        """카드의 길이를 계산합니다."""
+        return child.rect.h if self.isVertical else child.rect.w
 
-        super().__init__(pos=pos,spacing=spacing,isVertical=isVertical)
-        self.maxWidth = maxWidth # 카드를 배치하는 최대 길이
+    def _makeVector(self, l: int) -> RPoint:
+        """방향에 따른 벡터를 생성합니다."""
+        return RPoint(0, l) if self.isVertical else RPoint(l, 0)
 
-
-    def _cardLength(self,child:graphicObj) -> int:
- 
-        if self.isVertical:
-            return child.rect.h
-        else:
-            return child.rect.w
-
-    def _makeVector(self,l):
-        if self.isVertical:
-            return RPoint(0,l)
-        else:
-            return RPoint(l,0)
-    #카드들의 간격을 정하는 함수
-    def _delta(self,c:graphicObj,isCollide,lastChildCollide):
-        if len(self)<=1:
-            return RPoint(0,0)
-        else:
-            if lastChildCollide:
-                return self._makeVector(self._cardLength(c))
-            else:
-                if isCollide:
-                    _spacing = (self.maxWidth-2*self._cardLength(c)) / (len(self)-1)
-                else:
-                    _spacing = (self.maxWidth-self._cardLength(c)) / (len(self)-1)
-
-
-                _spacing = min(_spacing,self.spacing+self._cardLength(c))
-                return self._makeVector(_spacing)
+    def _calculate_optimal_spacing(self, cards: list, collide_idx: int) -> float:
+        """최적의 카드 간격을 계산합니다."""
+        if not cards:
+            return self.spacing
             
-    #레이아웃 내부 객체 위치 조정 (override)
-    def adjustLayout(self, smoothness=3):
-        """
-        레이아웃 내 카드들의 위치를 조정합니다. 각 카드는 순서에 따라 일정 간격으로 배치됩니다.
+        total_card_length = sum(self._cardLength(card) for card in cards)
+        if total_card_length+(len(cards)-1)*self.spacing < self.maxWidth:
+            return self.spacing+self._cardLength(cards[-1])
 
-        :param smoothness: 위치 이동 시 부드러움의 정도 (값이 클수록 느리고 부드럽게 이동)
-        """
+        if collide_idx == len(cards)-1:
+            return (self.maxWidth-2*self._cardLength(cards[-1]))/(len(cards)-2)
+        elif collide_idx == 0:
+            return (self.maxWidth-2*self._cardLength(cards[-1]))/(len(cards)-2)
+        else:
+            if collide_idx != -1:
+                return (self.maxWidth-3*self._cardLength(cards[-1]))/(len(cards)-3)
+            else:
+                return (self.maxWidth-self._cardLength(cards[-1]))/(len(cards)-1)
+        
+    def adjustLayout(self, smoothness: int = 3) -> None:
+        """레이아웃을 조정합니다."""
+
+            
         childs = self.getChilds()
         if not childs:
-            return  # 자식이 없으면 실행할 필요 없음
+            return
 
-        # `collideMouse` 결과를 사전에 저장
+        # 충돌 검사 최적화
         collide_results = [child.collideMouse() for child in childs]
-        isCollide = any(collide_results)
+        collide_idx = next((i for i, collide in enumerate(collide_results) if collide), -1)
+        # 위치 계산 최적화
+        optimal_spacing = self._calculate_optimal_spacing(childs, collide_idx)
+        target_positions = self._calculate_target_positions(childs, optimal_spacing, collide_results)
+        
+        # 위치 업데이트
+        self._update_positions(childs, target_positions, smoothness)
 
-        lastChild = None
-
-        # 위치 조정 루프
+    def _calculate_target_positions(self, childs: list, spacing: float, 
+                                 collide_results: list) -> list:
+        """모든 카드의 목표 위치를 계산합니다."""
+        positions = []
+        current_pos = self.pad
+        
         for idx, child in enumerate(childs):
-            if lastChild is not None:
-                # `collideMouse` 결과 재활용
+            positions.append(current_pos)
+            if idx <= len(childs) - 1:
+                delta = spacing
                 if collide_results[idx]:
-                    target_pos = lastChild.pos + self._makeVector(self._cardLength(child))
-                else:
-                    lastChildCollide = collide_results[idx - 1] if idx > 0 else False
-                    target_pos = lastChild.pos + self._delta(lastChild, isCollide, lastChildCollide)
+                    delta = self._cardLength(childs[0])
+                elif idx <= len(childs)-2 and collide_results[idx+1]:
+                    delta = self._cardLength(childs[0])
+                current_pos += self._makeVector(delta)
+                
+        return positions
 
-                # 스무스 이동 조건 단축
-                if child.pos != target_pos:
-                    child.pos = child.pos.moveTo(target_pos, smoothness=smoothness)
-            else:
-                child.pos = self.pad
-
-            lastChild = child
+    def _update_positions(self, childs: list, target_positions: list, 
+                        smoothness: int) -> None:
+        """카드들의 위치를 업데이트합니다."""
+        for child, target_pos in zip(childs, target_positions):
+            if child.pos != target_pos:
+                child.pos = child.pos.moveTo(target_pos, smoothness=smoothness)
 
 
 

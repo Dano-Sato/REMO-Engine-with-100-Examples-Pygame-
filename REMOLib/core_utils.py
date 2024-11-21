@@ -16,12 +16,10 @@ class RPoint():
     toTuple() : 튜플로 변환\n
     '''
     def __init__(self,x=(0,0),y=None):
-        if y==None:
-            self.__x=int(x[0])
-            self.__y=int(x[1])
+        if y is None:
+            self.__x, self.__y = map(int, x)
         else:
-            self.__x=int(x)
-            self.__y=int(y)
+            self.__x, self.__y = int(x), int(y)
 
     @property            
     def x(self) -> int:
