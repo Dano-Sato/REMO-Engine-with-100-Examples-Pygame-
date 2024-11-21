@@ -1752,14 +1752,50 @@ class imageObj(graphicObj):
             
 ##Rectangle Object. could be rounded
 class rectObj(graphicObj):
-    def _makeRect(self,rect,color,edge,radius):
-        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h))
-        pygame.draw.rect(self.graphic_n,Cs.apply(color,0.7),pygame.Rect(0,0,rect.w,rect.h),border_radius=radius+1)
-        pygame.draw.rect(self.graphic_n,Cs.apply(color,0.85),pygame.Rect(edge,edge,rect.w-2*edge,rect.h-2*edge),border_radius=radius+2)
+    _surface_cache = {}
+    _max_cache_size = 1000
 
-        pygame.draw.rect(self.graphic_n,color,pygame.Rect(2*edge,2*edge,rect.w-4*edge,rect.h-4*edge),border_radius=radius)
-        self.graphic = self.graphic_n.copy()
+    def _makeRect(self, rect, color, edge,radius):
+        """사각형 surface를 생성하고 반환합니다."""
+
+        # ndarray인 경우 tuple로 변환
+        if isinstance(color, np.ndarray):
+            color = tuple(color.tolist())
+        # 캐시 키 생성 (크기, 색상, 반경, 테두리)
+        cache_key = (rect.size, color, radius, edge)
         
+        # 캐시된 surface가 있으면 사용
+        if cache_key in self._surface_cache:
+            surface = self._surface_cache[cache_key]
+        else:
+            # 캐시가 가득 찼으면 가장 오래된 항목 제거
+            if len(self._surface_cache) >= self._max_cache_size:
+                self._surface_cache.pop(next(iter(self._surface_cache)))
+                
+            # 새로운 surface 생성
+            surface = REMOGame._lastStartedWindow.surface_pool.get_surface(rect.size)
+            surface.fill((0, 0, 0, 0))  # 투명 배경으로 초기화
+            
+            # 기존 draw 공식 적용
+            pygame.draw.rect(surface, Cs.apply(color, 0.7), 
+                           pygame.Rect(0, 0, rect.w, rect.h), 
+                           border_radius=radius+1)
+            
+            pygame.draw.rect(surface, Cs.apply(color, 0.85), 
+                           pygame.Rect(edge, edge, 
+                                     rect.w-2*edge, rect.h-2*edge), 
+                           border_radius=radius+2)
+            
+            pygame.draw.rect(surface, color, 
+                           pygame.Rect(2*edge, 2*edge, 
+                                     rect.w-4*edge, rect.h-4*edge), 
+                           border_radius=radius)
+            
+            # 캐시에 저장
+            self._surface_cache[cache_key] = surface
+            
+        self.graphic_n = surface
+        self.graphic = surface
     def __init__(self,rect,*,radius=None,edge=0,color=Cs.white,alpha=255):
         '''
         radius: 사각형의 모서리의 둥근 정도

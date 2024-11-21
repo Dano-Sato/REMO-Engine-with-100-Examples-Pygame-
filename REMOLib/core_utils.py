@@ -643,9 +643,9 @@ class SurfacePoolManager:
         # 마지막 요청 시간 추적
         self.last_request_time = {}
         # 설정
-        self.MAX_TARGET_SIZES = 100
+        self.MAX_TARGET_SIZES = 50
         self.REQUEST_THRESHOLD = 10  # 요청 횟수 임계값
-        self.SIZE_EXPIRE_TIME = 300  # 5분간 요청 없으면 만료
+        self.SIZE_EXPIRE_TIME = 20  # 20초간 요청 없으면 만료
         
         # 백그라운드 스레드 시작
         self.pool_thread = threading.Thread(target=self._pool_manager, daemon=True)
@@ -658,8 +658,8 @@ class SurfacePoolManager:
         self.MAX_CREATION_TIME = 1.0  # 최대 1ms
         
         # 풀 크기 관리
-        self.MIN_POOL_SIZE = 35  # 기본 최소 크기
-        self.MAX_POOL_SIZE = 100  # 최대 크기
+        self.MIN_POOL_SIZE = 20  # 기본 최소 크기
+        self.MAX_POOL_SIZE = 64  # 최대 크기
         self.size_usage_history = defaultdict(lambda: deque(maxlen=100))  # 크기별 사용량 기록
         
     def process_main_thread(self):
@@ -794,29 +794,47 @@ class SurfacePoolManager:
         self.request_queue.put(size)
     
     def get_surface(self, size):
-        """Surface 가져오기"""
+        """Surface 가져오기 - 풀 크기 모니터링 추가"""
         self.size_requests[size] += 1
         self.last_request_time[size] = time.time()
-        
-        # 현재 사용 중인 Surface 수 기록
-        current_usage = self.size_requests[size] - len(self.pools[size])
-        self.size_usage_history[size].append(current_usage)
         
         if size in self.pools and self.pools[size]:
             return self.pools[size].pop()
         
-        self.request_surface(size)
+        # 새 Surface 생성 전에 전체 메모리 사용량 체크
+        total_surfaces = sum(len(pool) for pool in self.pools.values())
+        if total_surfaces > self.MAX_POOL_SIZE * len(self.pools):
+            # 오래된 풀 정리
+            self._cleanup_old_pools()
+        
         return pygame.Surface(size, pygame.SRCALPHA, 32).convert_alpha()
 
+    def _cleanup_old_pools(self):
+        """오래된 풀 정리"""
+        current_time = time.time()
+        for size in list(self.pools.keys()):
+            if current_time - self.last_request_time.get(size, 0) > self.SIZE_EXPIRE_TIME:
+                # 오래된 풀 제거
+                for surface in self.pools[size]:
+                    del surface
+                del self.pools[size]
+
     def return_surface(self, surface):
-        """Surface 반환"""
+        """Surface 반환 - 풀 크기 제한 추가"""
         size = (surface.get_width(), surface.get_height())
         surface.fill((0,0,0,0))
         
-        # target_sizes에 있는 크기만 풀에 보관
         if size in self.target_sizes:
-            self.pools[size].append(surface)
-    
+            optimal_size = self._get_optimal_pool_size(size)
+            if size not in self.pools:
+                self.pools[size] = []
+            # 풀이 이미 최적 크기에 도달했으면 새로운 surface 무시
+            if len(self.pools[size]) < optimal_size:
+                self.pools[size].append(surface)
+            else:
+                # 풀이 가득 찼으면 surface 삭제
+                del surface
+
     def get_stats(self):
         """현재 상태 통계 반환"""
         return {
