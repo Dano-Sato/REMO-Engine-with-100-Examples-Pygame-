@@ -1930,7 +1930,7 @@ class textObj(graphicObj,localizable):
             if [char for char in self.text if ord(char) not in cmap]:
                 self.__font = "unifont_retro.ttf"
         self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.graphic = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
+        self.graphic = self.graphic_n
         
 
 
