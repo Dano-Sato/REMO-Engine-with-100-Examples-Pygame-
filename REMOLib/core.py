@@ -15,7 +15,7 @@
 #scriptRenderer 클래스의 타이머 또한 RTimer를 사용. 점프 관련 미세 변경 (08-21 06:22)
 #장면 전환(transition) 기능 추가 (08-21 16:49)
 #child에 depth를 추가하여 그리는 순서를 조절할 수 있게 함 (08-21 17:24)
-#spriteObj를 rect 기준, 혹은 scale,angle 기준으로 조정할 수 있게 함 (08-21 23:32)
+#spriteObj를 rect 기��, 혹은 scale,angle 기준으로 조정할 수 있게 함 (08-21 23:32)
 #colorize 함수를 imageObj에 귀속(textObj, rectObj는 오작동 요소가 더 많고, color 프로퍼티가 별도로 존재.) (08-21 23:58)
 #defaultFont 옵션을 지정할 수 있게 됐다.(08-22 12:05)
 #graphicObj 객체를 뷰포트로 지정할 수 있게 됐다. (08-22 12:20)
@@ -269,7 +269,7 @@ class Rs:
     def set_cache_size(cls,size):
         '''
         텍스쳐 캐시 사이즈를 설정한다.\n
-        클 수록 렌더링 성능이 향상되지만, GPU 메모리를 더 많이 차지한다.\n
+        클 수록 렌���링 성능이 향상되지만, GPU 메모리를 더 많이 차지한다.\n
         '''
         cls.render_engine.max_texture_cache_size = size
 
@@ -813,7 +813,7 @@ class Rs:
         '''
         REMOGame.setCurrentScene(scene,skipInit)
 
-    ##디스플레이 아이콘을 바꾼다.
+    ##디스플레이 아이��을 바꾼다.
     @classmethod
     def setIcon(cls,img):
         cls.gameIcon = img
@@ -858,7 +858,7 @@ class Rs:
     @classmethod
     def mouseCollidePopup(cls):
         '''
-        팝업 중 마우스와 충돌하는 팝업이 있는지를 체크하는 함수
+        팝업 중 마우스와 충돌하는 팝업이 ��는지를 체크하는 함수
         '''
         for popup in Rs.__popupPipeline:
             if Rs.__popupPipeline[popup].collideMouse():
@@ -1841,6 +1841,7 @@ class rectObj(graphicObj):
 
 class textObj(graphicObj,localizable):
     fallback_fonts =["unifont_button.ttf","unifont_script.ttf","unifont_retro.ttf"]
+    _fallback_cache = {} # 문자별 fallback 폰트 캐시
     def __init__(self,text="",pos=(0,0),*,font=None,size=None,color=Cs.white,angle=0,style=freetype.STYLE_DEFAULT):
         """
         Parameters
@@ -1918,19 +1919,54 @@ class textObj(graphicObj,localizable):
         self.__update_text_graphics()
 
     def __update_text_graphics(self):
-        # 폰트 내 글리프 목록 가져오기
+        current_font = self.__font
+        need_fallback = False
+        cmap = Rs.getFontCmap(current_font)  # 이미 캐싱되어 있음
         
-        cmap = Rs.getFontCmap(self.__font)
-        # 지원하지 않는 문자 찾기
-        unsupported_chars = ''.join([char for char in self.text if ord(char) not in cmap])
-        if unsupported_chars:
-            print(f"fallback occured in font: {self.__font}, Unsupported characters: {unsupported_chars}")
+        # 문자별로 fallback 검사
+        for char in self.text:
+            # 이미 검사한 문자는 캐시 사용
+            if char in self._fallback_cache:
+                if self._fallback_cache[char] != current_font:
+                    need_fallback = True
+                    break
+            # 새로운 문자는 검사 후 캐시
+            elif ord(char) not in cmap:
+                need_fallback = True
+                self._fallback_cache[char] = "unifont_script.ttf"
+                break
+            else:
+                self._fallback_cache[char] = current_font
+        
+        # fallback이 필요한 경우
+        if need_fallback:
             self.__font = "unifont_script.ttf"
-            cmap = Rs.getFontCmap(self.__font)
-            if [char for char in self.text if ord(char) not in cmap]:
+            unifont_script_cmap = Rs.getFontCmap("unifont_script.ttf")
+            
+            # unifont_script에서도 지원하지 않는 문자 확인
+            unsupported_chars = False
+            for char in self.text:
+                if ord(char) not in unifont_script_cmap:
+                    self._fallback_cache[char] = "unifont_retro.ttf"
+                    unsupported_chars = True
+                else:
+                    self._fallback_cache[char] = "unifont_script.ttf"
+            
+            if unsupported_chars:
                 self.__font = "unifont_retro.ttf"
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
-        self.graphic = self.graphic_n
+        
+        # 렌더링 (한 번만 수행)
+        rendered = Rs.getFont(self.__font).render(
+            self.__text,
+            self.__color,
+            None,
+            size=self.__size,
+            rotation=self.__angle,
+            style=self.__style
+        )[0].convert_alpha()
+        
+        self.graphic_n = rendered
+        self.graphic = rendered
         
 
 
