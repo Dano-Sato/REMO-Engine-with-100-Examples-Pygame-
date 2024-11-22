@@ -2874,7 +2874,7 @@ class cardLayout(layoutObj):
             else:
                 return (self.maxWidth-self._cardLength(cards[0]))/(len(cards)-1)
         
-    def adjustLayout(self, smoothness: int = 3) -> None:
+    def adjustLayout(self, smoothness: int = 5) -> None:
         """레이아웃을 조정합니다."""
 
             

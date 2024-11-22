@@ -3,6 +3,7 @@
 '''
 
 from .core import *
+from .motion import RMotion
 
 ##스크립트 렌더링을 위한 레이아웃들을 저장하는 클래스.
 class scriptRenderLayouts:
@@ -512,34 +513,10 @@ class scriptRenderer():
                             ", currently supported are:" + str(scriptRenderer.emotions))
 
     def apply_jump(self, num, jump_value):
-        j_pos = -int(jump_value)
-        jumpInstruction = []
-        d = -2 if j_pos > 0 else 2
-        temp = j_pos
-        sum = temp
-        while sum != 0:
-            jumpInstruction.append(RPoint(0, temp))
-            temp += d
-            sum += temp
-        jumpInstruction.append(RPoint(0, temp))
-
-        self.makeMove(num, jumpInstruction)
+        RMotion.jump(self.charaObjs[num],RPoint(0,-3*int(jump_value)))
 
     def apply_move(self, num, move_value):
-        m_pos = int(move_value)
-        moveInstruction = []
-        temp = m_pos
-        while temp != 0:
-            if abs(temp) <= 2:
-                d = temp
-            else:
-                d = int(temp * 0.05)
-                if d == 0:  # d가 0이면 루프가 멈추지 않으므로, 강제로 1 또는 -1로 설정
-                    d = 1 if temp > 0 else -1
-            temp -= d
-            moveInstruction.append(RPoint(d, 0))
-
-        self.makeMove(num, moveInstruction)
+        RMotion.move(self.charaObjs[num],RPoint(int(move_value),0),smoothness=18)
 
     def handleImage(self, fileName, parameters):
         _pos = self.safe_eval_pos(parameters)
@@ -583,63 +560,63 @@ class scriptRenderer():
         '''
         스크립트 렌더러를 업데이트하는 함수입니다.
         '''
+        current_time = time.time()  # 한 번만 시간 체크
 
-        ##캐릭터의 움직임 업데이트
-        if self.frameTimer.isOver():
-            for i,moveInst in enumerate(self.moveInstructions):
-                if moveInst != []:
-                    move = moveInst.pop(0)
-                    self.charaObjs[i].pos += move
-            self.frameTimer.reset()
-
-
-        ##감정 애니메이션이 재생중일 땐 스크립트를 재생하지 않는다.
-        if self.freezeTimer>time.time():
-            if self.scriptObj.text != "":
+        # 감정 애니메이션 재생 중 체크
+        if current_time < self.freezeTimer:
+            if self.scriptObj.text:  # != "" 보다 빠름
                 self.scriptObj.text = ""
             return
 
+
         self.scriptBgObj.update()
 
-        #Script를 화면에 읽어들이는 함수.
+        # 텍스트 업데이트 최적화
         if self.textFrameTimer.isOver():
-            temp = False
             if not self.scriptLoaded():
-                ##미세조정: 스크립트가 위아래로 왔다리 갔다리 하는 것을 막기 위한 조정임.
-                i = len(self.scriptObj.text)
-                fullText = self.currentScript
-                while i < len(fullText) and fullText[i] != " ":
-                    i+=1
-                parsedText = fullText[:i]
-                l1 = self.scriptObj.getStringList(self.scriptObj.text)[:-1]
-                l2 = self.scriptObj.getStringList(parsedText)[:-1]
-                try:
-                    while len(l1[-1]) > len(l2[-1]):
-                        self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
-                        l1 = self.scriptObj.getStringList(self.scriptObj.text)[:-1]
-                        temp = True
-                except:
-                    pass
-                if not temp:
-                    self.scriptObj.text = self.currentScript[:len(self.scriptObj.text)+1]
+                self._update_script_text()
             self.textFrameTimer.reset()
 
-        ##점멸 마커 업데이트
-        if self.scriptLoaded() and self.scriptObj.getChilds()!=[]:
-            ##점멸 표시
-            if time.time()>self.endMarker.timer:
-                self.endMarker.timer = time.time()+self.endMarker.tick 
+        # 점멸 마커 업데이트 최적화
+        if self.scriptLoaded() and self.scriptObj.childs:  # != [] 보다 빠름
+            if current_time > self.endMarker.timer:
+                self.endMarker.timer = current_time + self.endMarker.tick 
                 self.endMarker.switch = not self.endMarker.switch
             
-            markerPos = RPoint(self.scriptObj.childs[0][-1].geometry.bottomright)+RPoint(20,0)
-            if self.endMarker.bottomleft != markerPos:
-                self.endMarker.bottomleft = markerPos
+            # 마커 위치 업데이트 - 계산 캐싱
+            last_child = self.scriptObj.childs[0][-1]
+            marker_pos = RPoint(last_child.geometry.bottomright) + RPoint(20,0)
+            if self.endMarker.bottomleft != marker_pos:
+                self.endMarker.bottomleft = marker_pos
 
-        ## 질문용 선택지 업데이트
-        if self.scriptMode == scriptMode.Questioning or self.scriptMode == scriptMode.QuestioningStart:
+        # 질문 모드 체크 최적화
+        if self.scriptMode in (scriptMode.Questioning, scriptMode.QuestioningStart):
             self.questionButtons.update()
 
-
+    def _update_script_text(self):
+        """더 급진적인 최적화 버전 - 메모리와 속도 트레이드오프"""
+        current_len = len(self.scriptObj.text)
+        
+        # 미리 계산된 줄바꿈 위치를 사용
+        if not hasattr(self, '_line_breaks'):
+            self._line_breaks = set()
+            temp_text = ''
+            for i in range(len(self.currentScript)):
+                temp_text += self.currentScript[i]
+                if ' ' in temp_text or '\n' in temp_text:
+                    lines = self.scriptObj.getStringList(temp_text)[:-1]
+                    if lines and len(lines) > 1:
+                        self._line_breaks.add(i)
+        
+        # 현재 위치가 줄바꿈 위치인지 확인
+        if current_len in self._line_breaks:
+            # 공백까지 진행
+            while current_len < len(self.currentScript):
+                if self.currentScript[current_len] == ' ':
+                    break
+                current_len += 1
+        
+        self.scriptObj.text = self.currentScript[:current_len + 1]
 
     def draw(self):
         self.bgObj.draw()

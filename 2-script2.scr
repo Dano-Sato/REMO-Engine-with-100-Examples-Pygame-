@@ -5,7 +5,7 @@
 #chara1 schoolGirl1_default.png pos=(0,50) emotion=surprised jump
 #sound testEffect.wav volume=0.1
 #color Cs.white
-미라이: 안녕하세요 아저씨. 또 뵙네요. English English. As you know this is not an easy job.
+미라이: 안녕하세요 아저씨. 또 뵙네요. English English. As you know this is not an easy job.As you know this is not an easy job.As you know this is not an easy job.
 안녕 미라이. 非常に難解な漢字が 多くて、読解に苦労
 #color Cs.grey75
 (어제 본 여고생이다.) 这是一段示例文本。
@@ -19,8 +19,10 @@
 (다시 말하면 좋은 카페를 찾아내는 것은 성지순례와 같다는 것이다.)
 #chara1 schoolGirl1_default.png move=-300
 미라이: 그렇군요... 아저씨는 여기 특제 귤 커피도 드셔보셨나요?
+#chara1 move=300
 그건... 아직 먹어본 적이 없는데.
 (귤 커피라니, 어떤 맛일지 도저히 상상이 가질 않는다...)
+#chara1 move=-300
 미라이: 꼭 한번 드셔보세요. 제 인생 최고의 커피였으니까요.
 그, 그정도라면... 다음에 마셔볼게.
 미라이: ...제 인생은 17년짜리 짧디 짧은 인생이지만요.
