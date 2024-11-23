@@ -2189,6 +2189,8 @@ class layoutObj(graphicObj):
          
 #긴 텍스트를 처리하기 위한 오브젝트.
 class longTextObj(layoutObj,localizable):
+
+
     @classmethod
     def _cutString(cls,font,size,str,textWidth):
         
@@ -2231,13 +2233,13 @@ class longTextObj(layoutObj,localizable):
         if size==None:
             size = Rs.getDefaultFont("default")["size"]
         self._alpha = alpha 
-        self._updateTextObj(pos,text,font,size,color,textWidth)
         self._text = text
         self._font=font
         self._color=color
         self._size = size
         self._textWidth = textWidth
         # cut string into string list, chopped with textWidth
+        self._updateTextObj(pos,text,font,size,color,textWidth)
         ##Test##
 
     def _update(self):
@@ -2246,59 +2248,70 @@ class longTextObj(layoutObj,localizable):
     def _updateTextObj(self,pos,text, font, size, color,textWidth):    
         stringParts = longTextObj._cutString(Rs.getFont(font),size,text,textWidth)
         if stringParts[-1]=="":
-            stringParts =stringParts[:-1]
+            stringParts.pop()
         ObjList = []
         for str in stringParts:
             t = textObj(str,font=font,size=size,color=color)
             t.alpha = self.alpha
             ObjList.append(t)
-        if type(pos) == tuple:
-            pos = RPoint(pos[0],pos[1])
+        if isinstance(pos, tuple):
+            pos = RPoint(*pos)
         super().__init__(pos=pos,childs=ObjList,spacing=size/4)
         self._clearGraphicCache()
 
     #현재 textWidth에 의해 나눠질 text 집합을 불러온다.
     def getStringList(self,text):
         return longTextObj._cutString(Rs.getFont(self.font),self.size,text,self.textWidth)
+    
     @property
     def size(self):
         return self._size
+
     @size.setter
-    def size(self,size):
-        self._size = size
-        self._updateTextObj(self.pos,self.text,self.font,self.size,self.color,self.textWidth)                    
+    def size(self, size):
+        if self._size != size:
+            self._size = size
+            self._updateTextObj(self.pos, self._text, self._font, size, self._color, self._textWidth)
 
     @property
     def color(self):
         return self._color
+
     @color.setter
-    def color(self,color):
-        self._color = color
-        self._updateTextObj(self.pos,self.text,self.font,self.size,self.color,self.textWidth)                    
+    def color(self, color):
+        if self._color != color:
+            self._color = color
+            self._updateTextObj(self.pos, self._text, self._font, self._size, color, self._textWidth)
+
     @property
     def font(self):
         return self._font
+
     @font.setter
-    def font(self,font):
-        self._font = font
-        self._updateTextObj(self.pos,self.text,self.font,self.size,self.color,self.textWidth)                    
+    def font(self, font):
+        if self._font != font:
+            self._font = font
+            self._updateTextObj(self.pos, self._text, self._font, self._size, self._color, self._textWidth)
+
     @property
     def textWidth(self):
         return self._textWidth
+
     @textWidth.setter
-    def textWidth(self,textWidth):
-        self._textWidth = textWidth
-        self._updateTextObj(self.pos,self.text,self.font,self.size,self.color,self.textWidth)                    
- 
+    def textWidth(self, textWidth):
+        if self._textWidth != textWidth:
+            self._textWidth = textWidth
+            self._updateTextObj(self.pos, self._text, self._font, self._size, self._color, textWidth)
+
     @property
     def text(self):
         return self._text
+
     @text.setter
-    def text(self,txt):
-        self._text = txt
-        self._updateTextObj(self.pos,self.text,self.font,self.size,self.color,self.textWidth)                    
-            
-        #text childs를 생성한다.
+    def text(self, text):
+        if self._text != text:
+            self._text = text
+            self._updateTextObj(self.pos, text, self._font, self._size, self._color, self._textWidth)
 
 
 class clickable:
