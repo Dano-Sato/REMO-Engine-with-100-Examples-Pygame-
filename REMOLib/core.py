@@ -119,6 +119,14 @@ class Rs:
         cls._screenBuffer = cls.screen.copy()
         cls.setWindowRes(res)
 
+    cursor = None
+    @classmethod
+    def initCursor(cls,cursor:graphicObj=None):
+        pygame.mouse.set_visible(False)
+        if cursor is None:
+            cursor = imageObj(Icons.CURSOR,scale=0.4)
+        cls.cursor = cursor
+
     screen_size = (1920,1080) # 게임을 구성하는 실제 스크린의 픽셀수
     screen = pygame.Surface.__new__(pygame.Surface)
     _screenCapture  = None
@@ -151,6 +159,8 @@ class Rs:
         ###Mouse Pos Transform 처리
         #윈도우 해상도에서 실제 게임내 픽셀로 마우스 위치를 옮겨오는 역할
         Rs.__mousePos = RPoint(pygame.mouse.get_pos()[0]*Rs._mouseTransformer[0],pygame.mouse.get_pos()[1]*Rs._mouseTransformer[1])
+        if Rs.cursor:
+            Rs.cursor.pos = Rs.__mousePos
 
         ###Mouse Click Event 처리
         state = pygame.mouse.get_pressed()
@@ -240,6 +250,9 @@ class Rs:
             animation["obj"].draw()
         for obj in Rs.__fadeAnimationPipeline:
             obj["Obj"].draw()
+        
+        if Rs.cursor and not Rs.isTransitioning():
+            Rs.cursor.draw()
 
     ##FullScreen 관련 함수
     @classmethod
