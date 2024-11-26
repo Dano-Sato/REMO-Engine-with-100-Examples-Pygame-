@@ -727,7 +727,7 @@ class SurfacePoolManager:
             # 한 프레임당 최대 생성 픽셀수 제한
             MAX_PIXELS_PER_FRAME = 1000000
             surface_pixels_created = 0
-            
+            time_start = time.time()            
             while surface_pixels_created < MAX_PIXELS_PER_FRAME:
                 action, data = self.result_queue.get_nowait()
                 if action == 'create':
@@ -736,6 +736,8 @@ class SurfacePoolManager:
                         surface = pygame.Surface(size, pygame.SRCALPHA, 32)
                         self.pools[size].append(surface)
                         surface_pixels_created += size[0] * size[1]
+                if time.time() - time_start > 1000/60:
+                    break
         except queue.Empty:
             pass
             
