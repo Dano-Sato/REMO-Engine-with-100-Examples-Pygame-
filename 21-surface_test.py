@@ -11,7 +11,7 @@ class Obj:
 
 class mainScene(Scene):
     def initOnce(self):
-        self.i = 10
+        self.i = 1
         self.size = (1000,1000)
         return
     def init(self):

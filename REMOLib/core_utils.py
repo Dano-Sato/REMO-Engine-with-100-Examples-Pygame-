@@ -724,19 +724,18 @@ class SurfacePoolManager:
     def process_main_thread(self):
         """메인 스레드에서 Surface 생성 처리"""
         try:
-            # 한 프레임당 최대 생성 개수 제한
-            MAX_SURFACES_PER_FRAME = 10
-            surfaces_created = 0
+            # 한 프레임당 최대 생성 픽셀수 제한
+            MAX_PIXELS_PER_FRAME = 1000000
+            surface_pixels_created = 0
             
-            while surfaces_created < MAX_SURFACES_PER_FRAME:
+            while surface_pixels_created < MAX_PIXELS_PER_FRAME:
                 action, data = self.result_queue.get_nowait()
                 if action == 'create':
                     size = data
                     if len(self.pools[size]) < self._get_optimal_pool_size(size):
                         surface = pygame.Surface(size, pygame.SRCALPHA, 32)
                         self.pools[size].append(surface)
-                        surfaces_created += 1
-                    
+                        surface_pixels_created += size[0] * size[1]
         except queue.Empty:
             pass
             
