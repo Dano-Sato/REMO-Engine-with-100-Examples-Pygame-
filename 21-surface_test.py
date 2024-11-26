@@ -11,7 +11,7 @@ class Obj:
 
 class mainScene(Scene):
     def initOnce(self):
-        self.i = 1
+        self.i = 10
         self.size = (1000,1000)
         return
     def init(self):
@@ -22,8 +22,10 @@ class mainScene(Scene):
             self.sfx = pygame.Surface(self.size,pygame.SRCALPHA,32).convert_alpha()            
         print("init time:",time.time()-start)
         for _ in range(self.i):
-            self.sfx.copy()
-        print("copy time:",time.time()-start)
+            import numpy as np
+            array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
+            self.sfx = pygame.surfarray.make_surface(array)
+        print("another init time:",time.time()-start)
 
         return
     def draw(self):

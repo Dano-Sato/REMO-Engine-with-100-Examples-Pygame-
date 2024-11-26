@@ -721,6 +721,10 @@ class SurfacePoolManager:
                     
             time.sleep(0.001)  # CPU 사용량 조절
 
+    @staticmethod
+    def make_surface(size):
+        return pygame.Surface(size, pygame.SRCALPHA, 32)
+
     def process_main_thread(self):
         """메인 스레드에서 Surface 생성 처리"""
         try:
@@ -733,7 +737,7 @@ class SurfacePoolManager:
                 if action == 'create':
                     size = data
                     if len(self.pools[size]) < self._get_optimal_pool_size(size):
-                        surface = pygame.Surface(size, pygame.SRCALPHA, 32)
+                        surface = self.make_surface(size)
                         self.pools[size].append(surface)
                         surface_pixels_created += size[0] * size[1]
                 if time.time() - time_start > 1000/60:
@@ -754,7 +758,7 @@ class SurfacePoolManager:
         if size in self.pools and self.pools[size]:
             return self.pools[size].pop()
             
-        return pygame.Surface(size, pygame.SRCALPHA, 32)
+        return self.make_surface(size)
 
     def return_surface(self, surface):
         """Surface 반환"""
