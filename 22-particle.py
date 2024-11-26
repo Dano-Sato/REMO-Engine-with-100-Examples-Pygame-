@@ -96,7 +96,12 @@ class ParticleSystem(graphicObj):
         for _ in range(count):
             velocity = RPoint(
                 random.uniform(*kwargs.get('velocity_range', ((-2, 2), (-2, 2)))[0]),
-                random.uniform(*kwargs.get('velocity_range', ((-2, 2), (-2, 2)))[1])
+                random.uniform(*kwargs.get('velocity_range', ((-2, 2), 
+                
+                
+                
+                
+                (-2, 2)))[1])
             )
             
             if 'color_range' in kwargs:

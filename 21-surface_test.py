@@ -22,8 +22,8 @@ class mainScene(Scene):
             self.sfx = pygame.Surface(self.size,pygame.SRCALPHA,32).convert_alpha()            
         print("init time:",time.time()-start)
         for _ in range(self.i):
-            self.sfx.fill((0,0,0,0))
-        print("fill time:",time.time()-start)
+            self.sfx.copy()
+        print("copy time:",time.time()-start)
 
         return
     def draw(self):
