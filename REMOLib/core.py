@@ -1463,16 +1463,20 @@ class graphicObj(interpolableObj):
         for depth in positive_depths:
             l = self.childs[depth]
             if depth==0 and self.isViewport(): ##뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
-                viewport = REMOGame._lastStartedWindow.surface_pool.get_surface((self.rect.w,self.rect.h))
-                gp = self.geometryPos
+                # 현재 geometry 기준으로 클리핑 영역 설정
+                old_clip = cache.get_clip()
+                clip_rect = pygame.Rect((self.geometryPos-bp).toTuple(), self.rect.size)
+                cache.set_clip(clip_rect)
+                
+                # 클리핑 영역과 겹치는 child들만 필터링
                 for c in l:
-                    ccache,cpos,_ = c._getCache()
-                    cache_boundary = pygame.Rect(cpos.x,cpos.y,ccache.get_rect().w,ccache.get_rect().h)
-
+                    ccache, cpos, _ = c._getCache()
+                    cache_boundary = pygame.Rect(cpos.x, cpos.y, ccache.get_rect().w, ccache.get_rect().h)
                     if cache_boundary.colliderect(self.geometry):
-                        viewport.blit(ccache,(cpos-gp).toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-
-                cache.blit(viewport,(gp-bp).toTuple())
+                        cache.blit(ccache, (cpos-bp).toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+                
+                # 클리핑 복원
+                cache.set_clip(old_clip)
             else:
                 for c in l:
                     ccache,cpos,_ = c._getCache()
