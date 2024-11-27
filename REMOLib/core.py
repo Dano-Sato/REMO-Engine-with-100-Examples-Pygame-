@@ -2567,7 +2567,7 @@ class textBubbleObj(longTextObj):
 
     ##대사 출력이 되고 있는지 확인한다.
     def isVisible(self):
-        return self.liveTimer.isRunning() if self.liveTimer else False
+        return not self.liveTimer.isOver() if self.liveTimer else False
 
     ##update 함수를 대체하는 함수.
     def updateText(self):
@@ -2612,10 +2612,12 @@ class textBubbleObj(longTextObj):
         생명 주기가 거의 끝난 말풍선의 투명도를 조정합니다.
         """
         if self.liveTimer and self.liveTimer.timeLeft() < 200:  # 200ms 이하일 때
+            before_alpha = self.alpha
             self.alpha = int(self.liveTimer.timeLeft() / 200 * 255)
             if self.bg:
                 self.bg.alpha = int(self.liveTimer.timeLeft() / 200 * 255)
-            self._update()  # 투명도 변경 후 추가적인 업데이트 처리
+            if before_alpha != self.alpha:
+                self._update()  # 투명도 변경 후 추가적인 업데이트 처리
 
     def _updateBackgroundPosition(self):
         """
