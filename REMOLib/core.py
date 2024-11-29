@@ -2583,28 +2583,49 @@ class textBubbleObj(longTextObj):
 
     def _updateFullTextDisplay(self):
         """
-        전체 텍스트를 한 글자씩 출력합니다.
-        텍스트가 모두 출력될 때까지 self.text를 업데이트합니다.
+        최적화된 텍스트 출력 함수
+        - 캐싱을 통한 성능 향상
+        - 단순화된 로직
+        - 멀티바이트 문자 지원
         """
-        i = len(self.text)
-        if i < len(self.fullSentence):
-            # 일정 밀리초마다 글자 추가
-            if self.liveTimer.timeElapsed() // self.speed > len(self.text):
-                while i < len(self.fullSentence) and self.fullSentence[i] != " ":
-                    i += 1
-                parsedText = self.fullSentence[:i]
-                l1 = self.getStringList(self.text)[:-1]
-                l2 = self.getStringList(parsedText)[:-1]
+        if len(self.text) >= len(self.fullSentence):
+            return
 
-                # 현재 줄의 텍스트 길이를 조정하여 한 글자씩 출력
-                if l1 and l2:  # l1과 l2가 모두 비어 있지 않을 때만 비교
-                    while len(l1[-1]) > len(l2[-1]):
-                        self.text = self.fullSentence[:len(self.text) + 1]
-                        l1 = self.getStringList(self.text)[:-1]
-                        if not l1 or not l2:  # 리스트가 비어 있을 경우 비교 중단
-                            break
+        target_length = self.liveTimer.timeElapsed() // self.speed
+        if target_length <= len(self.text):
+            return
 
-                self.text = self.fullSentence[:len(self.text) + 1]
+        # 다음 출력할 문자 위치 계산
+        next_pos = len(self.text)
+        
+        # 현재 줄의 길이를 체크하기 위한 캐시
+        current_line_cache = getattr(self, '_current_line_cache', '')
+        
+        # 한 번에 처리할 최대 문자 수 제한
+        chars_to_process = min(target_length - len(self.text), 5)
+        
+        for _ in range(chars_to_process):
+            if next_pos >= len(self.fullSentence):
+                break
+                
+            # 다음 문자 가져오기
+            next_char = self.fullSentence[next_pos]
+            
+            # 현재 줄에 추가
+            test_line = current_line_cache + next_char
+            
+            # 줄 바꿈 문자이거나 최대 너비를 초과하는 경우
+            if (next_char == '\n' or 
+                Rs.getFont(self.font).get_rect(test_line, size=self.size).w > self.textWidth):
+                current_line_cache = next_char if next_char != '\n' else ''
+            else:
+                current_line_cache = test_line
+                
+            next_pos += 1
+            
+        # 결과 업데이트
+        self.text = self.fullSentence[:next_pos]
+        self._current_line_cache = current_line_cache
 
 
     def _adjustTransparency(self):

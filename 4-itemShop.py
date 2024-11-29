@@ -47,7 +47,7 @@ class mainScene(Scene):
         self.testlayout = scrollLayout(pygame.Rect(20,80,220,500),isVertical=True,enableMouseWheel=True)
         self.testBg = rectObj(pygame.Rect(100,100,300,700),color=Cs.dark(Cs.grey))
         self.testDrag = rectObj(pygame.Rect(0,0,300,50),color=Cs.grey)
-        for i in range(20):
+        for i in range(60):
             testObj = textButton("Yeah "+str(i),rect=pygame.Rect(0,0,100,50),size=30)
             def func(i):
                 def _():
