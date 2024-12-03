@@ -61,8 +61,13 @@ class mainScene(Scene):
     def update(self):
         if Rs.userJustPressed(pygame.K_r):
             self.randomInit()
-        next_state = {}
+
         
+
+        next_state = {}
+
+
+
         # 다음 세대 계산
         for y in range(self.grid_size):
             for x in range(self.grid_size):
@@ -80,6 +85,11 @@ class mainScene(Scene):
             for x in range(self.grid_size):
                 if (x,y) in next_state:
                     self.setState(x,y,next_state[(x,y)])
+
+        if Rs.userIsLeftClicking():
+            x,y = self.grid.getMouseIndex()
+            if x != -1 and y != -1 and self.getState(x,y) == cellState.DEAD:
+                self.setState(x,y,cellState.ALIVE)
         return
 
     def draw(self):
