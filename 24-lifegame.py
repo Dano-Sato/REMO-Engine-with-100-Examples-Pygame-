@@ -17,17 +17,20 @@ class cellState(Enum):
 class mainScene(Scene):
     grid_size = 50
     
+    def randomInit(self,chance=0.5):
+        
+        for y in range(self.grid_size):
+            for x in range(self.grid_size):
+                r = random.random()
+                if r > chance:
+                    self.setState(x,y,cellState.ALIVE)
+                else:
+                    self.setState(x,y,cellState.DEAD)
     def initOnce(self):
         # 그리드 초기화
         self.grid = gridObj(RPoint(100,100), tileSize=(20,20), grid=(self.grid_size,self.grid_size))
-
+        self.randomInit()
         
-        # 초기 패턴 설정 (글라이더)
-        self.grid[2][1].state = cellState.ALIVE  # (1,2)
-        self.grid[3][2].state = cellState.ALIVE  # (2,3)
-        self.grid[1][3].state = cellState.ALIVE  # (3,1)
-        self.grid[2][3].state = cellState.ALIVE  # (3,2)
-        self.grid[3][3].state = cellState.ALIVE  # (3,3)
         return
     
     def getState(self,x,y):
@@ -56,6 +59,8 @@ class mainScene(Scene):
         return count
 
     def update(self):
+        if Rs.userJustPressed(pygame.K_r):
+            self.randomInit()
         next_state = {}
         
         # 다음 세대 계산
