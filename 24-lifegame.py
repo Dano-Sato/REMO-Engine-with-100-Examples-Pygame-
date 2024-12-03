@@ -18,6 +18,7 @@ class cellState(Enum):
 
 class mainScene(Scene):
     grid_size = 50
+    tile_size = 20
     
     def randomInit(self,chance=0.5):
         
@@ -30,7 +31,7 @@ class mainScene(Scene):
                     self.setState(x,y,cellState.DEAD)
     def initOnce(self):
         # 그리드 초기화
-        self.grid = gridObj(RPoint(100,100), tileSize=(20,20), grid=(self.grid_size,self.grid_size))
+        self.grid = gridObj(RPoint(50,50), tileSize=(self.tile_size,self.tile_size), grid=(self.grid_size,self.grid_size))
         self.randomInit()
         # 입력/출력 큐 생성
         self.input_queue = Queue()
@@ -80,8 +81,11 @@ class mainScene(Scene):
         return count
 
     @staticmethod
-    def calculation_loop(input_queue, output_queue):
+    def calculation_loop(input_queue:Queue, output_queue:Queue):
         while True:
+            if output_queue.qsize() > 5:
+                time.sleep(0.1)
+                continue
             current_grid = input_queue.get()
             grid_size = len(current_grid)
             cells_to_change = []
@@ -99,9 +103,9 @@ class mainScene(Scene):
                             cells_to_change.append((x, y))
             
             output_queue.put(cells_to_change)
-            time.sleep(0.1)
 
     def update(self):
+        
         try:
             cells_to_change = self.output_queue.get_nowait()
             for x, y in cells_to_change:
