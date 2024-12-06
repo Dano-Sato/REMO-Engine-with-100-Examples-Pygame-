@@ -17,6 +17,52 @@ class mainScene(Scene):
     key_colors = [Cs.red,Cs.green,Cs.blue,Cs.yellow,Cs.purple,Cs.cyan]
     maze_color = [Cs.orange,Cs.brown]
     @staticmethod
+    def escape_maze(grid):
+        n, m = len(grid), len(grid[0])
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        visited = [[[False] * (1 << 6) for _ in range(m)] for _ in range(n)]  # 최대 6개의 열쇠
+
+        # BFS 초기 상태
+        queue = deque([(0, 0, 0, 0)])  # (x, y, 이동 거리, 열쇠 상태)
+        visited[0][0][0] = True
+
+        while queue:
+            x, y, dist, keys = queue.popleft()
+
+            # 목표 지점 도달
+            if x == n - 1 and y == m - 1:
+                return dist
+
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+
+                if 0 <= nx < n and 0 <= ny < m:
+                    cell = grid[nx][ny]
+
+                    # 벽은 통과할 수 없음
+                    if cell == "1":
+                        continue
+
+                    # 열쇠 획득
+                    if "a" <= cell <= "f":
+                        new_keys = keys | (1 << (ord(cell) - ord("a")))  # 열쇠 상태 업데이트
+                    else:
+                        new_keys = keys
+
+                    # 문 통과
+                    if "A" <= cell <= "F":
+                        if not (keys & (1 << (ord(cell) - ord("A")))):  # 필요한 열쇠가 없으면 패스
+                            continue
+
+                    # 이미 방문한 상태라면 패스
+                    if not visited[nx][ny][new_keys]:
+                        visited[nx][ny][new_keys] = True
+                        queue.append((nx, ny, dist + 1, new_keys))
+
+        # 도달할 수 없는 경우
+        return -1
+
+    @staticmethod
     def generate_maze(n, m, num_keys=2):
         # 초기화: 모든 칸을 벽으로 채움
         maze = [["1" for _ in range(m)] for _ in range(n)]
@@ -25,44 +71,20 @@ class mainScene(Scene):
         directions = [(-2, 0), (2, 0), (0, -2), (0, 2)]
 
         def is_valid(nx, ny):
-            """미로 내부에서 유효한 위치인지 확인"""
             return 0 <= nx < n and 0 <= ny < m and maze[nx][ny] == "1"
 
         def carve_path(x, y):
-            """DFS 방식으로 길을 생성"""
-            maze[x][y] = "0"  # 현재 위치를 통로로 만듦
-            random.shuffle(directions)  # 랜덤한 방향으로 섞음
-
+            maze[x][y] = "0"
+            random.shuffle(directions)
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
-                midx, midy = x + dx // 2, y + dy // 2  # 중간 칸 계산
-
+                midx, midy = x + dx // 2, y + dy // 2
                 if is_valid(nx, ny):
-                    maze[midx][midy] = "0"  # 중간 칸을 통로로 설정
-                    carve_path(nx, ny)  # 다음 칸으로 이동
+                    maze[midx][midy] = "0"
+                    carve_path(nx, ny)
 
-        # 시작 지점에서 길 생성 시작
+        # 시작 지점에서 기본 미로 생성
         carve_path(0, 0)
-
-        # 열쇠와 문 배치
-        empty_cells = [(x, y) for x in range(n) for y in range(m) if maze[x][y] == "0"]
-        random.shuffle(empty_cells)  # 셀을 랜덤하게 섞음
-        
-        for i in range(num_keys):
-            # 열쇠와 문을 위한 두 개의 위치 선택
-            kx, ky = empty_cells.pop()
-            mx, my = empty_cells.pop()
-            
-            # 열쇠가 문보다 먼저 나오도록 보장
-            if (kx, ky) > (mx, my):
-                kx, ky, mx, my = mx, my, kx, ky
-            
-            maze[kx][ky] = chr(ord("a") + i)  # 열쇠 배치
-            maze[mx][my] = chr(ord("A") + i) # 문 배치
-
-        # 시작점과 끝점 설정
-        maze[0][0] = "0"
-        maze[n-1][m-1] = "0"
 
         return maze
 
