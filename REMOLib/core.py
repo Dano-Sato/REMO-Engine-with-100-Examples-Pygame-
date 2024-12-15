@@ -1372,14 +1372,25 @@ class graphicObj(interpolableObj):
     @property
     def boundary(self) -> pygame.Rect:
         if id(self) in Rs.graphicCache:
-            cache,pos,_ = Rs.graphicCache[id(self)]
-            return pygame.Rect(pos.x,pos.y,cache.get_rect().w,cache.get_rect().h)
+            cache, pos, _ = Rs.graphicCache[id(self)]
+            return pygame.Rect(pos.x, pos.y, cache.get_rect().w, cache.get_rect().h)
 
         r = self.geometry
-        ## 모든 차일드의 경계를 합친다.
-        for l in self.childs.values():
-            for c in l:
+        
+        # 각 depth별로 처리
+        for depth, children in self.childs.items():
+            # hidedDepth에 있는 차일드는 제외
+            if depth in self._hidedDepth:
+                continue
+                
+            # viewport가 True이고 depth가 0인 경우 제외
+            if depth == 0 and self.isViewport():
+                continue
+                
+            # 해당되는 차일드들의 boundary만 계산
+            for c in children:
                 r = r.union(c.boundary)
+                
         return r
     
     def getBoundary(self,depth:int=0):
