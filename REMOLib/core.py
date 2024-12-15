@@ -1447,17 +1447,12 @@ class graphicObj(interpolableObj):
         bp = RPoint(r.x,r.y) #position of boundary
         cache = REMOGame._lastStartedWindow.surface_pool.get_surface((r.w,r.h))
 
-        depth_excluded = list(set(self.childs.keys())-self._hidedDepth)
-        depth_excluded.sort()
+        depth_excluded = sorted(set(self.childs.keys()) - self._hidedDepth)
 
-        negative_depths = []
-        positive_depths = []
-        for d in depth_excluded:
-            if d<0:
-                negative_depths.append(d)
-            else:
-                positive_depths.append(d)
-            
+        split_point = next((i for i, d in enumerate(depth_excluded) if d >= 0), len(depth_excluded))
+        negative_depths = depth_excluded[:split_point]
+        positive_depths = depth_excluded[split_point:]
+                    
 
 
         ##depth가 음수인 차일드들을 먼저 그린다.

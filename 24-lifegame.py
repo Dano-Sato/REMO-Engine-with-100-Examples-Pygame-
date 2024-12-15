@@ -3,6 +3,9 @@ from multiprocessing import Process, Queue
 import time
 
 
+'''
+grid_size 100 이상을 도전하는 것이 현재 문제!
+'''
 
 
 
