@@ -1452,8 +1452,6 @@ class graphicObj(interpolableObj):
         split_point = next((i for i, d in enumerate(depth_excluded) if d >= 0), len(depth_excluded))
         negative_depths = depth_excluded[:split_point]
         positive_depths = depth_excluded[split_point:]
-                    
-
 
         ##depth가 음수인 차일드들을 먼저 그린다.
         for depth in negative_depths:
@@ -2273,13 +2271,14 @@ class longTextObj(layoutObj,localizable):
         if stringParts[-1]=="":
             stringParts.pop()
         ObjList = []
+        _alpha = self.alpha
         for str in stringParts:
             t = textObj(str,font=font,size=size,color=color)
-            t.alpha = self.alpha
             ObjList.append(t)
         if isinstance(pos, tuple):
             pos = RPoint(*pos)
         super().__init__(pos=pos,childs=ObjList,spacing=size/4)
+        self.alpha = _alpha
         self._clearGraphicCache()
 
     #현재 textWidth에 의해 나눠질 text 집합을 불러온다.
