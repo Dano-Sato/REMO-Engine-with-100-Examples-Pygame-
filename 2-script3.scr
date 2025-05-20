@@ -1,0 +1,75 @@
+#bg store.png
+#bgm night_detective.mp3 volume=0.5
+#color Cs.grey75
+(달빛이 희미하게 비치는 마을길. 가게 불빛은 대부분 꺼져 있고, 거리는 고요했다.)
+#color Cs.white
+(...이 시간에도 깨어 있는 사람은 나밖에 없는 것 같군.)
+#color Cs.grey75
+(주인공은 웃음을 흘리며 조용히 길을 걷는다.)
+(...이 길도 어릴 땐 꽤 무서웠는데…)
+#color Cs.white
+…지금 방금 무슨 소리가 들린 건가?
+(분명, 바로 저쪽 골목에서…?)
+#color Cs.grey75
+(...누군가 있다.)
+#bg back-street.png
+#color Cs.grey75
+(나는 조심스레 발소리를 죽이며, 어둠에 잠긴 뒷골목 쪽으로 발걸음을 옮겼다.)
+(...이 방향이었지… 저기, 사람…?)
+#bg defending-child.png
+(거기에는 울면서 주저앉아 있는 아이 하나와 괴한 여러명, 그리고 괴한으로부터 아이를 지키듯이 괴한과 대치하고 있는 여성 한명이 있었다.)
+(붉은색과 파란색이 교차된 외투 자락을 펄럭이며 서있는 그녀는 단순한 여성이 아님을 직감할 수 있었다.)
+#color Cs.white
+어린아이: 언니...
+???: 괜찮아. 여기는 언니한테 맡기고 빨리 도망가렴
+#color Cs.grey75
+(어린아이는 머뭇거리지만, 자신이 있어봤자 방해만 된다는 것을 깨달은 듯 울면서 뛰어간다)
+#bg back-street.png
+#color Cs.grey75
+(정확한 상황은 모르겠지만, 아마도 저 어린아이를 구하기 위해 달려든 사람인 것 같다)
+#color Cs.white
+용감하네...
+#chara1 disgusted.png pos=(800,50)
+#sound testEffect.wav volume=0.2
+괴한A: 후후, 누군지도 모르는 아이를 구하기 위해 우릴 상대로 혼자 나서다니, 무모하군.
+#color Cs.white
+???: …물러나지 않으면, 후회하게 될 겁니다.
+#sound testEffect.wav
+#color Cs.grey75
+(그녀는 빠르게 몸을 돌리며 단검을 휘둘렀고, 괴한 하나가 비명을 지르며 뒤로 물러났다.)
+(하지만 그녀의 숨이 점점 거칠어진다. 왼팔에서는 피가 흐르고 있었다.)
+#chara1 nervous.png emotion=angry
+#color Cs.white
+???: 크읏…
+#sound testEffect.wav
+괴한B: 멍청한놈. 우리를 이길 수 있을 것 같아?
+괴한A: 그러게 왜 여자아이 하나 구하겠다고 끼어들은거야? 애는 도망갔으니 너가 대신해야겠다!
+???: (으윽. 아이를 구해줄 떄 입은 상처만 아니었으면 이놈들은 쉽게 이길 수 있을텐데....)
+#color Cs.grey75
+(...이건 생각보다 훨씬 위험한 상황이다.)
+#color Cs.white
+지금 바로 나서야 할까… 아니, 잠깐만 더 지켜보자.
+#color Cs.grey75
+(그녀는 누구지… 왜 이런 곳에서 싸우고 있는 거야?)
+#color Cs.grey75
+(괴한들이 마지막 남은 기세를 몰아붙이고 있었다.)
+#sound testEffect.wav
+#color Cs.white
+괴한A: 이제 끝이다, 아가씨.
+#sound testEffect.wav
+괴한B: 괜히 폼 잡다가 여기서 사라질 줄은 몰랐겠지?
+#chara1 seiza-nervous.png pos=(800,50) scale=0.8
+???: …!
+#color Cs.grey75
+(그녀는 다시 자세를 취하려 했지만, 다리 한쪽이 풀려 무릎을 꿇고 말았다.)
+(피가 꽤 흐른 모양이다. 숨결도 가쁘고, 몸이 흔들리고 있다.)
+#sound testEffect.wav
+#color Cs.white
+괴한C: 붙잡아. 움직이지 못하게 하고—
+#color Cs.grey60
+(그 순간, 나는 골목 입구에서 그 장면을 보았다.)
+(무릎을 꿇고 숨을 헐떡이는 그녀. 그녀를 둘러싼 괴한들의 칼날. 그리고 붉은색 외투 아래로 떨어지는 핏방울.)
+#color Cs.grey75
+(...지금 행동하지 않으면 그녀는…)
+(...아니, 어떻게 할 건가? 이건 내 일이 아닌데…)
+(그녀를 도와야 할까? 아니면 이대로 돌아서야 할까?)

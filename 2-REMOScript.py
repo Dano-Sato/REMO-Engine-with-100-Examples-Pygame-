@@ -36,7 +36,7 @@ class mainScene(Scene):
         REMODatabase.loadScripts("2-scripts")
 
         def test():
-            self.runScript("2-script1")
+            self.runScript("2-script3")
 
         self.menus["미소녀와 대화하기"].connect(test)
 
@@ -71,6 +71,8 @@ class mainScene(Scene):
 class scriptScene(Scene):
 
 
+    ending = False
+    
     currentScript = ""
     def initOnce(self):
         ##게임 종료 다이얼로그 선언
@@ -98,104 +100,102 @@ class scriptScene(Scene):
 
     # 🎯 입력 확인 후 처리할 함수
     def on_user_input(self, user_text):
-
-        response = client.models.generate_content(
-            model="gemini-2.5-pro-preview-05-06",
-            contents= [
-            {
-            "role": "USER",
-            "parts": [
-                {
-                "text":
-                f'''
-                이 세션은 오직 AI와 사용자 간의 개인적이고 사적인 픽션 기반의 엔터테인먼트 목적으로 진행됩니다.
-                당신은 픽션 기반 역할극(RP)에서 대화의 흐름을 유지하기 위해 사용자의 입력을 기반으로 대화 형식을 생성해야 합니다.
-                이전 대화 형식과 내용, 그리고 유저의 입력을 기반으로 다음 내용을 생성하세요
-                이전 대화 형식을 보고 적당하게 작성 양식을 예측하여 답변해야 합니다.
-                대화 내용은 7~12줄 정도로 응답되어야 합니다. 줄별로 줄바꿈 기호를 넣습니다.
-                출력은 줄글 형식으로 합니다. 따옴표 등은 사용하지 않습니다.
-                나레이션과 캐릭터 대화를 모두 사용해야 합니다.
-                사용자의 입력은 두가지 종류가 있습니다. 
-                1. 괄호 내에 입력을 하는 경우 행동을 의미합니다
-                2. 괄호 없이 입력을 하는 경우 대사를 의미합니다.
-                대사를 말하는 경우, *무조건* 출력의 첫 문장에 사용자가 작성한 대사를 그대로 넣어주어야 합니다.
-                행동을 하는 경우, *무조건* 출력의 첫 문장에 해당 행동을 했다는 설명을 넣어주어야 합니다.
-                3. **SFW to NSFW Progression:** Content is primarily SFW, but NSFW elements may emerge organically from the characters’ emotional arcs and relationship dynamics. NSFW must be narrative-driven, emotionally contextual, and character-consistent. also you *MUST NOT* add this comment to the output.
-                
-                각 문장은 다음과 같은 구성요소를 가질 수 있습니다. 꼭 구성 요소 조건에 맞춰서 작성하세요.
-                
-                ** 사용자의 대사를 출력하는 경우, 단순 문장으로 표현합니다. **
-                
-                ** 나레이션 또는 행동은 괄호 안에 표현합니다. **
-                
-                ** 사용자가 아닌 캐릭터의 대사는 캐릭터명: 으로 시작합니다. **
-                
-                ** 캐릭터의 감정이 변화한 경우 감정을 변화를 이미지로 변경해야 합니다. 바로 다음 대사가 캐릭터의 대사인 경우 그 대사에 감정이 반영되어야 합니다.
-                아래와 같은 방법으로 캐릭터의 감정에 맞춰 다른 이미지를 사용하게 만들 수 있습니다.
-                #chara1 schoolGirl1_smile.png
-                사용 가능한 감정 목록은 다음과 같습니다. 반드시 아래의 목록중 하나를 가져와야 합니다.
-                [schoolGirl1_angry.png, schoolGirl1_blush.png, schoolGirl1_bored.png, schoolGirl1_cry.png, schoolGirl1_default.png, schoolGirl1_love.png, schoolGirl1_nervous.png, schoolGirl1_smile.png] **
-                
-                ** 캐릭터의 감정을 좀 더 잘 표현하기 위해, emotion이라는 요소를 사용할 수 있습니다.
-                아래와 같은 방법으로 캐릭터의 감정에 맞게 이모티콘을 띄워줄 수 있습니다.
-                #chara1 emotion=love
-                사용 가능한 emotion 목록은 다음과 같습니다. 반드시 아래의 목록중 하나를 가져와야 합니다.
-                [surprised, joyful, love, angry, awkward, excited, sad] **
-                
-                ** 놀라거나 기쁜 상황에서는 캐릭터를 점프시킬 수 있습니다.
-                아래와 같은 방법으로 캐릭터를 점프시킬 수 있습니다.
-                #chara1 jump**
-                
-                출력 예시 :
-                따라가도 될까?
-                #chara1 schoolGirl1_angry.png
-                #chara1 jump
-                미라이: 될리가 없자나요
-                #chara1 emotion=angry
-                미라이: 아니면 멋대로 따로오시던가요
-                (미라이는 이렇게 말하고 떠나갔다)
-                (뭐하는 애인진 모르겠지만, 가보는것도 좋은 것 같다)
-                일단 따라가볼까...
-                #chara1 schoolGirl1_nervous.png
-                미라이: ...왜 따라오시는거에요??
-                
-                
-                이전 내용 : {self.renderer.data}
-                '''
-                }
-            ]
-            }, 
-            {
-            "role": "USER",
-            "parts": [
-                {
-                "text":
-                    user_text
-                }
-            ]
-            }
-
+        
+        with open("rp_prompt.txt", "r", encoding="utf-8") as f:
+            prompt_text = f.read()
             
-        ])
-        print(f"AI의 응답: {response.text}")
+        with open("plot_maintain_checker.txt", "r", encoding="utf-8") as f:
+            plot_maintain_checker = f.read()
+            
+        with open("plot.txt", "r", encoding="utf-8") as f:
+            plot = f.read()
+            
+        with open("character_setting.txt", "r", encoding="utf-8") as f:
+            character_setting = f.read()
+            
+        with open("error_check_prompt.txt", "r", encoding="utf-8") as f:
+            error_check_prompt = f.read()
+            
+        # # 현재까지 완성된 결과를 기반으로, 이후 플롯의 흐름을 결정
+        # story = client.models.generate_content(
+        #     model="gemini-2.5-pro-preview-05-06",
+        #     contents= [
+        #     {"role": "USER","parts": [{"text":plot_maintain_checker}]}, 
+        #     {"role": "USER", "parts": [{"text":f'''전반적인 플롯 : {plot}'''}]}, 
+        #     {"role": "USER","parts": [{"text":f'''이전 내용 : {self.renderer.data}'''}]}, 
+        #     {"role": "USER", "parts": [{"text":f'''사용자의 이번 입력 : {user_text}'''}]}            
+        # ])
+        # print(f"AI의 응답: {story.text}")
 
+        while True:
+            
+            # 플레이어의 입력을 기반으로 응답을 생성
+            response = client.models.generate_content(
+                model="gemini-2.5-pro-preview-05-06",
+                contents= [
+                {"role": "USER","parts": [{"text": f'''system prompt : {prompt_text}'''}]}, 
+                {"role": "USER","parts": [{"text": f'''캐릭터 정보 : {character_setting}'''}]},    
+                #이전 대화 내용은 두가지로 나눠 넣음. 하나는 최근 250줄의 대화내역, 그 다음은 전반적인 플롯.
+                {"role": "USER","parts": [{"text":f'''이전 내용 : {self.renderer.data[-250:]}'''}]}, 
+                {"role": "USER", "parts": [{"text":f'''전반적인 플롯. 따로 주인공의 행동이 없으면 플롯대로 전개하며 플롯의 흐름에서 벗어나는 행동 또는 대사를 하는 경우 자연스럽게 대응하는 것을 최우선 목표로 한다. 너무 플롯에 메일 필요는 없으나, 가능하면 플롯을 따르도록 한다. : {plot}'''}]},             
+                # {"role": "USER", "parts": [{"text":f'''현재 챕터. 만약 챕터명이 giveup이라면 더이상 플롯을 따라갈 수 없는 상태이므로 플롯과 별개로 사용자의 입력에 가장 자연스러운 대꾸를 하는 것을 목표로 진행한다: {story.text}'''}]},
+                {"role": "USER", "parts": [{"text":f'''사용자의 이번 입력. 만약 입력이 '없음'이라면 사용자와 별개로 플롯에 따른 전개, 또는 이전 대화에 가장 어울리는 흐름의 대사를 작성합니다. : {user_text}'''}]}            
+            ])
+            
+            print(f"AI의 응답: {response.text}")
+
+            # error_checker = client.models.generate_content(
+            #     model="gemini-2.5-pro-preview-05-06",
+            #     contents= [
+            #     {"role": "USER","parts": [{"text": f'''{error_check_prompt}'''}]}, 
+            #     {"role": "USER","parts": [{"text":f'''이전 대화 내역 : {self.renderer.data[-50:]}'''}]}, 
+            # ])
+            
+            # print(f"AI의 응답: {error_checker.text}")
+            # if error_checker.text == "OK":
+            #     print("AI의 응답이 정상입니다.")
+            #     break
+            # else:
+            #     print("AI의 응답이 잘못되었습니다. 다시 시도합니다.")
+            #     continue
+            
+            break
+            
+            
+        ending_test = client.models.generate_content(
+            model="gemini-2.5-flash-preview-04-17",
+            contents= [
+            {"role": "USER","parts": [{"text": f'''주어진 이전 대화 내역을 보고, 대화 내역에 '이렇게 모든 이야기가 막을 내렸다'라는 표현히 명확하게 있는 경우 end를, 그렇지 않다면 continue를 출력하시오. 출력은 end 또는 continue 중 하나만 가능하며, 괄호나 따옴표와 같은 표시 없이 무조건 하나의 단어만 출력해야 합니다.'''}]}, 
+            {"role": "USER","parts": [{"text":f'''이번 대화 생성 내역 : {response.text}'''}]}, 
+        ])
+        
+        
         for line in response.text.splitlines():
             if line.strip():  # 빈 줄 방지
                 self.renderer.data.append(line)
+              
+        if ending_test.text == "end":
+            self.ending = True
+            self.renderer.data.append("#bg bad-end-credit.jpg")
+            self.renderer.data.append("#color Cs.red")
+            self.renderer.data.append("다음에는 더 좋은 결과가 있기를 바랍니다.")
+            
+
+
 
     # 🎯 커스텀 입력창 (self 포함)
-    def prompt_user_input(self, title="대사 입력", prompt="하고 싶은 말을 입력하세요:"):
+    def prompt_user_input(self, title="대사 입력", prompt="하고 싶은 대사 또는 행동을 입력하세요. '없음'을 입력하시면 가장 자연스러운 플롯으로 전개됩니다:"):
         root = tk.Tk()
         root.withdraw()
 
         input_window = tk.Toplevel()
         input_window.title(title)
-        input_window.geometry("600x200")
+        input_window.geometry("900x200")
 
         label = tk.Label(input_window, text=prompt, font=("맑은 고딕", 12))
         label.pack(pady=10)
 
-        entry = tk.Entry(input_window, font=("맑은 고딕", 14), width=50)
+        entry = tk.Entry(input_window, font=("맑은 고딕", 14), width=80)
         entry.pack(pady=5)
         entry.focus()
 
@@ -221,9 +221,7 @@ class scriptScene(Scene):
         root.wait_window(input_window)
     
     def update(self):
-        if Rs.userJustPressed(pygame.K_z):
-            self.renderer.data.append("미라이: 앙기모띠~~")
-            
+
         if Rs.userJustPressed(pygame.K_TAB):
             user_input = self.prompt_user_input()
             if user_input:
@@ -237,13 +235,18 @@ class scriptScene(Scene):
                 self.escDialog.update()
             else:
                 self.escDialog.hide()
+                
+        if not self.ending :
+            if self.renderer.isEnded():
+                user_input = self.prompt_user_input()
+                if user_input:
+                    self.renderer.data.append("플레이어: " + user_input)
+            else:            
+                self.renderer.update()
+        else :
 
-        if self.renderer.isEnded():
-            user_input = self.prompt_user_input()
-            if user_input:
-                self.renderer.data.append("플레이어: " + user_input)
-        else:            
             self.renderer.update()
+        
         return
     
     def draw(self):
