@@ -2236,6 +2236,12 @@ class longTextObj(layoutObj,localizable):
         index_whitespaces+=[len(str)]
         if len(index_whitespaces)<=1:
             return [str]
+        
+        # 전체 텍스트가 textWidth보다 짧으면 그대로 반환
+        full_width = font.get_rect(str, size=size).w
+        if full_width <= textWidth:
+            return [str]
+        
         #0~index까지 string을 font로 렌더링했을 때의 width를 반환
         def getWidth(index):
             return font.get_rect(str[:index_whitespaces[index]],size=size).w
@@ -2253,8 +2259,15 @@ class longTextObj(layoutObj,localizable):
             
             if abs(textWidth-stringWidth) < abs(textWidth-getWidth(cutPoint)):
                 cutPoint = mid
+        
+        # cutPoint가 유효한지 확인
+        if cutPoint < 0 or cutPoint >= len(index_whitespaces):
+            return [str]
+            
         result = [str[:index_whitespaces[cutPoint]]]
-        result.extend(longTextObj._cutStringByWidth(font,size,str[index_whitespaces[cutPoint]+1:],textWidth))
+        remaining = str[index_whitespaces[cutPoint]+1:]
+        if remaining:  # 남은 텍스트가 있을 때만 재귀 호출
+            result.extend(longTextObj._cutStringByWidth(font,size,remaining,textWidth))
         return result
 
     def __init__(self,text="",pos=RPoint(0,0),*,font=None,size=None,color=Cs.white,textWidth=100,alpha=255):
