@@ -2214,8 +2214,24 @@ class longTextObj(layoutObj,localizable):
 
     @classmethod
     def _cutString(cls,font,size,str,textWidth):
+        # 먼저 \n을 기준으로 텍스트를 분할
+        lines = str.split('\n')
+        result = []
         
-        
+        for line in lines:
+            if not line:  # 빈 줄인 경우
+                result.append("")
+                continue
+                
+            # 각 줄에 대해 textWidth로 자르기
+            line_parts = cls._cutStringByWidth(font, size, line, textWidth)
+            result.extend(line_parts)
+
+        return result
+    
+    @classmethod
+    def _cutStringByWidth(cls, font, size, str, textWidth):
+        """textWidth를 기준으로 텍스트를 자르는 내부 메서드"""
         index_whitespaces = [i for i,j in enumerate(str) if j==" "] # 띄어쓰기 위치를 모두 찾아낸다.
         index_whitespaces+=[len(str)]
         if len(index_whitespaces)<=1:
@@ -2238,7 +2254,7 @@ class longTextObj(layoutObj,localizable):
             if abs(textWidth-stringWidth) < abs(textWidth-getWidth(cutPoint)):
                 cutPoint = mid
         result = [str[:index_whitespaces[cutPoint]]]
-        result.extend(longTextObj._cutString(font,size,str[index_whitespaces[cutPoint]+1:],textWidth))
+        result.extend(longTextObj._cutStringByWidth(font,size,str[index_whitespaces[cutPoint]+1:],textWidth))
         return result
 
     def __init__(self,text="",pos=RPoint(0,0),*,font=None,size=None,color=Cs.white,textWidth=100,alpha=255):
