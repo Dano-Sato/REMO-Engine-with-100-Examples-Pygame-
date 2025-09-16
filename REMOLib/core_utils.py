@@ -2,11 +2,13 @@ import pygame,math,typing,random
 import numpy as np
 from abc import ABC
 import multiprocessing as mp
-from multiprocessing import Process, Queue
+from multiprocessing import Process
 import threading
 import time
 import queue
 from collections import defaultdict, Counter, deque
+from dataclasses import dataclass, field
+from enum import Enum, auto
 
 '''
 REMO Library의 기본 요소들을 정의하는 모듈입니다.
@@ -631,170 +633,235 @@ class interpolableObj:
 
 
 
+@dataclass
+class SurfacePoolConfig:
+    max_target_sizes: int = 100
+    request_threshold: int = 10
+    size_expire_time: float = 20.0
+    min_pool_size: int = 20
+    max_pool_size: int = 64
+    max_pixels_per_frame: int = 1_000_000
+    frame_budget: float = 1 / 60
+    maintenance_interval: float = 5.0
+
+
+@dataclass
+class _SurfaceStats:
+    request_count: int = 0
+    last_request: float = field(default_factory=time.monotonic)
+
+    def register_request(self, expire_time: float) -> int:
+        """요청 정보를 갱신하고 누적 요청 수를 반환합니다."""
+        now = time.monotonic()
+        if now - self.last_request > expire_time:
+            # 오랫동안 요청이 없었던 사이즈는 카운트를 초기화합니다.
+            self.request_count = 0
+        self.last_request = now
+        self.request_count += 1
+        return self.request_count
+
+
+class SurfacePoolCommand(Enum):
+    REQUEST = auto()
+    STOP = auto()
+    CREATE = auto()
+
+
 class SurfacePoolManager:
-    def __init__(self, initial_target_sizes=None):
-        self.target_sizes = set(initial_target_sizes or [(800, 600), (400, 300)])
-        self.pools = defaultdict(list)
-        self.size_requests = Counter()
-        self.last_request_time = {}
-        
-        # 멀티프로세싱 큐
-        self.task_queue = mp.Queue()
-        self.result_queue = mp.Queue()
-        
-        # 설정
-        self.MAX_TARGET_SIZES = 100
-        self.REQUEST_THRESHOLD = 10
-        self.SIZE_EXPIRE_TIME = 20
-        self.MIN_POOL_SIZE = 20
-        self.MAX_POOL_SIZE = 64
-        
-        # 워커 프로세스 시작
-        self.running = True
-        self.worker = Process(target=self._pool_worker, args=(
-            self.task_queue, 
-            self.result_queue, 
-            self.MAX_TARGET_SIZES,
-            self.REQUEST_THRESHOLD,
-            self.SIZE_EXPIRE_TIME
-        ),daemon=True)
+    def __init__(self, initial_target_sizes=None, *, config: typing.Optional[SurfacePoolConfig] = None):
+        self.config = config or SurfacePoolConfig()
+        initial_targets = initial_target_sizes or [(800, 600), (400, 300)]
+        self._target_sizes = {self._normalize_size(size) for size in initial_targets}
+        self.pools: typing.DefaultDict[typing.Tuple[int, int], typing.List[pygame.Surface]] = defaultdict(list)
+        self._stats: typing.DefaultDict[typing.Tuple[int, int], _SurfaceStats] = defaultdict(_SurfaceStats)
+
+        self.task_queue: mp.Queue = mp.Queue()
+        self.result_queue: mp.Queue = mp.Queue()
+
+        self.worker = Process(
+            target=self._pool_worker,
+            args=(
+                self.task_queue,
+                self.result_queue,
+                self.config,
+                self._target_sizes.copy(),
+            ),
+            daemon=True,
+        )
         self.worker.start()
-        
-        # 메인 스레드에서 결과 처리를 위한 타이머
+
         self.process_timer = pygame.time.Clock()
-        
+        self._running = True
+
     @staticmethod
-    def _pool_worker(task_queue, result_queue, max_sizes, threshold, expire_time):
-        """별도 프로세스에서 실행되는 워커"""
-        size_requests = Counter()
-        last_request_time = {}
-        target_sizes = set()
-        
-        while True:
-            try:
-                task = task_queue.get_nowait()
-                if task[0] == 'request':
-                    size = task[1]
-                    size_requests[size] += 1
-                    last_request_time[size] = time.time()
-                    
-                    # 새로운 Surface가 필요한지 분석
-                    if (size in target_sizes or size_requests[size] >= threshold):
-                        result_queue.put(('create', size))
-                        
-                elif task[0] == 'stop':
+    def _normalize_size(size) -> typing.Tuple[int, int]:
+        if isinstance(size, pygame.Rect):
+            return size.width, size.height
+        if isinstance(size, (list, tuple)) and len(size) == 2:
+            return int(size[0]), int(size[1])
+        raise ValueError(f"Invalid surface size: {size}")
+
+    def request_surface(self, size):
+        """Surface 요청을 기록하고 워커 프로세스에 전달합니다."""
+        normalized = self._normalize_size(size)
+        if self._running:
+            stats = self._stats[normalized]
+            stats.register_request(self.config.size_expire_time)
+            self.task_queue.put((SurfacePoolCommand.REQUEST, normalized))
+        return normalized
+
+    def get_surface(self, size):
+        """Surface 가져오기"""
+        normalized = self.request_surface(size)
+        pool = self.pools.get(normalized)
+        if pool:
+            return pool.pop()
+        return self.make_surface(normalized)
+
+    def return_surface(self, surface):
+        """Surface 반환"""
+        size = self._normalize_size((surface.get_width(), surface.get_height()))
+        surface.fill((0, 0, 0, 0))
+
+        optimal_size = self._get_optimal_pool_size(size)
+        pool = self.pools[size]
+        if len(pool) < optimal_size:
+            pool.append(surface)
+        else:
+            del surface
+
+    def process_main_thread(self):
+        """메인 스레드에서 Surface 생성 처리"""
+        try:
+            surface_pixels_created = 0
+            time_start = time.perf_counter()
+            while surface_pixels_created < self.config.max_pixels_per_frame:
+                action, data = self.result_queue.get_nowait()
+                if action is SurfacePoolCommand.CREATE:
+                    size = data
+                    pool = self.pools[size]
+                    if len(pool) < self._get_optimal_pool_size(size):
+                        surface = self.make_surface(size)
+                        pool.append(surface)
+                        surface_pixels_created += size[0] * size[1]
+                if time.perf_counter() - time_start > self.config.frame_budget:
                     break
-                    
-            except queue.Empty:
-                pass
-                
-            # 주기적으로 target_sizes 업데이트
-            current_time = time.time()
-            if current_time % 5 < 0.1:
-                # 오래된 크기 제거
-                expired = {
-                    size for size in target_sizes
-                    if current_time - last_request_time.get(size, 0) > expire_time
-                }
-                target_sizes -= expired
-                
-                # 자주 요청된 크기 추가
-                frequent = {
-                    size for size, count in size_requests.items()
-                    if count >= threshold and size not in target_sizes
-                }
-                
-                if len(target_sizes) + len(frequent) > max_sizes:
-                    # 점수 기반 정렬
-                    scores = {
-                        size: (size_requests[size], last_request_time.get(size, 0))
-                        for size in target_sizes | frequent
-                    }
-                    sorted_sizes = sorted(
-                        scores.items(),
-                        key=lambda x: (x[1][0], x[1][1]),
-                        reverse=True
-                    )
-                    target_sizes = set(size for size, _ in sorted_sizes[:max_sizes])
-                else:
-                    target_sizes |= frequent
-                    
-            time.sleep(0.001)  # CPU 사용량 조절
+        except queue.Empty:
+            pass
+
+        self.process_timer.tick(60)  # 프레임 제한
+
+    def _get_optimal_pool_size(self, size: typing.Tuple[int, int]) -> int:
+        """요청 빈도 기반으로 최적의 Surface 풀 크기를 계산합니다."""
+        stats = self._stats.get(size)
+        if not stats:
+            return self.config.min_pool_size
+
+        if time.monotonic() - stats.last_request > self.config.size_expire_time:
+            return self.config.min_pool_size
+
+        dynamic_limit = int(stats.request_count * 1.2)
+        dynamic_limit = max(dynamic_limit, self.config.min_pool_size)
+        return min(dynamic_limit, self.config.max_pool_size)
 
     @staticmethod
     def make_surface(size):
         return pygame.Surface(size, pygame.SRCALPHA, 32)
 
-    def process_main_thread(self):
-        """메인 스레드에서 Surface 생성 처리"""
-        try:
-            # 한 프레임당 최대 생성 픽셀수 제한
-            MAX_PIXELS_PER_FRAME = 1000000
-            surface_pixels_created = 0
-            time_start = time.time()            
-            while surface_pixels_created < MAX_PIXELS_PER_FRAME:
-                action, data = self.result_queue.get_nowait()
-                if action == 'create':
-                    size = data
-                    if len(self.pools[size]) < self._get_optimal_pool_size(size):
-                        surface = self.make_surface(size)
-                        self.pools[size].append(surface)
-                        surface_pixels_created += size[0] * size[1]
-                if time.time() - time_start > 1000/60:
-                    break
-        except queue.Empty:
-            pass
-            
-        self.process_timer.tick(60)  # 프레임 제한
+    @staticmethod
+    def _maintain_target_sizes(
+        target_sizes: typing.Set[typing.Tuple[int, int]],
+        size_requests: Counter,
+        last_request_time: dict,
+        config: SurfacePoolConfig,
+        now: float,
+    ) -> None:
+        """자주 사용되는 Surface 크기를 추적하여 우선순위를 유지합니다."""
+        stale = [
+            size for size, last_time in list(last_request_time.items())
+            if now - last_time > config.size_expire_time
+        ]
+        for size in stale:
+            last_request_time.pop(size, None)
+            size_requests.pop(size, None)
+            target_sizes.discard(size)
 
-    def request_surface(self, size):
-        """Surface 요청"""
-        self.task_queue.put(('request', size))
-        
-    def get_surface(self, size):
-        """Surface 가져오기"""
-        self.request_surface(size)
-        
-        if size in self.pools and self.pools[size]:
-            return self.pools[size].pop()
-            
-        return self.make_surface(size)
+        frequent = {
+            size for size, count in size_requests.items()
+            if count >= config.request_threshold
+        }
 
-    def return_surface(self, surface):
-        """Surface 반환"""
-        size = (surface.get_width(), surface.get_height())
-        surface.fill((0,0,0,0))
-        
-        optimal_size = self._get_optimal_pool_size(size)
-        if len(self.pools[size]) < optimal_size:
-            self.pools[size].append(surface)
+        if len(target_sizes) + len(frequent) > config.max_target_sizes:
+            scored = sorted(
+                (
+                    (size, size_requests.get(size, 0), last_request_time.get(size, 0))
+                    for size in target_sizes | frequent
+                ),
+                key=lambda item: (item[1], item[2]),
+                reverse=True,
+            )
+            target_sizes.clear()
+            target_sizes.update(size for size, _, _ in scored[:config.max_target_sizes])
         else:
-            del surface
+            target_sizes.update(frequent)
 
-    def _get_optimal_pool_size(self, size):
-        """최적의 풀 크기 계산"""
-        return max(min(
-            int(self.size_requests[size] * 1.2),
-            self.MAX_POOL_SIZE
-        ), self.MIN_POOL_SIZE)
+    @staticmethod
+    def _pool_worker(task_queue, result_queue, config: SurfacePoolConfig, initial_targets):
+        """별도 프로세스에서 실행되는 워커"""
+        size_requests: Counter = Counter()
+        last_request_time: dict = {}
+        target_sizes = set(initial_targets)
+        last_maintenance = time.monotonic()
+
+        while True:
+            try:
+                command, payload = task_queue.get(timeout=0.001)
+            except queue.Empty:
+                command, payload = None, None
+
+            if command is SurfacePoolCommand.STOP:
+                break
+            if command is SurfacePoolCommand.REQUEST:
+                size = payload
+                now = time.monotonic()
+                size_requests[size] += 1
+                last_request_time[size] = now
+
+                if size in target_sizes or size_requests[size] >= config.request_threshold:
+                    result_queue.put((SurfacePoolCommand.CREATE, size))
+
+            current_time = time.monotonic()
+            if current_time - last_maintenance >= config.maintenance_interval:
+                SurfacePoolManager._maintain_target_sizes(
+                    target_sizes,
+                    size_requests,
+                    last_request_time,
+                    config,
+                    current_time,
+                )
+                last_maintenance = current_time
+
+            time.sleep(0.001)  # CPU 사용량 조절
 
     def shutdown(self):
         """종료 처리"""
+        if not self._running:
+            return
+
+        self._running = False
         try:
-            # stop 신호 전송
-            self.task_queue.put(('stop', None))
-            
-            # 워커 프로세스 즉시 종료
+            self.task_queue.put((SurfacePoolCommand.STOP, None))
+        except Exception:
+            pass
+
+        self.worker.join(timeout=1.0)
+        if self.worker.is_alive():
             self.worker.terminate()
             self.worker.join()
-            
-            # 큐의 내부 스레드 정리
-            self.task_queue.cancel_join_thread()  # 내부 스레드 강제 종료
-            self.result_queue.cancel_join_thread()
-            
-            # 큐 정리
-            self.task_queue.close()
-            self.result_queue.close()
-            
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
+
+        for q in (self.task_queue, self.result_queue):
+            try:
+                q.cancel_join_thread()
+                q.close()
+            except Exception:
+                pass
