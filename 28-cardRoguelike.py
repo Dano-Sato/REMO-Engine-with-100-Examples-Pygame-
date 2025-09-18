@@ -136,8 +136,8 @@ class CardWidget(rectObj):
 
         self.cost_badge = rectObj(pygame.Rect(0, 0, 54, 54), radius=18, edge=3, color=self._badge_base)
         self.cost_badge.setParent(self, depth=1)
-        self.cost_badge.x = 12
-        self.cost_badge.y = 12
+        self.cost_badge.x = 0
+        self.cost_badge.y = 0
 
         self.cost_text = textObj(str(card.cost), size=26, color=Cs.white)
         self.cost_text.setParent(self.cost_badge, depth=1)
