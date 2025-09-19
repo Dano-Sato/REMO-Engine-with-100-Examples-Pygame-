@@ -15,6 +15,7 @@ class mainScene(Scene):
         )
 
         self.rollInfo = textObj("남은 굴림: 3", pos=(120, 170), size=32, color=Cs.white)
+        self.goldLabel = textObj("보유 골드: 0", pos=(120, 210), size=32, color=Cs.gold)
 
         self.dice_values = [1 for _ in range(5)]
         self.hold_flags = [False for _ in range(5)]
@@ -102,6 +103,9 @@ class mainScene(Scene):
         self.hasRolled = False
         self.playerTurn = True
         self.gameOver = False
+        self.gold = 0
+        self.bonusDamage = 0
+        self.used_categories = set()
 
         self.logLines = ["야추 주사위로 적과 싸우는 모험을 시작합니다!"]
         self.updateLog()
@@ -153,6 +157,9 @@ class mainScene(Scene):
             if not self.hasRolled:
                 self.addLog("먼저 주사위를 굴려 주세요!")
                 return
+            if name in self.used_categories:
+                self.addLog("이미 사용한 공격 패턴입니다.")
+                return
 
             score_func = dict(self.categories)[name]
             damage = score_func(self.dice_values)
@@ -179,6 +186,12 @@ class mainScene(Scene):
     def updatePotentialScores(self):
         category_dict = dict(self.categories)
         for name, button in self.category_buttons.items():
+            if name in self.used_categories:
+                button.text = f"{name}: 사용됨"
+                button.enabled = False
+                button.hideChilds(0)
+                button.color = Cs.dark(Cs.grey)
+                continue
             if self.hasRolled and self.playerTurn and not self.gameOver:
                 potential = category_dict[name](self.dice_values)
                 button.text = f"{name}: {potential} 대미지"
@@ -190,6 +203,9 @@ class mainScene(Scene):
                 button.hideChilds(0)
                 button.color = Cs.dark(Cs.grey)
 
+    def updateGoldLabel(self):
+        self.goldLabel.text = f"보유 골드: {self.gold}"
+
     def resetGame(self, initial=False):
         self.playerMaxHP = 100
         self.playerHP = self.playerMaxHP
@@ -200,6 +216,9 @@ class mainScene(Scene):
         self.hold_flags = [False for _ in range(5)]
         self.rolls_left = 3
         self.hasRolled = False
+        self.gold = 0
+        self.bonusDamage = 0
+        self.used_categories = set()
         if not initial:
             self.logLines = []
             self.addLog("새로운 모험이 시작되었습니다!")
@@ -208,6 +227,7 @@ class mainScene(Scene):
         self.updateRollInfo()
         self.updateDiceDisplay()
         self.updatePotentialScores()
+        self.updateGoldLabel()
         return
 
     def spawnEnemy(self):
@@ -237,11 +257,17 @@ class mainScene(Scene):
         button.enabled = False
         button.hideChilds(0)
         button.color = Cs.dark(Cs.grey)
+        self.used_categories.add(name)
         self.playerTurn = False
         self.rolls_left = 0
         self.hasRolled = False
         self.updateRollInfo()
         self.updatePotentialScores()
+
+        if self.bonusDamage > 0 and damage > 0:
+            damage += self.bonusDamage
+            self.addLog(f"추가 피해 {self.bonusDamage}가 적용되었습니다!")
+            self.bonusDamage = 0
 
         if damage <= 0:
             self.addLog(f"{name} 조합이 실패하여 피해를 주지 못했습니다...")
@@ -251,12 +277,19 @@ class mainScene(Scene):
             self.addLog(f"{name}으로(로) {damage} 피해!")
 
         if self.enemyHP <= 0:
-            self.addLog(f"{self.enemyName}을(를) 물리쳤습니다!")
-            self.stage += 1
-            self.spawnEnemy()
+            self.handleEnemyDefeated()
             return
 
         self.enemyTurn()
+
+    def handleEnemyDefeated(self):
+        self.addLog(f"{self.enemyName}을(를) 물리쳤습니다!")
+        reward = 30 + (self.stage - 1) * 10
+        self.gold += reward
+        self.updateGoldLabel()
+        self.addLog(f"전리품으로 {reward} 골드를 획득했습니다.")
+        self.stage += 1
+        Scenes.shopScene.open_shop(self)
 
     def rollDice(self):
         if self.gameOver:
@@ -341,6 +374,27 @@ class mainScene(Scene):
     def updateEnemyHPLabel(self):
         self.enemyHPLabel.text = f"적 HP: {self.enemyHP}/{self.enemyMaxHP}"
 
+    def healPlayer(self, amount):
+        if self.playerHP >= self.playerMaxHP:
+            return False
+        self.playerHP = min(self.playerMaxHP, self.playerHP + amount)
+        self.updatePlayerHPLabel()
+        return True
+
+    def increaseMaxHP(self, amount):
+        self.playerMaxHP += amount
+        self.playerHP += amount
+        self.updatePlayerHPLabel()
+        return True
+
+    def grantBonusDamage(self, amount):
+        self.bonusDamage += amount
+        return True
+
+    def startNextStage(self):
+        self.addLog("상점을 떠나 새로운 전투를 준비합니다.")
+        self.spawnEnemy()
+
     def updateLog(self):
         self.logPanel.text = "\n".join(self.logLines[-6:])
 
@@ -369,6 +423,7 @@ class mainScene(Scene):
         self.rollButton.draw()
         self.resetButton.draw()
         self.logPanel.draw()
+        self.goldLabel.draw()
         self.scorePanel.draw()
         self.scoreTitle.draw()
         self.stageLabel.draw()
@@ -379,8 +434,168 @@ class mainScene(Scene):
         return
 
 
+class shopScene(Scene):
+    def initOnce(self):
+        self.background = rectObj(pygame.Rect(0, 0, 1280, 720), color=Cs.darkslateblue)
+        self.title = textObj("여행 상점", pos=(80, 60), size=64, color=Cs.white)
+        self.subtitle = longTextObj(
+            "전투에서 얻은 골드로 장비를 강화하세요!",
+            pos=(80, 140),
+            size=28,
+            textWidth=520,
+            color=Cs.lightgrey,
+        )
+        self.goldLabel = textObj("보유 골드: 0", pos=(80, 200), size=36, color=Cs.gold)
+        self.stageLabel = textObj("다음 스테이지", pos=(80, 250), size=32, color=Cs.white)
+
+        self.items = [
+            {
+                "name": "회복 물약 (+30 HP)",
+                "cost": 40,
+                "description": "플레이어의 체력을 30 회복합니다.",
+                "effect": lambda main: main.healPlayer(30),
+            },
+            {
+                "name": "강화 갑옷 (최대 HP +10)",
+                "cost": 50,
+                "description": "최대 체력을 10 올리고 현재 체력도 함께 증가합니다.",
+                "effect": lambda main: main.increaseMaxHP(10),
+            },
+            {
+                "name": "힘의 주문 (다음 공격 +15)",
+                "cost": 45,
+                "description": "다음 번 공격에 15의 추가 피해를 부여합니다.",
+                "effect": lambda main: main.grantBonusDamage(15),
+            },
+        ]
+
+        self.item_buttons = []
+        for idx, _ in enumerate(self.items):
+            rect = pygame.Rect(80, 300 + idx * 100, 520, 80)
+            button = textButton("", rect, size=28, radius=24, color=Cs.dark(Cs.orange))
+            button.connect(self.makePurchaseHandler(idx))
+            self.item_buttons.append(button)
+
+        self.infoBox = longTextObj(
+            "각 장비는 한 번만 구매할 수 있습니다.",
+            pos=(700, 200),
+            size=26,
+            textWidth=460,
+            color=Cs.white,
+        )
+        self.messageBox = longTextObj("", pos=(700, 320), size=26, textWidth=460, color=Cs.white)
+        self.continueButton = textButton(
+            "다음 전투로",
+            pygame.Rect(700, 520, 360, 90),
+            size=36,
+            radius=28,
+            color=Cs.green,
+            textColor=Cs.black,
+        )
+        self.continueButton.connect(self.leaveShop)
+
+        self.purchased = set()
+        self.main_scene = None
+
+    def init(self):
+        return
+
+    def open_shop(self, main_scene):
+        self.main_scene = main_scene
+        self.purchased = set()
+        REMOGame.setCurrentScene(self)
+        self.messageBox.text = "적을 물리치고 잠시 쉬어갈 시간입니다."
+        self.updateGoldLabel()
+        self.updateStageLabel()
+        self.refreshButtons()
+
+    def makePurchaseHandler(self, index):
+        def handler():
+            if self.main_scene is None:
+                return
+            item = self.items[index]
+            if index in self.purchased:
+                self.messageBox.text = f"이미 구매한 장비입니다.\n{item['description']}"
+                return
+            if self.main_scene.gold < item["cost"]:
+                self.messageBox.text = f"골드가 부족합니다!\n{item['description']}"
+                return
+
+            success = item["effect"](self.main_scene)
+            if not success:
+                self.messageBox.text = f"지금은 효과가 없습니다.\n{item['description']}"
+                return
+
+            self.main_scene.gold -= item["cost"]
+            self.main_scene.updateGoldLabel()
+            self.updateGoldLabel()
+            self.purchased.add(index)
+            self.messageBox.text = f"{item['name']}을 구매했습니다!"
+            self.main_scene.addLog(f"상점에서 {item['name']}을 구매했습니다.")
+            self.refreshButtons()
+
+        return handler
+
+    def refreshButtons(self):
+        if self.main_scene is None:
+            return
+        for idx, button in enumerate(self.item_buttons):
+            item = self.items[idx]
+            status = ""
+            if idx in self.purchased:
+                status = " (구매 완료)"
+            elif self.main_scene.gold < item["cost"]:
+                status = " (골드 부족)"
+            button.text = f"{item['name']} - {item['cost']}G{status}"
+            can_buy = idx not in self.purchased and self.main_scene.gold >= item["cost"]
+            button.enabled = can_buy
+            if not can_buy:
+                button.color = Cs.dark(Cs.grey)
+                button.hideChilds(0)
+            else:
+                button.color = Cs.dark(Cs.orange)
+
+    def updateGoldLabel(self):
+        if self.main_scene is None:
+            self.goldLabel.text = "보유 골드: 0"
+        else:
+            self.goldLabel.text = f"보유 골드: {self.main_scene.gold}"
+
+    def updateStageLabel(self):
+        if self.main_scene is None:
+            self.stageLabel.text = "다음 스테이지"
+        else:
+            self.stageLabel.text = f"다음 스테이지: {self.main_scene.stage}"
+
+    def leaveShop(self):
+
+        Scenes.mainScene.startNextStage()
+        REMOGame.setCurrentScene(Scenes.mainScene, skipInit=True)
+
+    def update(self):
+        for button in self.item_buttons:
+            button.update()
+        self.continueButton.update()
+        return
+
+    def draw(self):
+        Rs.fillScreen(Cs.darkslateblue)
+        self.background.draw()
+        self.title.draw()
+        self.subtitle.draw()
+        self.goldLabel.draw()
+        self.stageLabel.draw()
+        for button in self.item_buttons:
+            button.draw()
+        self.infoBox.draw()
+        self.messageBox.draw()
+        self.continueButton.draw()
+        return
+
+
 class Scenes:
     mainScene = mainScene()
+    shopScene = shopScene()
 
 
 if __name__ == "__main__":
