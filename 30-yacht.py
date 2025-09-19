@@ -6,17 +6,15 @@ class mainScene(Scene):
     def initOnce(self):
         self.background = rectObj(pygame.Rect(0, 0, 1280, 720), color=Cs.darkslategray)
 
-        self.title = textObj("야추", pos=(120, 60), size=64, color=Cs.white)
+        self.title = textObj("야추 로그라이크", pos=(120, 60), size=64, color=Cs.white)
         self.subtitle = textObj(
-            "5개의 주사위를 굴려 최고의 조합을 완성하세요!",
+            "주사위 조합으로 피해를 주고 몬스터를 물리치세요!",
             pos=(120, 120),
             size=28,
             color=Cs.lightgrey,
         )
 
-        self.turnNumber = 1
-        self.turnLabel = textObj("라운드 1 / 12", pos=(120, 170), size=32, color=Cs.white)
-        self.rollInfo = textObj("남은 굴림: 3", pos=(120, 210), size=28, color=Cs.white)
+        self.rollInfo = textObj("남은 굴림: 3", pos=(120, 170), size=32, color=Cs.white)
 
         self.dice_values = [1 for _ in range(5)]
         self.hold_flags = [False for _ in range(5)]
@@ -24,25 +22,35 @@ class mainScene(Scene):
         self.dice_buttons = []
         base_x = 120
         for idx in range(5):
-            rect = pygame.Rect(base_x + idx * 140, 270, 120, 120)
+            rect = pygame.Rect(base_x + idx * 140, 240, 120, 120)
             button = textButton("1", rect, size=48, radius=24, color=Cs.dark(Cs.blue))
             button.textColor = Cs.white
             button.connect(lambda index=idx: self.toggleHold(index))
             self.dice_buttons.append(button)
 
         self.rollButton = textButton(
-            "주사위 굴리기", pygame.Rect(120, 420, 260, 70), size=32, radius=20, color=Cs.orange, textColor=Cs.black
+            "주사위 굴리기",
+            pygame.Rect(120, 390, 260, 70),
+            size=32,
+            radius=20,
+            color=Cs.orange,
+            textColor=Cs.black,
         )
         self.rollButton.connect(self.rollDice)
 
         self.resetButton = textButton(
-            "새 게임", pygame.Rect(400, 420, 180, 70), size=32, radius=20, color=Cs.mint, textColor=Cs.black
+            "새 모험",
+            pygame.Rect(400, 390, 180, 70),
+            size=32,
+            radius=20,
+            color=Cs.mint,
+            textColor=Cs.black,
         )
         self.resetButton.connect(self.resetGame)
 
-        self.statusLabel = longTextObj(
-            "주사위를 굴린 뒤 보류할 주사위를 선택하고, 원하는 카테고리에 점수를 기록하세요.",
-            pos=(120, 520),
+        self.logPanel = longTextObj(
+            "주사위를 굴려 공격 타이밍을 노리세요.",
+            pos=(120, 490),
             size=26,
             textWidth=520,
             color=Cs.white,
@@ -50,10 +58,13 @@ class mainScene(Scene):
 
         panel_rect = pygame.Rect(780, 60, 380, 600)
         self.scorePanel = rectObj(panel_rect, color=Cs.dark(Cs.grey), radius=24, alpha=220)
-        self.scoreTitle = textObj("점수표", pos=(panel_rect.x + 30, panel_rect.y + 20), size=40, color=Cs.white)
-        self.totalScore = 0
-        self.totalLabel = textObj(
-            "총점: 0", pos=(panel_rect.x + 30, panel_rect.bottom - 50), size=34, color=Cs.white
+        self.scoreTitle = textObj("공격 패턴", pos=(panel_rect.x + 30, panel_rect.y + 20), size=40, color=Cs.white)
+        self.stageLabel = textObj("스테이지 1", pos=(panel_rect.x + 30, panel_rect.y + 80), size=30, color=Cs.white)
+        self.playerHPLabel = textObj(
+            "플레이어 HP: 100/100", pos=(panel_rect.x + 30, panel_rect.y + 120), size=30, color=Cs.white
+        )
+        self.enemyHPLabel = textObj(
+            "적 HP: 0/0", pos=(panel_rect.x + 30, panel_rect.y + 160), size=30, color=Cs.white
         )
 
         self.categories = [
@@ -71,28 +82,31 @@ class mainScene(Scene):
             ("야추", self.score_yacht),
         ]
 
-        self.category_scores = {name: None for name, _ in self.categories}
         self.category_buttons = {}
+        pattern_top = panel_rect.y + 170
+        pattern_spacing = 36
+        pattern_height = 32
         for idx, (name, _) in enumerate(self.categories):
             rect = pygame.Rect(
                 panel_rect.x + 20,
-                panel_rect.y + 80 + idx * 42,
+                pattern_top + idx * pattern_spacing,
                 panel_rect.w - 40,
-                40,
+                pattern_height,
             )
-            button = textButton(f"{name}: -", rect, size=22, radius=14, color=Cs.dark(Cs.grey))
+            button = textButton(f"{name}: -", rect, size=20, radius=12, color=Cs.dark(Cs.grey))
             button.textColor = Cs.white
             button.connect(self.makeScoreHandler(name))
             self.category_buttons[name] = button
 
-        self.totalRounds = len(self.categories)
         self.rolls_left = 3
         self.hasRolled = False
+        self.playerTurn = True
         self.gameOver = False
 
-        self.updateDiceDisplay()
-        self.updateRollInfo()
-        self.updatePotentialScores()
+        self.logLines = ["야추 주사위로 적과 싸우는 모험을 시작합니다!"]
+        self.updateLog()
+
+        self.resetGame(initial=True)
         return
 
     def init(self):
@@ -132,54 +146,20 @@ class mainScene(Scene):
     def makeScoreHandler(self, name):
         def handler():
             if self.gameOver:
-                self.statusLabel.text = "게임이 종료되었습니다. 새 게임을 시작하세요."
+                self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
                 return
-            if self.category_scores[name] is not None:
+            if not self.playerTurn:
                 return
             if not self.hasRolled:
-                self.statusLabel.text = "먼저 주사위를 굴려 주세요!"
+                self.addLog("먼저 주사위를 굴려 주세요!")
                 return
 
             score_func = dict(self.categories)[name]
-            score = score_func(self.dice_values)
-            self.category_scores[name] = score
-            self.totalScore += score
-            button = self.category_buttons[name]
-            button.text = f"{name}: {score}"
-            button.enabled = False
-            button.hideChilds(0)
-            button.color = Cs.dark(Cs.mint)
-
-            self.statusLabel.text = f"{name}에 {score}점을 기록했습니다."
-            self.updateTotalLabel()
-            self.prepareNextRound()
+            damage = score_func(self.dice_values)
+            self.resolvePlayerAttack(name, damage)
             return
 
         return handler
-
-    def prepareNextRound(self):
-        finished = sum(1 for value in self.category_scores.values() if value is not None)
-        if finished >= self.totalRounds:
-            self.gameOver = True
-            self.hasRolled = False
-            self.rolls_left = 0
-            self.updateRollInfo()
-            self.statusLabel.text = f"모든 카테고리를 채웠습니다! 최종 점수: {self.totalScore}점"
-            return
-
-        self.turnNumber += 1
-        self.hold_flags = [False for _ in range(5)]
-        self.rolls_left = 3
-        self.hasRolled = False
-        self.updateTurnLabel()
-        self.updateRollInfo()
-        self.updateDiceDisplay()
-        self.updatePotentialScores()
-        self.statusLabel.text += " 다음 라운드를 시작하세요!"
-        return
-
-    def updateTurnLabel(self):
-        self.turnLabel.text = f"라운드 {self.turnNumber} / {self.totalRounds}"
 
     def updateRollInfo(self):
         self.rollInfo.text = f"남은 굴림: {self.rolls_left}"
@@ -187,9 +167,6 @@ class mainScene(Scene):
         self.rollButton.enabled = can_roll
         if not can_roll:
             self.rollButton.hideChilds(0)
-
-    def updateTotalLabel(self):
-        self.totalLabel.text = f"총점: {self.totalScore}"
 
     def updateDiceDisplay(self):
         for idx, button in enumerate(self.dice_buttons):
@@ -202,49 +179,93 @@ class mainScene(Scene):
     def updatePotentialScores(self):
         category_dict = dict(self.categories)
         for name, button in self.category_buttons.items():
-            score = self.category_scores[name]
-            if score is None:
-                if self.hasRolled:
-                    potential = category_dict[name](self.dice_values)
-                    button.text = f"{name}: {potential}"
-                else:
-                    button.text = f"{name}: -"
-                button.enabled = self.hasRolled and not self.gameOver
-                if not button.enabled:
-                    button.hideChilds(0)
-                if button.enabled:
-                    button.color = Cs.dark(Cs.tiffanyBlue)
-                else:
-                    button.color = Cs.dark(Cs.grey)
+            if self.hasRolled and self.playerTurn and not self.gameOver:
+                potential = category_dict[name](self.dice_values)
+                button.text = f"{name}: {potential} 대미지"
+                button.enabled = True
+                button.color = Cs.dark(Cs.tiffanyBlue)
             else:
-                button.text = f"{name}: {score}"
+                button.text = f"{name}: -"
                 button.enabled = False
                 button.hideChilds(0)
-                button.color = Cs.dark(Cs.mint)
+                button.color = Cs.dark(Cs.grey)
 
-    def resetGame(self):
-        self.turnNumber = 1
-        self.totalScore = 0
-        self.category_scores = {name: None for name, _ in self.categories}
-        self.hold_flags = [False for _ in range(5)]
+    def resetGame(self, initial=False):
+        self.playerMaxHP = 100
+        self.playerHP = self.playerMaxHP
+        self.stage = 1
+        self.playerTurn = True
+        self.gameOver = False
         self.dice_values = [1 for _ in range(5)]
+        self.hold_flags = [False for _ in range(5)]
         self.rolls_left = 3
         self.hasRolled = False
-        self.gameOver = False
-        self.statusLabel.text = "주사위를 굴린 뒤 보류할 주사위를 선택하고, 원하는 카테고리에 점수를 기록하세요."
-        self.updateTurnLabel()
+        if not initial:
+            self.logLines = []
+            self.addLog("새로운 모험이 시작되었습니다!")
+        self.spawnEnemy()
+        self.updatePlayerHPLabel()
         self.updateRollInfo()
-        self.updateTotalLabel()
         self.updateDiceDisplay()
         self.updatePotentialScores()
         return
 
+    def spawnEnemy(self):
+        base_hp = 40 + (self.stage - 1) * 15
+        self.enemyMaxHP = base_hp
+        self.enemyHP = base_hp
+        self.enemyName = f"심연의 주사위 {self.stage}단계"
+        self.stageLabel.text = f"스테이지 {self.stage}"
+        self.updateEnemyHPLabel()
+        self.addLog(f"{self.enemyName}이(가) 나타났다!")
+        self.preparePlayerTurn()
+
+    def preparePlayerTurn(self, reset_log=True):
+        self.playerTurn = True
+        self.rolls_left = 3
+        self.hasRolled = False
+        self.dice_values = [1 for _ in range(5)]
+        self.hold_flags = [False for _ in range(5)]
+        self.updateRollInfo()
+        self.updateDiceDisplay()
+        self.updatePotentialScores()
+        if reset_log:
+            self.addLog("주사위를 굴려 공격할 차례입니다!")
+
+    def resolvePlayerAttack(self, name, damage):
+        button = self.category_buttons[name]
+        button.enabled = False
+        button.hideChilds(0)
+        button.color = Cs.dark(Cs.grey)
+        self.playerTurn = False
+        self.rolls_left = 0
+        self.hasRolled = False
+        self.updateRollInfo()
+        self.updatePotentialScores()
+
+        if damage <= 0:
+            self.addLog(f"{name} 조합이 실패하여 피해를 주지 못했습니다...")
+        else:
+            self.enemyHP = max(0, self.enemyHP - damage)
+            self.updateEnemyHPLabel()
+            self.addLog(f"{name}으로(로) {damage} 피해!")
+
+        if self.enemyHP <= 0:
+            self.addLog(f"{self.enemyName}을(를) 물리쳤습니다!")
+            self.stage += 1
+            self.spawnEnemy()
+            return
+
+        self.enemyTurn()
+
     def rollDice(self):
         if self.gameOver:
-            self.statusLabel.text = "게임이 종료되었습니다. 새 게임을 시작하세요."
+            self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
             return
         if self.rolls_left <= 0:
-            self.statusLabel.text = "이번 라운드에서 더 이상 주사위를 굴릴 수 없습니다. 점수를 선택하세요."
+            self.addLog("이번 턴에는 더 이상 주사위를 굴릴 수 없습니다. 공격 패턴을 선택하세요.")
+            return
+        if not self.playerTurn:
             return
 
         for idx, hold in enumerate(self.hold_flags):
@@ -252,7 +273,7 @@ class mainScene(Scene):
                 self.dice_values[idx] = random.randint(1, 6)
         self.rolls_left -= 1
         self.hasRolled = True
-        self.statusLabel.text = "보류할 주사위를 고른 뒤 점수를 결정하세요."
+        self.addLog("보류할 주사위를 고른 뒤 공격 패턴을 선택하세요.")
         self.updateDiceDisplay()
         self.updateRollInfo()
         self.updatePotentialScores()
@@ -260,22 +281,79 @@ class mainScene(Scene):
 
     def toggleHold(self, index):
         if self.gameOver:
-            self.statusLabel.text = "게임이 종료되었습니다. 새 게임을 시작하세요."
+            self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
+            return
+        if not self.playerTurn:
             return
         if not self.hasRolled:
-            self.statusLabel.text = "주사위를 굴린 뒤에 보류할 수 있습니다."
+            self.addLog("주사위를 굴린 뒤에 보류할 수 있습니다.")
             return
 
         self.hold_flags[index] = not self.hold_flags[index]
         self.updateDiceDisplay()
         return
 
+    def enemyTurn(self):
+        if self.gameOver:
+            return
+
+        dice = [random.randint(1, 6) for _ in range(5)]
+        best_name, best_damage = self.evaluateEnemyAttack(dice)
+        damage_multiplier = 1 + (self.stage - 1) * 0.1
+        total_damage = int(best_damage * damage_multiplier)
+
+        if total_damage <= 0:
+            self.addLog(f"{self.enemyName}의 공격이 빗나갔습니다!")
+        else:
+            self.playerHP = max(0, self.playerHP - total_damage)
+            self.updatePlayerHPLabel()
+            self.addLog(
+                f"{self.enemyName}이(가) {best_name}으로(로) {total_damage} 피해를 가했습니다!"
+            )
+
+        if self.playerHP <= 0:
+            self.gameOver = True
+            self.playerTurn = False
+            self.addLog("당신은 쓰러졌습니다... 새 모험으로 재도전하세요.")
+            self.rollButton.enabled = False
+            self.rollButton.hideChilds(0)
+            for button in self.category_buttons.values():
+                button.enabled = False
+                button.hideChilds(0)
+                button.color = Cs.dark(Cs.grey)
+            return
+
+        self.preparePlayerTurn()
+
+    def evaluateEnemyAttack(self, dice):
+        category_dict = dict(self.categories)
+        results = []
+        for name, func in category_dict.items():
+            if callable(func):
+                results.append((name, func(dice)))
+        results.sort(key=lambda item: item[1], reverse=True)
+        best_name, best_damage = results[0]
+        return best_name, best_damage
+
+    def updatePlayerHPLabel(self):
+        self.playerHPLabel.text = f"플레이어 HP: {self.playerHP}/{self.playerMaxHP}"
+
+    def updateEnemyHPLabel(self):
+        self.enemyHPLabel.text = f"적 HP: {self.enemyHP}/{self.enemyMaxHP}"
+
+    def updateLog(self):
+        self.logPanel.text = "\n".join(self.logLines[-6:])
+
+    def addLog(self, text):
+        self.logLines.append(text)
+        self.updateLog()
+
     def update(self):
         self.rollButton.update()
         self.resetButton.update()
         for button in self.dice_buttons:
             button.update()
-        for name, button in self.category_buttons.items():
+        for button in self.category_buttons.values():
             if button.enabled:
                 button.update()
         return
@@ -285,18 +363,19 @@ class mainScene(Scene):
         self.background.draw()
         self.title.draw()
         self.subtitle.draw()
-        self.turnLabel.draw()
         self.rollInfo.draw()
         for button in self.dice_buttons:
             button.draw()
         self.rollButton.draw()
         self.resetButton.draw()
-        self.statusLabel.draw()
+        self.logPanel.draw()
         self.scorePanel.draw()
         self.scoreTitle.draw()
+        self.stageLabel.draw()
+        self.playerHPLabel.draw()
+        self.enemyHPLabel.draw()
         for button in self.category_buttons.values():
             button.draw()
-        self.totalLabel.draw()
         return
 
 
