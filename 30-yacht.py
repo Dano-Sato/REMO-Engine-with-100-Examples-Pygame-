@@ -1,9 +1,15 @@
+"""야추 규칙을 적용한 로그라이크 전투와 상점을 구현한 REMO 예제."""
+
+# REMO 엔진이 제공하는 UI 컴포넌트를 통해 주사위 굴림과 상점 시스템을 표현한다.
 from REMOLib import *
 import random
 
 
 class mainScene(Scene):
+    """플레이어와 적의 전투가 진행되는 주 전투 씬."""
+
     def initOnce(self):
+        """씬 최초 초기화 단계에서 UI와 상태 값을 구성한다."""
         self.background = rectObj(pygame.Rect(0, 0, 1280, 720), color=Cs.darkslategray)
 
         self.title = textObj("야추 로그라이크", pos=(120, 60), size=64, color=Cs.white)
@@ -68,6 +74,7 @@ class mainScene(Scene):
             "적 HP: 0/0", pos=(panel_rect.x + 30, panel_rect.y + 160), size=30, color=Cs.white
         )
 
+        # 야추 족보를 버튼으로 만들어 플레이어가 공격 패턴을 선택할 수 있도록 한다.
         self.categories = [
             ("에이스 (1)", lambda dice: self.score_numbers(dice, 1)),
             ("듀스 (2)", lambda dice: self.score_numbers(dice, 2)),
@@ -84,7 +91,7 @@ class mainScene(Scene):
         ]
 
         self.category_buttons = {}
-        pattern_top = panel_rect.y + 170
+        pattern_top = panel_rect.y + 210
         pattern_spacing = 36
         pattern_height = 32
         for idx, (name, _) in enumerate(self.categories):
@@ -114,25 +121,31 @@ class mainScene(Scene):
         return
 
     def init(self):
+        """일회성 초기화로 충분해 추가 작업이 필요 없다."""
         return
 
     def score_numbers(self, dice, target):
+        """특정 눈(target)에 해당하는 주사위를 모두 합산한다."""
         return sum(value for value in dice if value == target)
 
     def score_choice(self, dice):
+        """모든 주사위 눈의 합계를 계산한다."""
         return sum(dice)
 
     def score_four_of_a_kind(self, dice):
+        """같은 눈이 4개 이상이면 주사위 전체 합을 반환한다."""
         for value in set(dice):
             if dice.count(value) >= 4:
                 return sum(dice)
         return 0
 
     def score_full_house(self, dice):
+        """3개+2개 조합(풀 하우스)이면 합계를, 아니면 0을 반환한다."""
         counts = sorted([dice.count(value) for value in set(dice)])
         return sum(dice) if counts == [2, 3] else 0
 
     def score_small_straight(self, dice):
+        """4연속 스트레이트가 존재하면 고정 점수 15를 부여한다."""
         unique = sorted(set(dice))
         straights = [{1, 2, 3, 4}, {2, 3, 4, 5}, {3, 4, 5, 6}]
         for straight in straights:
@@ -141,13 +154,16 @@ class mainScene(Scene):
         return 0
 
     def score_large_straight(self, dice):
+        """5연속 스트레이트 여부를 검사하여 30점 또는 0점을 반환한다."""
         sorted_dice = sorted(dice)
         return 30 if sorted_dice == [1, 2, 3, 4, 5] or sorted_dice == [2, 3, 4, 5, 6] else 0
 
     def score_yacht(self, dice):
+        """모든 주사위 눈이 동일하면 야추로 50점을 준다."""
         return 50 if len(set(dice)) == 1 else 0
 
     def makeScoreHandler(self, name):
+        """공격 패턴 버튼 클릭 시 실행될 핸들러를 생성한다."""
         def handler():
             if self.gameOver:
                 self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
@@ -169,6 +185,7 @@ class mainScene(Scene):
         return handler
 
     def updateRollInfo(self):
+        """남은 굴림 횟수와 주사위 버튼 활성화를 갱신한다."""
         self.rollInfo.text = f"남은 굴림: {self.rolls_left}"
         can_roll = not self.gameOver and self.rolls_left > 0
         self.rollButton.enabled = can_roll
@@ -176,6 +193,7 @@ class mainScene(Scene):
             self.rollButton.hideChilds(0)
 
     def updateDiceDisplay(self):
+        """주사위 버튼에 눈과 홀드 상태 색상을 반영한다."""
         for idx, button in enumerate(self.dice_buttons):
             button.text = str(self.dice_values[idx])
             if self.hold_flags[idx]:
@@ -184,6 +202,7 @@ class mainScene(Scene):
                 button.color = Cs.dark(Cs.blue)
 
     def updatePotentialScores(self):
+        """현재 주사위 조합으로 예상되는 피해량을 미리 보여준다."""
         category_dict = dict(self.categories)
         for name, button in self.category_buttons.items():
             if name in self.used_categories:
@@ -204,9 +223,11 @@ class mainScene(Scene):
                 button.color = Cs.dark(Cs.grey)
 
     def updateGoldLabel(self):
+        """메인 씬의 보유 골드 수치를 동기화한다."""
         self.goldLabel.text = f"보유 골드: {self.gold}"
 
     def resetGame(self, initial=False):
+        """새 모험 시작 시 플레이어/적 상태와 UI를 초기화한다."""
         self.playerMaxHP = 100
         self.playerHP = self.playerMaxHP
         self.stage = 1
@@ -231,6 +252,7 @@ class mainScene(Scene):
         return
 
     def spawnEnemy(self):
+        """스테이지에 맞는 적 정보를 설정하고 로그를 남긴다."""
         base_hp = 40 + (self.stage - 1) * 15
         self.enemyMaxHP = base_hp
         self.enemyHP = base_hp
@@ -241,6 +263,7 @@ class mainScene(Scene):
         self.preparePlayerTurn()
 
     def preparePlayerTurn(self, reset_log=True):
+        """플레이어 차례를 준비하며 주사위와 버튼 상태를 초기화한다."""
         self.playerTurn = True
         self.rolls_left = 3
         self.hasRolled = False
@@ -253,6 +276,7 @@ class mainScene(Scene):
             self.addLog("주사위를 굴려 공격할 차례입니다!")
 
     def resolvePlayerAttack(self, name, damage):
+        """공격 패턴 확정 후 피해 계산과 적 차례를 진행한다."""
         button = self.category_buttons[name]
         button.enabled = False
         button.hideChilds(0)
@@ -283,6 +307,7 @@ class mainScene(Scene):
         self.enemyTurn()
 
     def handleEnemyDefeated(self):
+        """적 처치 보상을 지급하고 상점으로 이동한다."""
         self.addLog(f"{self.enemyName}을(를) 물리쳤습니다!")
         reward = 30 + (self.stage - 1) * 10
         self.gold += reward
@@ -292,6 +317,7 @@ class mainScene(Scene):
         Scenes.shopScene.open_shop(self)
 
     def rollDice(self):
+        """남은 횟수 내에서 보류되지 않은 주사위를 다시 굴린다."""
         if self.gameOver:
             self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
             return
@@ -313,6 +339,7 @@ class mainScene(Scene):
         return
 
     def toggleHold(self, index):
+        """특정 주사위의 보류 여부를 토글한다."""
         if self.gameOver:
             self.addLog("게임이 종료되었습니다. 새 모험을 시작하세요.")
             return
@@ -327,6 +354,7 @@ class mainScene(Scene):
         return
 
     def enemyTurn(self):
+        """적의 주사위 굴림과 공격 처리를 수행한다."""
         if self.gameOver:
             return
 
@@ -359,6 +387,7 @@ class mainScene(Scene):
         self.preparePlayerTurn()
 
     def evaluateEnemyAttack(self, dice):
+        """적이 사용할 최적의 공격 패턴과 피해량을 계산한다."""
         category_dict = dict(self.categories)
         results = []
         for name, func in category_dict.items():
@@ -369,12 +398,15 @@ class mainScene(Scene):
         return best_name, best_damage
 
     def updatePlayerHPLabel(self):
+        """플레이어 HP 텍스트를 최신 상태로 갱신한다."""
         self.playerHPLabel.text = f"플레이어 HP: {self.playerHP}/{self.playerMaxHP}"
 
     def updateEnemyHPLabel(self):
+        """적 HP 텍스트를 최신 상태로 갱신한다."""
         self.enemyHPLabel.text = f"적 HP: {self.enemyHP}/{self.enemyMaxHP}"
 
     def healPlayer(self, amount):
+        """상점 회복 아이템 효과로 체력을 회복한다."""
         if self.playerHP >= self.playerMaxHP:
             return False
         self.playerHP = min(self.playerMaxHP, self.playerHP + amount)
@@ -382,16 +414,19 @@ class mainScene(Scene):
         return True
 
     def increaseMaxHP(self, amount):
+        """최대 체력을 증가시키고 현재 체력에도 반영한다."""
         self.playerMaxHP += amount
         self.playerHP += amount
         self.updatePlayerHPLabel()
         return True
 
     def grantBonusDamage(self, amount):
+        """다음 플레이어 공격에 추가 피해를 적용하도록 설정한다."""
         self.bonusDamage += amount
         return True
 
     def resetCategoryUsage(self):
+        """사용한 공격 패턴을 초기화해 다시 사용할 수 있게 한다."""
         if not self.used_categories:
             return False
 
@@ -405,17 +440,21 @@ class mainScene(Scene):
         return True
 
     def startNextStage(self):
+        """상점 종료 후 다음 전투를 준비한다."""
         self.addLog("상점을 떠나 새로운 전투를 준비합니다.")
         self.spawnEnemy()
 
     def updateLog(self):
+        """최근 로그 메시지 6개만 패널에 표시한다."""
         self.logPanel.text = "\n".join(self.logLines[-6:])
 
     def addLog(self, text):
+        """새 로그를 저장하고 패널을 갱신한다."""
         self.logLines.append(text)
         self.updateLog()
 
     def update(self):
+        """프레임마다 전투 씬의 UI 버튼 상호작용을 갱신한다."""
         self.rollButton.update()
         self.resetButton.update()
         for button in self.dice_buttons:
@@ -426,6 +465,7 @@ class mainScene(Scene):
         return
 
     def draw(self):
+        """전투 씬의 모든 UI 요소를 화면에 그린다."""
         Rs.fillScreen(Cs.darkslategray)
         self.background.draw()
         self.title.draw()
@@ -448,7 +488,10 @@ class mainScene(Scene):
 
 
 class shopScene(Scene):
+    """전투 사이에서 골드를 소비해 능력을 강화하는 상점 씬."""
+
     def initOnce(self):
+        """상점 UI 구성 요소와 판매 아이템을 초기화한다."""
         self.background = rectObj(pygame.Rect(0, 0, 1280, 720), color=Cs.darkslateblue)
         self.title = textObj("여행 상점", pos=(80, 60), size=64, color=Cs.white)
         self.subtitle = longTextObj(
@@ -489,6 +532,7 @@ class shopScene(Scene):
         ]
 
         self.item_buttons = []
+        # 각 아이템을 선택할 수 있는 버튼을 생성하고 구매 핸들러를 연결한다.
         for idx, _ in enumerate(self.items):
             rect = pygame.Rect(80, 300 + idx * 100, 520, 80)
             button = textButton(self.items[idx]["name"], rect, size=28, radius=24, color=Cs.dark(Cs.orange))
@@ -517,9 +561,11 @@ class shopScene(Scene):
         self.main_scene = None
 
     def init(self):
+        """일회성 초기화로 충분해 추가 작업이 필요 없다."""
         return
 
     def open_shop(self, main_scene):
+        """메인 씬에서 호출되어 상점을 연다."""
         self.main_scene = main_scene
         self.purchased = set()
         REMOGame.setCurrentScene(self)
@@ -529,11 +575,13 @@ class shopScene(Scene):
         self.refreshButtons()
 
     def makePurchaseHandler(self, index):
+        """아이템 버튼 클릭 시 실행할 구매 로직을 생성한다."""
         def handler():
             if self.main_scene is None:
                 return
             item = self.items[index]
             if index in self.purchased:
+                # 이미 구매한 아이템이면 안내만 보여주고 종료한다.
                 self.messageBox.text = f"이미 구매한 장비입니다.\n{item['description']}"
                 return
             if self.main_scene.gold < item["cost"]:
@@ -556,6 +604,7 @@ class shopScene(Scene):
         return handler
 
     def refreshButtons(self):
+        """구매 여부와 보유 골드에 따라 버튼 상태를 갱신한다."""
         if self.main_scene is None:
             return
         for idx, button in enumerate(self.item_buttons):
@@ -575,29 +624,34 @@ class shopScene(Scene):
                 button.color = Cs.dark(Cs.orange)
 
     def updateGoldLabel(self):
+        """메인 씬의 보유 골드 수치를 동기화한다."""
         if self.main_scene is None:
             self.goldLabel.text = "보유 골드: 0"
         else:
             self.goldLabel.text = f"보유 골드: {self.main_scene.gold}"
 
     def updateStageLabel(self):
+        """다음 스테이지 번호를 안내한다."""
         if self.main_scene is None:
             self.stageLabel.text = "다음 스테이지"
         else:
             self.stageLabel.text = f"다음 스테이지: {self.main_scene.stage}"
 
     def leaveShop(self):
+        """상점을 닫고 메인 전투 씬으로 복귀한다."""
 
         Scenes.mainScene.startNextStage()
         REMOGame.setCurrentScene(Scenes.mainScene, skipInit=True)
 
     def update(self):
+        """상점 UI 버튼 상호작용을 처리한다."""
         for button in self.item_buttons:
             button.update()
         self.continueButton.update()
         return
 
     def draw(self):
+        """상점 화면 요소를 모두 렌더링한다."""
         Rs.fillScreen(Cs.darkslateblue)
         self.background.draw()
         self.title.draw()
