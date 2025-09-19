@@ -391,6 +391,19 @@ class mainScene(Scene):
         self.bonusDamage += amount
         return True
 
+    def resetCategoryUsage(self):
+        if not self.used_categories:
+            return False
+
+        self.used_categories.clear()
+        for name, button in self.category_buttons.items():
+            button.enabled = True
+            button.color = Cs.dark(Cs.grey)
+            button.text = f"{name}: -"
+        self.updatePotentialScores()
+        self.addLog("스크롤의 힘으로 공격 패턴이 초기화되었습니다!")
+        return True
+
     def startNextStage(self):
         self.addLog("상점을 떠나 새로운 전투를 준비합니다.")
         self.spawnEnemy()
@@ -466,6 +479,12 @@ class shopScene(Scene):
                 "cost": 45,
                 "description": "다음 번 공격에 15의 추가 피해를 부여합니다.",
                 "effect": lambda main: main.grantBonusDamage(15),
+            },
+            {
+                "name": "스크롤 초기화 (비활성화된 족보 초기화)",
+                "cost": 60,
+                "description": "사용한 공격 패턴을 모두 초기화하여 다시 사용할 수 있게 합니다.",
+                "effect": lambda main: main.resetCategoryUsage(),
             },
         ]
 
