@@ -208,13 +208,13 @@ class FarmScene(Scene):
         self.field_panel = rectObj(
             pygame.Rect(0, 0, 1320, 380), color=Cs.dark(Cs.darkolivegreen), edge=6, radius=32
         )
-        self.field_panel.centerx = 1920 // 2
+        self.field_panel.centerx = 1920 // 2 + 280
         self.field_panel.y = 150
 
         self.card_panel = rectObj(
             pygame.Rect(0, 0, 1320, 280), color=Cs.dark(Cs.slategray), edge=6, radius=30
         )
-        self.card_panel.centerx = 1920 // 2
+        self.card_panel.centerx = 1920 // 2 + 280
         self.card_panel.y = 720
 
         self.status_layout = layoutObj(pos=RPoint(120, 60), spacing=12, isVertical=True)
@@ -233,14 +233,6 @@ class FarmScene(Scene):
             label.setParent(self.status_layout)
         self.status_layout.adjustLayout()
 
-        self.tip_text = longTextObj(
-            "카드를 눌러 농장을 관리하세요!\n스페이스바를 누르거나 '다음 날' 버튼으로 하루를 보낼 수 있습니다.",
-            pos=RPoint(120, 260),
-            size=22,
-            color=Cs.white,
-            textWidth=480,
-        )
-
         self.field_layout = layoutObj(pos=RPoint(self.field_panel.rect.x + 80, self.field_panel.rect.y + 80), spacing=60, isVertical=False)
         self.fields: list[FieldTile] = []
         for i in range(4):
@@ -249,8 +241,8 @@ class FarmScene(Scene):
             self.fields.append(field)
         self.field_layout.adjustLayout()
 
-        self.log_box_bg = rectObj(pygame.Rect(0, 0, 520, 220), color=Cs.dark(Cs.black), edge=4, radius=24)
-        self.log_box_bg.pos = RPoint(120, 420)
+        self.log_box_bg = rectObj(pygame.Rect(0, 0, 520, 420), color=Cs.dark(Cs.black), edge=4, radius=24)
+        self.log_box_bg.pos = RPoint(40, 520)
         self.log_box = longTextObj("", pos=self.log_box_bg.pos + RPoint(24, 24), size=22, color=Cs.white, textWidth=472)
 
         self.card_layout = cardLayout(RPoint(self.card_panel.rect.x + 80, self.card_panel.rect.y + 40), spacing=40, maxWidth=1160, isVertical=False)
@@ -462,7 +454,6 @@ class FarmScene(Scene):
         self.field_panel.draw()
         self.card_panel.draw()
         self.status_layout.draw()
-        self.tip_text.draw()
         self.field_layout.draw()
         self.log_box_bg.draw()
         self.log_box.draw()
