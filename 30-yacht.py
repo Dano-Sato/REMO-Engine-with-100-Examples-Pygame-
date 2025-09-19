@@ -472,7 +472,7 @@ class shopScene(Scene):
         self.item_buttons = []
         for idx, _ in enumerate(self.items):
             rect = pygame.Rect(80, 300 + idx * 100, 520, 80)
-            button = textButton("", rect, size=28, radius=24, color=Cs.dark(Cs.orange))
+            button = textButton(self.items[idx]["name"], rect, size=28, radius=24, color=Cs.dark(Cs.orange))
             button.connect(self.makePurchaseHandler(idx))
             self.item_buttons.append(button)
 
