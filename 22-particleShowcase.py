@@ -40,9 +40,7 @@ class mainScene(Scene):
         self.smoke_emitter = ParticleEmitter(RPoint(0, 0), max_particles=260)
 
     def update(self):
-        now = time.time()
-        delta = now - self._last_time
-        self._last_time = now
+
 
         mouse_pos = Rs.mousePos()
 
@@ -77,9 +75,9 @@ class mainScene(Scene):
                 position_jitter=((-20.0, 20.0), (-10.0, 10.0)),
             )
 
-        self.trail_emitter.update(delta)
-        self.explosion_emitter.update(delta)
-        self.smoke_emitter.update(delta)
+        self.trail_emitter.update()
+        self.explosion_emitter.update()
+        self.smoke_emitter.update()
 
     def draw(self):
         Rs.fillScreen(Cs.black)
