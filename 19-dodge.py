@@ -1,6 +1,5 @@
-from REMOLib.core import *
+from REMOLib import *
 import random, pygame, math
-
 
 class DodgeScene(Scene):
     def initOnce(self):
@@ -11,7 +10,7 @@ class DodgeScene(Scene):
         self.speed = 6
 
         # 플레이어
-        self.player = rectObj(pygame.Rect(0, 0, 48, 48), color=Cs.tiffanyBlue)
+        self.player = rectObj(pygame.Rect(0, 0, 24, 24), color=Cs.tiffanyBlue)
         self.player.center = Rs.screenRect().center
 
         # 텍스트
@@ -25,6 +24,8 @@ class DodgeScene(Scene):
         self.help = textObj("WASD/화살표 이동", size=22, color=Cs.white)
         self.help.centerx = Rs.screenRect().centerx
         self.help.y = 20
+
+        self.particle = ParticleEmitter(RPoint(0,0),max_particles=240,defaults=particleDefaultPreset.magic_glitter())
 
     def init(self):
         return
@@ -157,6 +158,9 @@ class DodgeScene(Scene):
         self.txt_score.text = f"점수 {self.score}"
         self.txt_best.text = f"최고 {self.best}"
 
+        self.particle.emit(5,position=self.player.center)
+        self.particle.update()
+
     def draw(self):
         Rs.fillScreen(Cs.dark(Cs.indigo))
         self.txt_score.draw()
@@ -166,6 +170,7 @@ class DodgeScene(Scene):
         # 장애물/플레이어 그리기
         for e in self.enemies:
             e.draw()
+        self.particle.draw()
         self.player.draw()
 
         if self.gameover:

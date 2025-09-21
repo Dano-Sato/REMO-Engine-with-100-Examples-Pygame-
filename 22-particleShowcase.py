@@ -61,15 +61,16 @@ class mainScene(Scene):
     def draw(self):
         Rs.fillScreen(Cs.black)
 
+        self.smoke_emitter.draw()
+        self.explosion_emitter.draw()
+        self.trail_emitter.draw()
+
         self.info_panel.draw()
         self.title.draw()
         self.description.draw()
         for line in self.help_lines:
             line.draw()
 
-        self.smoke_emitter.draw()
-        self.explosion_emitter.draw()
-        self.trail_emitter.draw()
 
 
 class Scenes:
