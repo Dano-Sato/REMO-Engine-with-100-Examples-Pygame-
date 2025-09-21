@@ -43,6 +43,183 @@ class ParticleDefaults:
     position_jitter: Tuple[Tuple[float, float], Tuple[float, float]] = ((0.0, 0.0), (0.0, 0.0))
 
 
+class particleDefaultPreset:
+    """자주 쓰는 파티클 설정을 미리 정의한 프리셋 모음."""
+
+    @staticmethod
+    def light_smoke() -> ParticleDefaults:
+        """가벼운 연기가 위로 퍼지는 효과."""
+
+        return ParticleDefaults(
+            velocity_range=((-25.0, 25.0), (-80.0, -40.0)),
+            lifetime_range=(0.9, 1.6),
+            size_range=(6.0, 14.0),
+            color=(200, 200, 200),
+            color_range=((160, 210), (160, 210), (160, 210)),
+            alpha_range=(90, 160),
+            gravity=-10.0,
+            fade=True,
+            shrink=False,
+            position_jitter=((-6.0, 6.0), (-6.0, 6.0)),
+        )
+
+    @staticmethod
+    def heavy_smoke() -> ParticleDefaults:
+        """큰 화염이나 폭발 뒤에 남는 짙은 연기."""
+
+        return ParticleDefaults(
+            velocity_range=((-20.0, 20.0), (-60.0, -20.0)),
+            lifetime_range=(1.2, 2.0),
+            size_range=(18.0, 32.0),
+            color=(90, 90, 90),
+            color_range=((60, 120), (60, 120), (60, 120)),
+            alpha_range=(110, 180),
+            gravity=-15.0,
+            fade=True,
+            shrink=False,
+            position_jitter=((-12.0, 12.0), (-12.0, 12.0)),
+        )
+
+    @staticmethod
+    def chimney_smoke() -> ParticleDefaults:
+        """굴뚝이나 화로에서 부드럽게 피어오르는 연기."""
+
+        return ParticleDefaults(
+            velocity_range=((-10.0, 10.0), (-40.0, -15.0)),
+            lifetime_range=(1.4, 2.4),
+            size_range=(8.0, 20.0),
+            color=(210, 200, 180),
+            color_range=((180, 220), (170, 210), (160, 200)),
+            alpha_range=(100, 150),
+            gravity=-8.0,
+            fade=True,
+            shrink=False,
+            position_jitter=((-4.0, 4.0), (-4.0, 4.0)),
+        )
+
+    @staticmethod
+    def sparks() -> ParticleDefaults:
+        """용접 불꽃이나 금속 마찰에서 튀는 스파크."""
+
+        return ParticleDefaults(
+            speed_range=(260.0, 360.0),
+            direction_range=(-40.0, 40.0),
+            lifetime_range=(0.2, 0.45),
+            size_range=(2.0, 4.0),
+            color=(255, 220, 120),
+            color_range=((240, 255), (200, 230), (90, 120)),
+            alpha_range=(200, 255),
+            gravity=380.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-2.0, 2.0), (-2.0, 2.0)),
+        )
+
+    @staticmethod
+    def explosion_fireball() -> ParticleDefaults:
+        """폭발 중심의 불덩이와 섬광."""
+
+        return ParticleDefaults(
+            speed_range=(200.0, 340.0),
+            direction_range=(0.0, 360.0),
+            lifetime_range=(0.35, 0.8),
+            size_range=(10.0, 22.0),
+            color=(255, 170, 60),
+            color_range=((230, 255), (120, 200), (20, 80)),
+            alpha_range=(210, 255),
+            gravity=40.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-8.0, 8.0), (-8.0, 8.0)),
+        )
+
+    @staticmethod
+    def explosion_debris() -> ParticleDefaults:
+        """폭발 후 흩어지는 파편 연기."""
+
+        return ParticleDefaults(
+            speed_range=(160.0, 260.0),
+            direction_range=(0.0, 360.0),
+            lifetime_range=(0.8, 1.4),
+            size_range=(4.0, 10.0),
+            color=(140, 120, 90),
+            color_range=((90, 150), (70, 130), (50, 110)),
+            alpha_range=(140, 200),
+            gravity=220.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-6.0, 6.0), (-6.0, 6.0)),
+        )
+
+    @staticmethod
+    def embers() -> ParticleDefaults:
+        """모닥불 주변에서 천천히 떨어지는 잔불."""
+
+        return ParticleDefaults(
+            velocity_range=((-20.0, 20.0), (-40.0, -10.0)),
+            lifetime_range=(1.0, 1.8),
+            size_range=(3.0, 6.0),
+            color=(255, 180, 80),
+            color_range=((240, 255), (140, 200), (60, 120)),
+            alpha_range=(160, 220),
+            gravity=120.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-10.0, 10.0), (-4.0, 4.0)),
+        )
+
+    @staticmethod
+    def magic_glitter() -> ParticleDefaults:
+        """마법 효과나 버프에 어울리는 반짝임."""
+
+        return ParticleDefaults(
+            speed_range=(90.0, 160.0),
+            direction_range=(0.0, 360.0),
+            lifetime_range=(0.6, 1.0),
+            size_range=(3.0, 7.0),
+            color=(160, 220, 255),
+            color_range=((120, 200), (140, 240), (200, 255)),
+            alpha_range=(180, 255),
+            gravity=-30.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-14.0, 14.0), (-14.0, 14.0)),
+        )
+
+    @staticmethod
+    def snow_fall() -> ParticleDefaults:
+        """부드럽게 내리는 눈송이."""
+
+        return ParticleDefaults(
+            velocity_range=((-30.0, 30.0), (40.0, 70.0)),
+            lifetime_range=(2.5, 4.0),
+            size_range=(4.0, 8.0),
+            color=(255, 255, 255),
+            alpha_range=(180, 255),
+            gravity=20.0,
+            fade=True,
+            shrink=False,
+            position_jitter=((-20.0, 20.0), (-10.0, 10.0)),
+        )
+
+    @staticmethod
+    def ash_drift() -> ParticleDefaults:
+        """화재 현장에서 천천히 떨어지는 재."""
+
+        return ParticleDefaults(
+            velocity_range=((-10.0, 10.0), (10.0, 30.0)),
+            lifetime_range=(1.5, 2.5),
+            size_range=(2.0, 5.0),
+            color=(180, 170, 160),
+            color_range=((150, 200), (140, 190), (130, 180)),
+            alpha_range=(120, 180),
+            gravity=60.0,
+            fade=True,
+            shrink=True,
+            position_jitter=((-12.0, 12.0), (-6.0, 6.0)),
+        )
+
+
 class Particle(graphicObj):
     """단일 파티클 오브젝트.
 
