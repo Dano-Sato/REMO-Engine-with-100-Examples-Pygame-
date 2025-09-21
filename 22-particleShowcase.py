@@ -1,5 +1,4 @@
 from REMOLib import *
-from REMOLib.particle import particledefaultPreset
 from REMOLib.particles import ParticleEmitter
 
 import time
