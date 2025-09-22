@@ -47,7 +47,7 @@ environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
 
 
 import pygame,time,math,copy,pickle,random,pandas,heapq
-from .pygame_render import RenderEngine
+from .pygame_render import RenderEngine, PostProcessPipeline
 import sys,os
 try:
     import pygame.freetype as freetype
@@ -152,6 +152,7 @@ class Rs:
     defaultDraw = lambda:None # 기본 드로우 함수
 
     render_engine = None
+    postprocess: PostProcessPipeline | None = None
     @classmethod
     #internal update function
     def _update(cls):
@@ -289,6 +290,9 @@ class Rs:
 
     @classmethod
     def __updateWindow(cls):
+        if cls.postprocess:
+            cls.postprocess.release()
+            cls.postprocess = None
         if cls.render_engine:
             cls.render_engine.release_opengl_resources()
             cls.graphicCache.clear()
@@ -298,6 +302,7 @@ class Rs:
 
         cls.render_engine = RenderEngine(cls.getWindowRes()[0], cls.getWindowRes()[1], fullscreen=cls.isFullScreen(),resizable=Rs.windowFlag & pygame.RESIZABLE)
         cls.source_layer = cls.render_engine.make_layer(size=cls.screen_size)
+        cls.postprocess = PostProcessPipeline(cls.render_engine, cls.screen_size)
         cls.window = pygame.display.get_surface()
         pygame.display.set_caption(Rs.caption)
         if Rs.gameIcon:
@@ -1136,7 +1141,10 @@ class REMOGame:
         Rs._draw()
         interpolateManager._draw()
         Rs.defaultDraw()
-        Rs.render_engine.render(Rs.source_layer.texture,Rs.render_engine.screen,scale=Rs._scaler)
+        final_texture = Rs.source_layer.texture
+        if Rs.postprocess:
+            final_texture = Rs.postprocess.apply(final_texture)
+        Rs.render_engine.render(final_texture,Rs.render_engine.screen,scale=Rs._scaler)
 
         if REMOGame.__showBenchmark:
             Rs.drawBenchmark()
