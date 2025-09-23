@@ -2872,7 +2872,7 @@ class scrollLayout(layoutObj):
             s_pos = RPoint(scrollLayout.scrollbar_offset,self.rect.h+2*self.scrollBar.thickness)
         return s_pos
 
-    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=REMODefaults.spacing,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True,enableMouseWheel=False):
+    def __init__(self,rect=pygame.Rect(0,0,0,0),*,spacing=REMODefaults.spacing,pad=10,childs=[],isVertical=True,scrollColor = Cs.white,isViewport=True,enableMouseWheel=False,thickness=10):
         '''
         spacing: 차일드 사이의 간격\n
         isVertical: 수직 스크롤인지 수평 스크롤인지\n
@@ -2893,7 +2893,7 @@ class scrollLayout(layoutObj):
             s_length = self.rect.h
         else:
             s_length = self.rect.w
-        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor) ##스크롤바 오브젝트
+        self.scrollBar = sliderObj(pos=RPoint(0,0),length=s_length-2*scrollLayout.scrollbar_offset,isVertical=isVertical,color=scrollColor,thickness=thickness) ##스크롤바 오브젝트
 
         self.scrollBar.setParent(self,depth=1) ##스크롤바는 레이아웃의 뎁스 1 자식으로 설정됩니다.
         self.scrollBar.pos =self.getScrollbarPos()
