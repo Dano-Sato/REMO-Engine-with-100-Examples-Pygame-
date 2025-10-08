@@ -9,6 +9,7 @@ setup(
         'pandas',
         'pygame-ce',
         'moderngl',
+        'screeninfo>=0.8.0'
         # 'other-package>=1.0.0',  # 특정 버전 이상이 필요할 때
     ],
     author='Dano Sato',
@@ -20,5 +21,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: Windows 10',
     ],
-    python_requires='=3.10',  # 최소 파이썬 버전
+    python_requires='>=3.10',  # 최소 파이썬 버전
 )
