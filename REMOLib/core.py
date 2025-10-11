@@ -63,6 +63,7 @@ import typing
 from .visuals import *
 from .database_managers import *
 from .core_utils import *
+from .graphic_effects import GraphicEffectSystem, GraphicEffect
 
 
 class AnimationMode(Enum):
@@ -227,6 +228,7 @@ class Rs:
         from .motion import RMotion
         RMotion._motionUpdate() # 모션 업데이트
         interpolateManager._update() # 보간 업데이트
+        GraphicEffectSystem.update()
         cls.defaultUpdate() # 기본 업데이트
         cls._future_update()
 
@@ -1517,6 +1519,7 @@ class graphicObj(interpolableObj):
 
     ##객체 소멸시 캐시청소를 해야 한다.
     def __del__(self):
+        self.clear_effects()
         self._clearGraphicCache()
     ###
 
@@ -1555,6 +1558,31 @@ class graphicObj(interpolableObj):
         for c in reversed(self.childs[depth]):
             c.setParent(None)
 
+    def apply_effect(self, effect_cls, *args, **kwargs):
+        effect = effect_cls(self, *args, **kwargs)
+        return self.add_effect(effect)
+
+    def add_effect(self, effect: GraphicEffect) -> GraphicEffect:
+        if effect.target is not self:
+            raise ValueError("Effect target does not match this graphicObj")
+        self._effects.append(effect)
+        GraphicEffectSystem.add(effect)
+        return effect
+
+    def remove_effect(self, effect: GraphicEffect) -> None:
+        if effect in self._effects:
+            self._effects.remove(effect)
+            effect.deactivate()
+            GraphicEffectSystem.remove(effect)
+
+    def clear_effects(self) -> None:
+        for effect in list(self._effects):
+            self.remove_effect(effect)
+
+    @property
+    def effects(self) -> tuple[GraphicEffect, ...]:
+        return tuple(self._effects)
+
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
         self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h))
         self.graphic = self.graphic_n.copy()
@@ -1565,6 +1593,7 @@ class graphicObj(interpolableObj):
         self._depth = None #부모에 대한 나의 depth를 저장한다.
         self._alpha = 255
         self.__isViewport = False # 뷰포트인지 여부를 저장한다. 뷰포트일 경우 depth 0의 차일드는 rect 안쪽에 그려집니다.
+        self._effects: list[GraphicEffect] = []
         return
     
     def setAsViewport(self,to=True):
