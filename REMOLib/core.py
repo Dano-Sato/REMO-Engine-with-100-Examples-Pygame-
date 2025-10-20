@@ -782,40 +782,6 @@ class Rs:
     __spritePipeline = {}
     graphicCache ={}
     
-    def drawArrow(start, end,*,lcolor=Cs.white, tricolor=Cs.white,trirad=40, thickness=20,alpha=255):
-        '''
-        DEPRECATED\n
-        '''
-        if type(start)==RPoint:
-            start = start.toTuple()
-        if type(end)==RPoint:
-            end = end.toTuple()
-        key = ("ArrowObj",start,end,lcolor,tricolor,trirad,thickness,alpha)
-        if key in list(Rs.__graphicPipeline):
-            screen = Rs.__graphicPipeline[key]
-        else:
-            w,h = Rs.screen.get_size()
-            screen = pygame.Surface((w,h),pygame.SRCALPHA,32).convert_alpha()
-
-            if type(start)==RPoint:
-                start = start.toTuple()
-            if type(end)==RPoint:
-                end = end.toTuple()
-            rad = math.pi/180.0
-            pygame.draw.line(screen, lcolor, start, end, thickness)
-            rotation = (math.atan2(start[1] - end[1], end[0] - start[0])) + math.pi/2
-            pygame.draw.polygon(screen, tricolor, ((end[0] + trirad * math.sin(rotation),
-                                                end[1] + trirad * math.cos(rotation)),
-                                            (end[0] + trirad * math.sin(rotation - 120*rad),
-                                                end[1] + trirad * math.cos(rotation - 120*rad)),
-                                            (end[0] + trirad * math.sin(rotation + 120*rad),
-                                                end[1] + trirad * math.cos(rotation + 120*rad))))    
-
-            screen.set_alpha(alpha)
-            if len(Rs.__graphicPipeline)>1000:
-                Rs.__graphicPipeline={}
-            Rs.__graphicPipeline[key]=screen
-        Rs.screen.blit(screen,(0,0))
         
     def drawLine(color,point1,point2,*,width=1):
         '''
