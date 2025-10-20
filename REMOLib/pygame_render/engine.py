@@ -461,8 +461,9 @@ class RenderEngine:
         vao = self.ctx.simple_vertex_array(
             self.prog_prim, vbo, 'vert')
 
-        # Send color uniform
-        self.prog_prim['primColor'] = color
+        # Send color uniform - normalize color values to 0-1 range
+        normalized_color = (color[0] / 255.0, color[1] / 255.0, color[2] / 255.0, color[3] / 255.0)
+        self.prog_prim['primColor'] = normalized_color
 
         # Set layer as target
         layer.framebuffer.use()
