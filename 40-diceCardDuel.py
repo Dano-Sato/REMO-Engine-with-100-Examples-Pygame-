@@ -14,6 +14,7 @@ class CardData:
     description: str
     targets: int = 0
     card_type: str = "Utility"
+    allow_multi_select: bool = False
 
     def clone(self) -> "CardData":
         return replace(self)
@@ -33,6 +34,7 @@ CARD_LIBRARY: dict[str, CardData] = {
         description="선택한 주사위를 반전한다 (1↔6, 2↔5, 3↔4).",
         targets=1,
         card_type="조작",
+        allow_multi_select=True,
     ),
     "stasis": CardData(
         name="Stasis",
@@ -40,6 +42,7 @@ CARD_LIBRARY: dict[str, CardData] = {
         description="선택한 주사위를 다음 턴 시작까지 고정한다.",
         targets=1,
         card_type="조작",
+        allow_multi_select=True,
     ),
     "tinker": CardData(
         name="Tinker",
@@ -47,6 +50,15 @@ CARD_LIBRARY: dict[str, CardData] = {
         description="선택한 주사위의 눈을 1 올린다. (6은 그대로)",
         targets=1,
         card_type="강화",
+        allow_multi_select=True,
+    ),
+    "reroll": CardData(
+        name="Reroll",
+        effect="reroll",
+        description="선택한 주사위를 다시 굴립니다.",
+        targets=1,
+        card_type="조작",
+        allow_multi_select=True,
     ),
     "odd_attack": CardData(
         name="Odd Attack",
@@ -152,15 +164,27 @@ class HandCardWidget(rectObj):
 
 
 class PendingCard:
-    def __init__(self, card: CardData, required: int) -> None:
+    def __init__(self, card: CardData, required: int, allow_multi: bool) -> None:
         self.card = card
         self.required = required
         self.selected: list[int] = []
+        self.allow_multi_select = allow_multi
 
     def add_target(self, die_index: int) -> None:
-        self.selected.append(die_index)
+        if self.allow_multi_select:
+            if die_index in self.selected:
+                self.selected.remove(die_index)
+            else:
+                self.selected.append(die_index)
+        else:
+            self.selected.append(die_index)
 
     def is_complete(self) -> bool:
+        return len(self.selected) >= self.required
+
+    def has_minimum_selection(self) -> bool:
+        if self.required <= 0:
+            return bool(self.selected)
         return len(self.selected) >= self.required
 
 
@@ -241,6 +265,16 @@ class DiceCardScene(Scene):
         )
         self.end_turn_button.connect(self.end_turn)
 
+        self.confirm_selection_button = textButton(
+            "선택 완료",
+            pygame.Rect(980, 160, 180, 60),
+            size=26,
+            radius=18,
+            color=Cs.lime,
+            textColor=Cs.black,
+        )
+        self.confirm_selection_button.connect(self.confirm_pending_selection)
+
         self.reset_button = textButton(
             "새 전투",
             pygame.Rect(1180, 80, 180, 60),
@@ -270,6 +304,7 @@ class DiceCardScene(Scene):
             ["clone"] * 2
             + ["mirror"] * 2
             + ["stasis"] * 2
+            + ["reroll"] * 2
             + ["tinker"] * 2
             + ["odd_attack"] * 3
             + ["even_shield"] * 3
@@ -304,6 +339,7 @@ class DiceCardScene(Scene):
         self.update_interface()
         if not initial:
             self.add_log("새로운 전투를 시작합니다!")
+        self.set_confirm_button_enabled(False)
 
     def roll_dice(self, *, initial: bool = False) -> None:
         for die in self.dice:
@@ -390,6 +426,25 @@ class DiceCardScene(Scene):
         lines.append(message)
         self.log_box.text = "\n".join(lines[-7:])
 
+    def set_confirm_button_enabled(self, enabled: bool) -> None:
+        self.confirm_selection_button.enabled = enabled
+        if enabled:
+            self.confirm_selection_button.showChilds(0)
+        else:
+            self.confirm_selection_button.hideChilds(0)
+
+    def should_show_confirm_button(self) -> bool:
+        return (
+            self.pending_card is not None
+            and self.pending_card.allow_multi_select
+        )
+
+    def update_confirm_button_state(self) -> None:
+        if self.should_show_confirm_button():
+            self.set_confirm_button_enabled(self.pending_card.has_minimum_selection())
+        else:
+            self.set_confirm_button_enabled(False)
+
     # -- Card interactions --------------------------------------------
     def can_drag_card(self, widget: HandCardWidget) -> bool:
         return (
@@ -419,7 +474,7 @@ class DiceCardScene(Scene):
 
         card = widget.card
         if card.targets > 0:
-            self.pending_card = PendingCard(card, card.targets)
+            self.pending_card = PendingCard(card, card.targets, card.allow_multi_select)
             self.instruction_text.text = self.instruction_for_card(card)
             self.add_log(f"{card.name}을(를) 사용합니다. {self.instruction_text.text}")
         else:
@@ -428,16 +483,25 @@ class DiceCardScene(Scene):
             self.instruction_text.text = f"{card.name} 사용!"
             self.finalize_card_resolution()
         self.update_interface()
+        self.update_confirm_button_state()
 
     def instruction_for_card(self, card: CardData) -> str:
         if card.effect == "clone":
             return "왼쪽과 오른쪽 주사위를 순서대로 선택하세요."
         if card.effect == "mirror":
+            if card.allow_multi_select:
+                return "반전할 주사위를 선택하세요. 선택 완료 버튼으로 확정합니다."
             return "반전할 주사위를 선택하세요."
         if card.effect == "stasis":
+            if card.allow_multi_select:
+                return "고정할 주사위를 선택하세요. 선택 완료 버튼을 누르면 적용됩니다."
             return "고정할 주사위를 선택하세요."
         if card.effect == "tinker":
+            if card.allow_multi_select:
+                return "강화할 주사위를 선택하세요. 선택 완료 버튼으로 마무리합니다."
             return "강화할 주사위를 선택하세요."
+        if card.effect == "reroll":
+            return "다시 굴릴 주사위를 원하는 만큼 선택한 뒤 선택 완료를 누르세요."
         return "주사위를 선택하세요."
 
     def finalize_card_resolution(self) -> None:
@@ -445,6 +509,7 @@ class DiceCardScene(Scene):
         self.update_dice_display()
         self.update_interface()
         self.update_deck_label()
+        self.update_confirm_button_state()
         if self.enemy_hp <= 0:
             self.on_victory()
 
@@ -457,16 +522,48 @@ class DiceCardScene(Scene):
             return
 
         pending = self.pending_card
-        pending.add_target(index)
-        self.update_dice_display()
-        if pending.is_complete():
-            self.resolve_card_effect(pending.card, pending.selected)
-            self.discard_pile.append(pending.card)
-            self.instruction_text.text = f"{pending.card.name} 사용 완료!"
-            self.finalize_card_resolution()
+        if pending.allow_multi_select:
+            already_selected = index in pending.selected
+            pending.add_target(index)
+            self.update_dice_display()
+            if pending.has_minimum_selection():
+                self.instruction_text.text = "선택 완료 버튼을 눌러 카드 효과를 발동하세요."
+            else:
+                remaining = max(0, pending.required - len(pending.selected))
+                if remaining > 0:
+                    self.instruction_text.text = f"주사위를 {remaining}개 더 선택하세요."
+                else:
+                    self.instruction_text.text = "적용할 주사위를 선택하세요."
+            if already_selected and index not in pending.selected:
+                self.add_log(f"{index + 1}번 주사위 선택을 해제했습니다.")
+            elif index in pending.selected:
+                self.add_log(f"{index + 1}번 주사위를 선택했습니다.")
+            self.update_confirm_button_state()
         else:
-            remaining = pending.required - len(pending.selected)
-            self.instruction_text.text = f"주사위를 {remaining}개 더 선택하세요."
+            pending.add_target(index)
+            self.update_dice_display()
+            if pending.is_complete():
+                self.resolve_card_effect(pending.card, pending.selected)
+                self.discard_pile.append(pending.card)
+                self.instruction_text.text = f"{pending.card.name} 사용 완료!"
+                self.finalize_card_resolution()
+            else:
+                remaining = pending.required - len(pending.selected)
+                self.instruction_text.text = f"주사위를 {remaining}개 더 선택하세요."
+
+    def confirm_pending_selection(self) -> None:
+        if self.game_over:
+            return
+        if not self.pending_card or not self.pending_card.allow_multi_select:
+            return
+        pending = self.pending_card
+        if not pending.has_minimum_selection():
+            self.instruction_text.text = "적용할 주사위를 선택하세요."
+            return
+        self.resolve_card_effect(pending.card, pending.selected)
+        self.discard_pile.append(pending.card)
+        self.instruction_text.text = f"{pending.card.name} 사용 완료!"
+        self.finalize_card_resolution()
 
     def resolve_card_effect(self, card: CardData, selection: list[int]) -> None:
         if card.effect == "clone" and len(selection) >= 2:
@@ -477,24 +574,31 @@ class DiceCardScene(Scene):
                 f"눈 복제! {left + 1}번 주사위의 눈({value})을 {right + 1}번에 복제했습니다."
             )
         elif card.effect == "mirror" and selection:
-            idx = selection[0]
-            old = self.dice[idx]["value"]
-            self.dice[idx]["value"] = 7 - old
-            self.add_log(
-                f"미러 주사위! {idx + 1}번 주사위가 {old} → {self.dice[idx]['value']}로 반전되었습니다."
-            )
+            for idx in selection:
+                old = self.dice[idx]["value"]
+                self.dice[idx]["value"] = 7 - old
+                self.add_log(
+                    f"미러 주사위! {idx + 1}번 주사위가 {old} → {self.dice[idx]['value']}로 반전되었습니다."
+                )
         elif card.effect == "stasis" and selection:
-            idx = selection[0]
-            self.dice[idx]["frozen"] = max(self.dice[idx]["frozen"], 1)
-            self.add_log(f"Stasis! {idx + 1}번 주사위를 다음 턴까지 고정합니다.")
+            for idx in selection:
+                self.dice[idx]["frozen"] = max(self.dice[idx]["frozen"], 1)
+                self.add_log(f"Stasis! {idx + 1}번 주사위를 다음 턴까지 고정합니다.")
         elif card.effect == "tinker" and selection:
-            idx = selection[0]
-            old = self.dice[idx]["value"]
-            if old < 6:
-                self.dice[idx]["value"] = old + 1
-            self.add_log(
-                f"Tinker! {idx + 1}번 주사위가 {old} → {self.dice[idx]['value']}가 되었습니다."
-            )
+            for idx in selection:
+                old = self.dice[idx]["value"]
+                if old < 6:
+                    self.dice[idx]["value"] = old + 1
+                self.add_log(
+                    f"Tinker! {idx + 1}번 주사위가 {old} → {self.dice[idx]['value']}가 되었습니다."
+                )
+        elif card.effect == "reroll" and selection:
+            for idx in selection:
+                old = self.dice[idx]["value"]
+                self.dice[idx]["value"] = random.randint(1, 6)
+                self.add_log(
+                    f"Reroll! {idx + 1}번 주사위를 {old}에서 {self.dice[idx]['value']}로 다시 굴렸습니다."
+                )
         elif card.effect == "odd_attack":
             damage = sum(die["value"] for die in self.dice if die["value"] % 2 == 1)
             self.deal_damage(damage, source="Odd Attack")
@@ -578,6 +682,8 @@ class DiceCardScene(Scene):
             widget.handle_events()
         for dice in self.dice_buttons:
             dice.update()
+        if self.should_show_confirm_button():
+            self.confirm_selection_button.update()
         self.reset_button.update()
         self.end_turn_button.update()
 
@@ -595,6 +701,8 @@ class DiceCardScene(Scene):
         self.play_zone.draw()
         self.log_box.draw()
         self.instruction_text.draw()
+        if self.should_show_confirm_button():
+            self.confirm_selection_button.draw()
         self.end_turn_button.draw()
         self.reset_button.draw()
         for widget in self.hand_widgets:
