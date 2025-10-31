@@ -576,6 +576,10 @@ class DiceCardScene(Scene):
     def update(self) -> None:
         for widget in list(self.hand_widgets):
             widget.handle_events()
+        for dice in self.dice_buttons:
+            dice.update()
+        self.reset_button.update()
+        self.end_turn_button.update()
 
     def draw(self) -> None:
         self.background.draw()
