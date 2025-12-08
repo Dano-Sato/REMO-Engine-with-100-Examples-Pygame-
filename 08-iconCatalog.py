@@ -54,11 +54,11 @@ class mainScene(Scene):
             '''
             import pyperclip
             pyperclip.copy(description)
-            obj = textObj(f"{description} copied to clipboard!",size=30,color=Cs.white)
-            obj_bg = rectObj(obj.offsetRect.inflate(50,50),color=Cs.grey,edge=2)
-            obj_bg.setParent(obj,depth=-1)
-            obj.midtop = Rs.mousePos() + RPoint(0,50)
-            Rs.fadeAnimation(obj,time=100)
+            popup_obj = textObj(f"{description} copied to clipboard!",size=30,color=Cs.white)
+            popup_obj_bg = rectObj(popup_obj.offsetRect.inflate(50,50),color=Cs.grey,edge=2)
+            popup_obj_bg.setParent(popup_obj,depth=-1)
+            popup_obj.midtop = Rs.mousePos() + RPoint(0,50)
+            Rs.fadeAnimation(popup_obj,time=100)
 
 
         
