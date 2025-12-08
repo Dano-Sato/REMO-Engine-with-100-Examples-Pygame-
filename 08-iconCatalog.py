@@ -65,6 +65,7 @@ class mainScene(Scene):
         if mainScene.IconDescriptionObj != None and description == mainScene.IconDescriptionObj.text:
             return ##이미 같은 아이콘에 대한 설명이 나타나고 있을 때, 다시 설정하지 않는다.
 
+        ##화면 우측에 표시할 대형 아이콘과 설명 텍스트를 설정
         mainScene.bigIcon = imageObj(path,scale=3)
         mainScene.bigIcon.midright = Rs.screenRect().midright + RPoint(-150,0)
         _bg = rectObj(mainScene.bigIcon.offsetRect.inflate(40,40),color=Cs.grey,edge=4)
