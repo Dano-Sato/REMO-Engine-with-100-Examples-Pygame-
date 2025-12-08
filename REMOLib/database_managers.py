@@ -375,16 +375,16 @@ class EventManager:
             cls.__triggers[trigger] = False
 
     @classmethod
-    def checkTrigger(cls, *triggers: Enum, operation="and"):
+    def checkTrigger(cls, *triggers: Enum, operation="AND"):
         """
         트리거들을 AND/OR 조건에 따라 확인하는 클래스 메서드.
         :param operation: "and" 또는 "or" (기본값은 "and")
         :param *triggers: 확인할 트리거 리스트
         :return: AND 연산일 경우 모두 True면 True, OR 연산일 경우 하나라도 True면 True
         """
-        if operation == "and":
+        if operation.upper() == "AND":
             return all(cls.__triggers.get(trigger, False) for trigger in triggers)
-        elif operation == "or":
+        elif operation.upper() == "OR":
             return any(cls.__triggers.get(trigger, False) for trigger in triggers)
         else:
             raise ValueError("operation must be 'and' or 'or'")
