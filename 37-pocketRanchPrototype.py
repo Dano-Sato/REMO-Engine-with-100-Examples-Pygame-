@@ -266,6 +266,8 @@ class PocketPlot(rectObj):
         self.companion_badge.color = companion.get("color", Cs.dark(Cs.gray))
         trait_text = self.COMPANION_TAG_TEXT.get(companion["trait"], "친구")
         self.companion_text.text = f"{companion['name']}\n<{trait_text}>"
+        self.companion_text.center = self.companion_badge.offsetRect.center
+
         self._refresh_visuals()
 
     def _companion_bonus(self, tag: str) -> int:
