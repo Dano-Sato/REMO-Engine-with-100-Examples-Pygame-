@@ -410,11 +410,6 @@ class CareCard(rectObj):
         alpha = 255 if available else 150
         if self.alpha != alpha:
             self.alpha = alpha
-            self.cost_badge.alpha = alpha
-            self.cost_text.alpha = alpha
-            self.title_text.alpha = alpha
-            self.desc_text.alpha = alpha
-            self.tag_text.alpha = alpha
 
         if hovered and available and Rs.userJustLeftClicked():
             self._on_play()
