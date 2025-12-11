@@ -140,7 +140,7 @@ class ProjectileTrailScene(Scene):
         surface = pygame.Surface(Rs.screen_size, pygame.SRCALPHA)
         surface.fill((*Cs.darkslategray, 255))
         spacing = 64
-        dim_color = tuple(int(round(c)) for c in Cs.dim(Cs.darkslategray))
+        dim_color = Cs.dim(Cs.darkslategray)
         for x in range(0, Rs.screen_size[0], spacing):
             pygame.draw.line(surface, dim_color, (x, 0), (x, Rs.screen_size[1]))
         for y in range(0, Rs.screen_size[1], spacing):
