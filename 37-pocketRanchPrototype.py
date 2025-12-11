@@ -291,12 +291,17 @@ class PocketPlot(rectObj):
         if self.stage == 0:
             self.stage_text.text = "텅 비어 있음"
             self.crop_text.text = "씨앗을 심어보세요."
+            self.stage_text.center = self.offsetRect.center
+
         elif self.stage == 1:
             self.stage_text.text = f"{self.crop['name']} 씨앗"
+            self.stage_text.center = self.offsetRect.center
+
             grade = self.seed_grade or "일반"
             self.crop_text.text = f"{grade} 씨앗 / 성장 준비 중"
         elif self.stage == 2:
             self.stage_text.text = f"{self.crop['name']} 새싹"
+            
             self.crop_text.text = "물과 햇살이 필요해요."
         elif self.stage == 3:
             self.stage_text.text = f"{self.crop['name']} 꽃봉오리"
@@ -328,7 +333,17 @@ class PocketPlot(rectObj):
         if not self.companion:
             self.companion_badge.alpha = 120
             self.companion_text.text = "동행 친구 없음"
+            self.companion_text.center = self.companion_badge.offsetRect.center
+        
+        self.adjust_ui()
+
         return
+    
+    def adjust_ui(self):
+        self.stage_text.center = self.offsetRect.center + RPoint(0,20)
+        self.companion_text.center = self.companion_badge.offsetRect.center
+        self.crop_text.midbottom = RPoint(self.offsetRect.midbottom) - RPoint(0, 18)
+
 
     def update(self) -> None:
         hovered = self.collideMouse()
@@ -467,11 +482,10 @@ class PocketRanchScene(Scene):
         self.weather_box.pos = RPoint(40, 280)
         self.weather_title = textObj("", size=30, color=Cs.white)
         self.weather_title.setParent(self.weather_box, depth=1)
-        self.weather_title.midtop = RPoint(self.weather_box.offsetRect.midtop) + RPoint(0, 24)
+        self.weather_title.pos = RPoint(20, 24)
         self.weather_desc = longTextObj("", pos=RPoint(0, 0), size=20, color=Cs.light(Cs.lightcyan), textWidth=440)
         self.weather_desc.setParent(self.weather_box, depth=1)
-        self.weather_desc.centerx = self.weather_box.offsetRect.centerx
-        self.weather_desc.y = self.weather_title.rect.bottom + 12
+        self.weather_desc.pos = self.weather_title.pos + RPoint(0,42)
 
         self.tip_panel = rectObj(
             pygame.Rect(0, 0, 520, 200), color=Cs.dark(Cs.darkslategray), edge=4, radius=28
@@ -497,7 +511,7 @@ class PocketRanchScene(Scene):
         self.fields: list[PocketPlot] = []
         for row in range(2):
             row_layout = layoutObj(
-                pos=RPoint(self.field_panel.rect.x + 80, self.field_panel.rect.y + 60 + row * 240),
+                pos=RPoint(self.field_panel.rect.x + 80, self.field_panel.rect.y + 30 + row * 270),
                 spacing=60,
                 isVertical=False,
             )
