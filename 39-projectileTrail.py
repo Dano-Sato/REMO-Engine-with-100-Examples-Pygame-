@@ -134,9 +134,9 @@ class ProjectileTrailScene(Scene):
             ),
         ]
 
-        self.background_surface, self.background_texture = self._generate_grid()
+        self.background_texture = self._generate_grid()
 
-    def _generate_grid(self) -> tuple[pygame.Surface, Any]:
+    def _generate_grid(self) -> Any:
         surface = pygame.Surface(Rs.screen_size, pygame.SRCALPHA)
         surface.fill((*Cs.darkslategray, 255))
         spacing = 64
@@ -146,7 +146,7 @@ class ProjectileTrailScene(Scene):
         for y in range(0, Rs.screen_size[1], spacing):
             pygame.draw.line(surface, dim_color, (0, y), (Rs.screen_size[0], y))
         texture = Rs.render_engine.surface_to_texture(surface)
-        return surface, texture
+        return texture
 
     def init(self):
         return
@@ -203,8 +203,6 @@ class ProjectileTrailScene(Scene):
 
     def draw(self):
         Rs.fillScreen(Cs.darkslategray)
-        if self.background_texture.glo == 0:
-            self.background_texture = Rs.render_engine.surface_to_texture(self.background_surface)
         Rs.render_engine.render(
             self.background_texture,
             Rs.source_layer,
