@@ -474,7 +474,7 @@ class PocketRanchScene(Scene):
         self.weather_box = rectObj(
             pygame.Rect(0, 0, 520, 200), color=Cs.dark(Cs.midnightblue), edge=4, radius=28
         )
-        self.weather_box.pos = RPoint(40, 280)
+        self.weather_box.pos = RPoint(40, 350)
         self.weather_title = textObj("", size=30, color=Cs.white)
         self.weather_title.setParent(self.weather_box, depth=1)
         self.weather_title.pos = RPoint(20, 24)
