@@ -616,6 +616,10 @@ class HexTacticsScene(Scene):
         self.prepare_targets(card.card_data)
 
     def prepare_targets(self, card: CardData) -> None:
+        '''
+        선택 가능한 적(타겟)들을 준비하는 함수이다.
+        '''
+        
         self.available_targets.clear()
         self.grid.clear_highlights()
         player_tile = self.grid.get_tile(self.player_coord)
