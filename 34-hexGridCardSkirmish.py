@@ -117,9 +117,11 @@ class HexTile(graphicObj):
     def _update_unit_labels(self) -> None:
         if self.occupant:
             self.label.text = self.occupant.symbol
+            self.label.center = self.offsetRect.center
             self.label.alpha = 255
             self.hp_text.text = f"{self.occupant.hp}/{self.occupant.max_hp}"
             self.hp_text.alpha = 255
+            self.hp_text.midbottom = RPoint(self.offsetRect.midbottom) - RPoint(0, 20)
             if self.occupant.team == "player":
                 self.label.color = Cs.white
             else:
