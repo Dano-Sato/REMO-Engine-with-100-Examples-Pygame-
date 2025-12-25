@@ -911,8 +911,9 @@ class HexTacticsScene(Scene):
 
     def draw(self) -> None:
         self.grid.draw()
-        self.hand_layout.draw()
-        self.end_turn_button.draw()
+        if not self.game_over:
+            self.hand_layout.draw()
+            self.end_turn_button.draw()
         self.turn_text.draw()
         self.energy_text.draw()
         self.hp_text.draw()
