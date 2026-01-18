@@ -104,7 +104,7 @@ CARD_LIBRARY: list[CardData] = [
         name="노후 설비 증설(싸구려)",
         card_type="발전",
         play_cost=3,
-        description="B +2, U +4 (가성비는 좋지만 유지비 함정)",
+        description="B +2, U +4",
         effect_key="cheap_expansion",
     ),
     CardData(
@@ -152,15 +152,15 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="연계선 증설",
         card_type="수출",
-        play_cost=8,
-        description="P_export +1",
+        play_cost=11,
+        description="P_export +1, U +3",
         effect_key="export_line",
     ),
     CardData(
         name="탄소세 도입",
         card_type="정책",
         play_cost=0,
-        description="U +7, Tariff +1",
+        description="U +7, Tariff +0.5",
         effect_key="carbon_tax",
     ),
     CardData(
@@ -279,7 +279,7 @@ CARD_LIBRARY: list[CardData] = [
         name="HVDC 수출 라인",
         card_type="수출",
         play_cost=21,
-        description="P_export +2 (영구)",
+        description="P_export +2, U +5",
         effect_key="hvdc_export_line",
     ),
     CardData(
@@ -472,7 +472,7 @@ class PowerGridFinanceScene(Scene):
     def _init_state(self) -> None:
         self.cash = 20
         self.debt = 0
-        self.interest_rate = 0.08
+        self.interest_rate = 0.1
         self.tariff = 2
         self.p_export = 0.5
         self.base_output = 3
@@ -570,7 +570,9 @@ class PowerGridFinanceScene(Scene):
         self.archetype = archetype
         if archetype == "contractor":
             self.purchase_cost = 1
-            self.cash = 25
+            self.cash = 35
+            self.debt = 10
+            self.interest_rate = 0.05
             self.base_output = 2
             self.upkeep = 1
             self.cap = 0
@@ -578,9 +580,9 @@ class PowerGridFinanceScene(Scene):
         elif archetype == "operator":
             self.purchase_cost = 2
             self.cash = 16
-            self.base_output = 4
-            self.upkeep = 2
-            self.cap = 4
+            self.base_output = 6
+            self.upkeep = 3
+            self.cap = 6
         elif archetype == "builder":
             self.purchase_cost = 2
             self.cash = 18
@@ -595,10 +597,7 @@ class PowerGridFinanceScene(Scene):
         self.phase = "market"
         self.turn = 1
         self.blackout_count = 0
-        self.debt = 0
-        self.interest_rate = 0.08
         self.tariff = 2
-        self.p_export = 1
         self._start_turn()
         self._log(f"{self._archetype_label()} 시작! 시장에서 카드를 구매하세요.")
 
@@ -754,9 +753,10 @@ class PowerGridFinanceScene(Scene):
             self.load = max(0, self.load - 3)
         elif card.effect_key == "export_line":
             self.p_export += 1
+            self.upkeep += 3
         elif card.effect_key == "carbon_tax":
             self.upkeep += 7
-            self.tariff += 1
+            self.tariff += 0.5
         elif card.effect_key == "blackstart":
             self.blackout_count = max(0, self.blackout_count - 1)
             self.upkeep += 3
@@ -805,6 +805,7 @@ class PowerGridFinanceScene(Scene):
             self.interest_rate = max(0.0, self.interest_rate - 0.02)
         elif card.effect_key == "hvdc_export_line":
             self.p_export += 2
+            self.upkeep += 5
         elif card.effect_key == "credit_rating_upgrade":
             self.interest_rate = max(0.0, self.interest_rate - 0.04)
         elif card.effect_key == "abs_securitization":
