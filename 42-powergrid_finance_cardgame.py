@@ -214,16 +214,18 @@ class CardWidget(rectObj):
         self.note_text.text = "구매 완료"
         self.color = Cs.dark(Cs.black)
 
-    def update(self, enabled: bool) -> None:
+    def update(self, enabled: bool, *, allow_click: bool = True) -> bool:
         if not self.card:
-            return
+            return False
         if self.purchased:
-            return
+            return False
         if not enabled:
-            return
+            return False
         self.color = self._hover_color if self.collideMouse() else self._base_color
-        if self.collideMouse() and Rs.userJustLeftClicked():
+        if allow_click and self.collideMouse() and Rs.userJustLeftClicked():
             self._on_click(self)
+            return True
+        return False
 
 
 class PowerGridFinanceScene(Scene):
@@ -663,8 +665,11 @@ class PowerGridFinanceScene(Scene):
         else:
             for widget in self.market_widgets:
                 widget.update(self.phase == "market")
+            hand_click_used = False
             for widget in list(self.hand_widgets):
-                widget.update(self.phase == "play")
+                if widget.update(self.phase == "play", allow_click=not hand_click_used):
+                    hand_click_used = True
+            self.market_layout.adjustLayout()
             self.hand_layout.adjustLayout()
             self.reroll_button.update()
             self.to_play_button.update()
