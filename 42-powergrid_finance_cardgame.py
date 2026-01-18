@@ -794,7 +794,7 @@ class PowerGridFinanceScene(Scene):
             self.upkeep += 1
         elif card.effect_key == "export_contract":
             self.p_export *= 1.5
-            self.tarrif -= 1
+            self.tariff -= 1
         elif card.effect_key == "tariff_increase_request":
             self.tariff += 1
         elif card.effect_key == "operating_credit_line":
