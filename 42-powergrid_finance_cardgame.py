@@ -242,7 +242,7 @@ class PowerGridFinanceScene(Scene):
         self.game_over = False
         self.archetype = ""
         self.builder_bonus = False
-        self.purchase_cost = 1
+        self.purchase_cost = 2
         self.surplus_mode = "export"
 
         self._init_state()
@@ -352,23 +352,23 @@ class PowerGridFinanceScene(Scene):
             return
         self.archetype = archetype
         if archetype == "contractor":
-            self.purchase_cost = 0
-            self.cash = 18
-            self.base_output = 3
-            self.upkeep = 1
-            self.cap = 4
-        elif archetype == "operator":
             self.purchase_cost = 1
+            self.cash = 20
+            self.base_output = 2
+            self.upkeep = 1
+            self.cap = 0
+        elif archetype == "operator":
+            self.purchase_cost = 2
             self.cash = 16
             self.base_output = 4
             self.upkeep = 2
-            self.cap = 6
+            self.cap = 4
         else:
-            self.purchase_cost = 1
+            self.purchase_cost = 2
             self.cash = 18
             self.base_output = 3
             self.upkeep = 1
-            self.cap = 4
+            self.cap = 0
             self.builder_bonus = True
         self.output = self.base_output
         self.store = min(self.store, self.cap)
