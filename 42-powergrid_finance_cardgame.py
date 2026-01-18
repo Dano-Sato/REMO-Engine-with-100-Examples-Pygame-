@@ -24,6 +24,90 @@ CARD_LIBRARY: list[CardData] = [
         effect_key="build_basic",
     ),
     CardData(
+        name="원전 1기",
+        card_type="발전",
+        play_cost=41,
+        description="B +10, U +10",
+        effect_key="nuclear_single",
+    ),
+    CardData(
+        name="초대형 CCGT",
+        card_type="발전",
+        play_cost=21,
+        description="B +8, U +11",
+        effect_key="mega_ccgt",
+    ),
+    CardData(
+        name="재생에너지 메가팩",
+        card_type="발전",
+        play_cost=19,
+        description="B +5, U +4",
+        effect_key="renewable_megapack",
+    ),
+    CardData(
+        name="노후 설비 전면 교체",
+        card_type="정비",
+        play_cost=27,
+        description="B +2, U -3",
+        effect_key="full_retrofit",
+    ),
+    CardData(
+        name="복합가스(CCGT)",
+        card_type="발전",
+        play_cost=19,
+        description="B +4, U +2",
+        effect_key="ccgt",
+    ),
+    CardData(
+        name="중형 석탄",
+        card_type="발전",
+        play_cost=11,
+        description="B +5, U +7",
+        effect_key="mid_coal",
+    ),
+    CardData(
+        name="태양광 증설단지",
+        card_type="발전",
+        play_cost=15,
+        description="B +3, U +1",
+        effect_key="solar_expansion",
+    ),
+    CardData(
+        name="풍력 단지",
+        card_type="발전",
+        play_cost=12,
+        description="B +3, U +2",
+        effect_key="wind_farm",
+    ),
+    CardData(
+        name="디젤 발전기",
+        card_type="발전",
+        play_cost=4,
+        description="B +2, U +3",
+        effect_key="diesel_gen",
+    ),
+    CardData(
+        name="가스 마이크로터빈",
+        card_type="발전",
+        play_cost=7,
+        description="B +2, U +2",
+        effect_key="gas_microturbine",
+    ),
+    CardData(
+        name="소형 풍력",
+        card_type="발전",
+        play_cost=2,
+        description="B +1, U +2",
+        effect_key="small_wind",
+    ),
+    CardData(
+        name="노후 설비 증설(싸구려)",
+        card_type="발전",
+        play_cost=3,
+        description="B +2, U +4 (가성비는 좋지만 유지비 함정)",
+        effect_key="cheap_expansion",
+    ),
+    CardData(
         name="스팟 전력 구매",
         card_type="즉발",
         play_cost=6,
@@ -40,7 +124,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="효율 개선",
         card_type="정비",
-        play_cost=11,
+        play_cost=10,
         description="B +1, U -1 (장기 최적화)",
         effect_key="efficiency",
     ),
@@ -61,7 +145,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="로드셰딩",
         card_type="수요",
-        play_cost=4,
+        play_cost=6,
         description="L -3 (수요 억제)",
         effect_key="load_shedding",
     ),
@@ -481,6 +565,42 @@ class PowerGridFinanceScene(Scene):
             self.upkeep += 1
             if self.builder_bonus:
                 self.cash += 3
+        elif card.effect_key == "nuclear_single":
+            self.base_output += 10
+            self.upkeep += 10
+        elif card.effect_key == "mega_ccgt":
+            self.base_output += 8
+            self.upkeep += 11
+        elif card.effect_key == "renewable_megapack":
+            self.base_output += 5
+            self.upkeep += 4
+        elif card.effect_key == "full_retrofit":
+            self.base_output += 2
+            self.upkeep = max(0, self.upkeep - 3)
+        elif card.effect_key == "ccgt":
+            self.base_output += 4
+            self.upkeep += 2
+        elif card.effect_key == "mid_coal":
+            self.base_output += 5
+            self.upkeep += 7
+        elif card.effect_key == "solar_expansion":
+            self.base_output += 3
+            self.upkeep += 1
+        elif card.effect_key == "wind_farm":
+            self.base_output += 3
+            self.upkeep += 2
+        elif card.effect_key == "diesel_gen":
+            self.base_output += 2
+            self.upkeep += 3
+        elif card.effect_key == "gas_microturbine":
+            self.base_output += 2
+            self.upkeep += 1
+        elif card.effect_key == "small_wind":
+            self.base_output += 1
+            self.upkeep += 2
+        elif card.effect_key == "cheap_expansion":
+            self.base_output += 2
+            self.upkeep += 4
         elif card.effect_key == "spot_purchase":
             self.output += 2
         elif card.effect_key == "emergency_import":
