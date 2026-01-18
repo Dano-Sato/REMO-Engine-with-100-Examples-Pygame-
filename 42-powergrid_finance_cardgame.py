@@ -17,7 +17,7 @@ class CardData:
 
 CARD_LIBRARY: list[CardData] = [
     CardData(
-        name="기본 발전",
+        name="소형 태양광",
         card_type="발전",
         play_cost=5,
         description="B +1, U +1 (설비 투자)",
@@ -83,7 +83,7 @@ CARD_LIBRARY: list[CardData] = [
         name="블랙스타트 설비",
         card_type="위기",
         play_cost=4,
-        description="BO -1, U +1",
+        description="BO -1, U +3",
         effect_key="blackstart",
     ),
     CardData(
@@ -499,11 +499,11 @@ class PowerGridFinanceScene(Scene):
         elif card.effect_key == "export_line":
             self.p_export += 1
         elif card.effect_key == "carbon_tax":
-            self.upkeep += 3
+            self.upkeep += 7
             self.tariff += 1
         elif card.effect_key == "blackstart":
             self.blackout_count = max(0, self.blackout_count - 1)
-            self.upkeep += 1
+            self.upkeep += 3
         elif card.effect_key == "grid_support":
             self.output += 2
             self.cash += 6
@@ -638,7 +638,7 @@ class PowerGridFinanceScene(Scene):
         self.turn_text.text = f"턴 {self.turn}"
         self.phase_text.text = f"단계: {self.phase.upper()}"
         self.archetype_text.text = f"아키타입: {self._archetype_label()}"
-        self.cash_text.text = f"Cash: {self.cash}$"
+        self.cash_text.text = f"Cash: {self.cash:.2f}$"
         self.debt_text.text = f"Debt: {self.debt}$"
         self.interest_text.text = f"이자율: {int(self.interest_rate * 100)}%"
         self.tariff_text.text = f"Tariff: {self.tariff}$"
