@@ -580,13 +580,15 @@ class PowerGridFinanceScene(Scene):
             self.base_output = 4
             self.upkeep = 2
             self.cap = 4
-        else:
+        elif archetype == "builder":
             self.purchase_cost = 2
             self.cash = 18
             self.base_output = 3
             self.upkeep = 1
             self.cap = 0
             self.builder_bonus = True
+        else:
+            print("archetype BUG")
         self.output = self.base_output
         self.store = min(self.store, self.cap)
         self.phase = "market"
