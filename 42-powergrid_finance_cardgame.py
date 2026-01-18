@@ -177,6 +177,139 @@ CARD_LIBRARY: list[CardData] = [
         description="O +2, Cash +6, Debt +8",
         effect_key="grid_support",
     ),
+    CardData(
+        name="피크 발전 가동",
+        card_type="즉발",
+        play_cost=4,
+        description="O +3, U +1",
+        effect_key="peak_generation",
+    ),
+    CardData(
+        name="정비 스킵",
+        card_type="정비",
+        play_cost=0,
+        description="O +3, B -1",
+        effect_key="skip_maintenance",
+    ),
+    CardData(
+        name="소형 배터리 팩",
+        card_type="정비",
+        play_cost=3,
+        description="Cap +1",
+        effect_key="small_battery_pack",
+    ),
+    CardData(
+        name="예방정비",
+        card_type="정비",
+        play_cost=2,
+        description="O -2, B +1, U -1",
+        effect_key="preventive_maintenance",
+    ),
+    CardData(
+        name="노후 설비 폐기",
+        card_type="정비",
+        play_cost=1,
+        description="B -1, U -3",
+        effect_key="retire_aging_equipment",
+    ),
+    CardData(
+        name="수요반응 캠페인",
+        card_type="수요",
+        play_cost=6,
+        description="L -2",
+        effect_key="demand_response_campaign",
+    ),
+    CardData(
+        name="운영 자동화",
+        card_type="정비",
+        play_cost=18,
+        description="U -2, B +1",
+        effect_key="operations_automation",
+    ),
+    CardData(
+        name="AI 운영 최적화",
+        card_type="정비",
+        play_cost=41,
+        description="U -4, B +2",
+        effect_key="ai_operation_optimization",
+    ),
+    CardData(
+        name="중형 배터리",
+        card_type="정비",
+        play_cost=7,
+        description="Cap +3",
+        effect_key="medium_battery",
+    ),
+    CardData(
+        name="산업체 DR 계약",
+        card_type="수요",
+        play_cost=4,
+        description="L -4, U +1",
+        effect_key="industrial_dr_contract",
+    ),
+    CardData(
+        name="수출 계약 체결",
+        card_type="수출",
+        play_cost=16,
+        description="P_export x1.5",
+        effect_key="export_contract",
+    ),
+    CardData(
+        name="요금 인상 청구",
+        card_type="정책",
+        play_cost=17,
+        description="Tariff +1",
+        effect_key="tariff_increase_request",
+    ),
+    CardData(
+        name="운영자금 라인",
+        card_type="금융",
+        play_cost=0,
+        description="Cash +12, Debt +16",
+        effect_key="operating_credit_line",
+    ),
+    CardData(
+        name="채무 스왑",
+        card_type="금융",
+        play_cost=4,
+        description="U +1, 이자율 -2%",
+        effect_key="debt_swap",
+    ),
+    CardData(
+        name="HVDC 수출 라인",
+        card_type="수출",
+        play_cost=21,
+        description="P_export +2 (영구)",
+        effect_key="hvdc_export_line",
+    ),
+    CardData(
+        name="신용등급 상향",
+        card_type="금융",
+        play_cost=16,
+        description="이자율 -4% (영구)",
+        effect_key="credit_rating_upgrade",
+    ),
+    CardData(
+        name="자산유동화(ABS)",
+        card_type="금융",
+        play_cost=3,
+        description="Debt -21, Tariff -1 (영구)",
+        effect_key="abs_securitization",
+    ),
+    CardData(
+        name="프로젝트 파이낸스(PF)",
+        card_type="금융",
+        play_cost=0,
+        description="Cash +25, Debt +27, 이자율 +2%",
+        effect_key="project_finance",
+    ),
+    CardData(
+        name="예비력 계약(소형)",
+        card_type="즉발",
+        play_cost=0,
+        description="Cash +7, Store -2",
+        effect_key="small_reserve_contract",
+    ),
 ]
 
 
@@ -628,6 +761,58 @@ class PowerGridFinanceScene(Scene):
             self.output += 2
             self.cash += 6
             self.debt += 8
+        elif card.effect_key == "peak_generation":
+            self.output += 3
+            self.upkeep += 1
+        elif card.effect_key == "skip_maintenance":
+            self.output += 3
+            self.base_output = max(0, self.base_output - 1)
+        elif card.effect_key == "small_battery_pack":
+            self.cap += 1
+        elif card.effect_key == "preventive_maintenance":
+            self.output = max(0, self.output - 2)
+            self.base_output += 1
+            self.upkeep = max(0, self.upkeep - 1)
+        elif card.effect_key == "retire_aging_equipment":
+            self.base_output = max(0, self.base_output - 1)
+            self.upkeep = max(0, self.upkeep - 3)
+        elif card.effect_key == "demand_response_campaign":
+            self.load = max(0, self.load - 2)
+        elif card.effect_key == "operations_automation":
+            self.upkeep = max(0, self.upkeep - 2)
+            self.base_output += 1
+        elif card.effect_key == "ai_operation_optimization":
+            self.upkeep = max(0, self.upkeep - 4)
+            self.base_output += 2
+        elif card.effect_key == "medium_battery":
+            self.cap += 3
+        elif card.effect_key == "industrial_dr_contract":
+            self.load = max(0, self.load - 4)
+            self.upkeep += 1
+        elif card.effect_key == "export_contract":
+            self.p_export *= 1.5
+        elif card.effect_key == "tariff_increase_request":
+            self.tariff += 1
+        elif card.effect_key == "operating_credit_line":
+            self.cash += 12
+            self.debt += 16
+        elif card.effect_key == "debt_swap":
+            self.upkeep += 1
+            self.interest_rate = max(0.0, self.interest_rate - 0.02)
+        elif card.effect_key == "hvdc_export_line":
+            self.p_export += 2
+        elif card.effect_key == "credit_rating_upgrade":
+            self.interest_rate = max(0.0, self.interest_rate - 0.04)
+        elif card.effect_key == "abs_securitization":
+            self.debt = max(0, self.debt - 21)
+            self.tariff = max(0, self.tariff - 1)
+        elif card.effect_key == "project_finance":
+            self.cash += 25
+            self.debt += 27
+            self.interest_rate += 0.02
+        elif card.effect_key == "small_reserve_contract":
+            self.cash += 7
+            self.store = max(0, self.store - 2)
 
     def _discharge_one(self) -> None:
         if self.phase != "dispatch":
