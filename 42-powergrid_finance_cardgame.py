@@ -19,28 +19,28 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="기본 발전",
         card_type="발전",
-        play_cost=4,
+        play_cost=5,
         description="B +1, U +1 (설비 투자)",
         effect_key="build_basic",
     ),
     CardData(
         name="스팟 전력 구매",
         card_type="즉발",
-        play_cost=2,
+        play_cost=6,
         description="O +2 (즉발 조달)",
         effect_key="spot_purchase",
     ),
     CardData(
         name="비상 전력 수입",
         card_type="즉발",
-        play_cost=3,
+        play_cost=10,
         description="O +4 (긴급 수입)",
         effect_key="emergency_import",
     ),
     CardData(
         name="효율 개선",
         card_type="정비",
-        play_cost=3,
+        play_cost=11,
         description="B +1, U -1 (장기 최적화)",
         effect_key="efficiency",
     ),
@@ -61,14 +61,14 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="로드셰딩",
         card_type="수요",
-        play_cost=1,
+        play_cost=4,
         description="L -3 (수요 억제)",
         effect_key="load_shedding",
     ),
     CardData(
         name="연계선 증설",
         card_type="수출",
-        play_cost=3,
+        play_cost=8,
         description="P_export +1",
         effect_key="export_line",
     ),
@@ -76,13 +76,13 @@ CARD_LIBRARY: list[CardData] = [
         name="탄소세 도입",
         card_type="정책",
         play_cost=0,
-        description="U +3, Tariff +1",
+        description="U +7, Tariff +1",
         effect_key="carbon_tax",
     ),
     CardData(
         name="블랙스타트 설비",
         card_type="위기",
-        play_cost=2,
+        play_cost=4,
         description="BO -1, U +1",
         effect_key="blackstart",
     ),
@@ -315,9 +315,12 @@ class PowerGridFinanceScene(Scene):
         self.log_text = longTextObj("", pos=RPoint(544, 940), size=20, color=Cs.white, textWidth=1260)
 
     def _create_buttons(self) -> None:
-        self.contractor_button = SimpleButton("계약자형", (80, 520), (360, 60), lambda: self._select_archetype("contractor"))
+        self.contractor_button = SimpleButton("계약자", (80, 520), (360, 60), lambda: self._select_archetype("contractor"))
+        self.contractor_button.centerx = Rs.screenRect().centerx
         self.operator_button = SimpleButton("오퍼레이터", (80, 600), (360, 60), lambda: self._select_archetype("operator"))
+        self.operator_button.centerx = Rs.screenRect().centerx
         self.builder_button = SimpleButton("빌더", (80, 680), (360, 60), lambda: self._select_archetype("builder"))
+        self.builder_button.centerx = Rs.screenRect().centerx
 
         self.reroll_button = SimpleButton("리롤 (1$)", (540, 520), (220, 50), self._reroll_market)
         self.to_play_button = SimpleButton("플레이 단계", (780, 520), (220, 50), self._enter_play_phase)
@@ -332,7 +335,7 @@ class PowerGridFinanceScene(Scene):
         self.pay_all_button = SimpleButton("부채 전액 상환", (80, 860), (360, 60), self._pay_debt_all)
 
     def _create_market_widgets(self) -> None:
-        self.market_layout = cardLayout(RPoint(560, 190), spacing=30, maxWidth=1260, isVertical=False)
+        self.market_layout = layoutObj(pos=RPoint(560, 190), spacing=30, isVertical=False)
         self.market_widgets: list[CardWidget] = []
         for _ in range(4):
             widget = CardWidget(None, self._buy_card)
@@ -386,7 +389,7 @@ class PowerGridFinanceScene(Scene):
 
     def _start_turn(self) -> None:
         self.phase = "market"
-        self.load = random.randint(6 + self.turn // 2, 10 + self.turn // 2)
+        self.load = random.randint(4 + self.turn // 2, 8 + self.turn // 2)
         self.output = self.base_output
         self.reroll_cost = 1
         self.surplus_mode = "export"
@@ -580,13 +583,13 @@ class PowerGridFinanceScene(Scene):
 
         self.cash += self.tariff * served
         self.cash += self.p_export * export_amount
-        self.cash -= int(self.debt * self.interest_rate)
+        self.cash -= self.debt * self.interest_rate
         self.cash -= self.upkeep
 
         self._log(
             f"수익: 공급 {served} (Tariff {self.tariff}$), 수출 {export_amount} (단가 {self.p_export}$)."
         )
-        self._log(f"이자 {int(self.debt * self.interest_rate)}$, 유지비 {self.upkeep}$ 지불.")
+        self._log(f"이자 {self.debt * self.interest_rate}$, 유지비 {self.upkeep}$ 지불.")
 
         if self.cash <= 0:
             self.game_over = True
@@ -605,7 +608,7 @@ class PowerGridFinanceScene(Scene):
 
     def _log(self, message: str) -> None:
         self.log_messages.append(message)
-        if len(self.log_messages) > 6:
+        if len(self.log_messages) > 4:
             self.log_messages.pop(0)
         self.log_text.text = "\n".join(self.log_messages)
 
@@ -662,7 +665,6 @@ class PowerGridFinanceScene(Scene):
                 widget.update(self.phase == "market")
             for widget in list(self.hand_widgets):
                 widget.update(self.phase == "play")
-            self.market_layout.adjustLayout()
             self.hand_layout.adjustLayout()
             self.reroll_button.update()
             self.to_play_button.update()
