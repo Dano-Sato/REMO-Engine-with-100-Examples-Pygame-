@@ -251,7 +251,7 @@ CARD_LIBRARY: list[CardData] = [
         name="수출 계약 체결",
         card_type="수출",
         play_cost=16,
-        description="P_export x1.5",
+        description="P_export x1.5, Tariff-1",
         effect_key="export_contract",
     ),
     CardData(
@@ -474,7 +474,7 @@ class PowerGridFinanceScene(Scene):
         self.debt = 0
         self.interest_rate = 0.08
         self.tariff = 2
-        self.p_export = 1
+        self.p_export = 0.5
         self.base_output = 3
         self.output = 3
         self.store = 0
@@ -574,6 +574,7 @@ class PowerGridFinanceScene(Scene):
             self.base_output = 2
             self.upkeep = 1
             self.cap = 0
+            self.p_export = 1
         elif archetype == "operator":
             self.purchase_cost = 2
             self.cash = 16
@@ -793,6 +794,7 @@ class PowerGridFinanceScene(Scene):
             self.upkeep += 1
         elif card.effect_key == "export_contract":
             self.p_export *= 1.5
+            self.tarrif -= 1
         elif card.effect_key == "tariff_increase_request":
             self.tariff += 1
         elif card.effect_key == "operating_credit_line":
