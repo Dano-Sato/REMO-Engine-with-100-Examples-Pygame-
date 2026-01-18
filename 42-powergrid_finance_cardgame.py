@@ -215,7 +215,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="수요반응 캠페인",
         card_type="수요",
-        play_cost=6,
+        play_cost=3,
         description="L -2",
         effect_key="demand_response_campaign",
     ),
@@ -570,7 +570,7 @@ class PowerGridFinanceScene(Scene):
         self.archetype = archetype
         if archetype == "contractor":
             self.purchase_cost = 1
-            self.cash = 20
+            self.cash = 25
             self.base_output = 2
             self.upkeep = 1
             self.cap = 0
@@ -603,7 +603,7 @@ class PowerGridFinanceScene(Scene):
 
     def _archetype_label(self) -> str:
         return {
-            "contractor": "계약자형",
+            "contractor": "계약자",
             "operator": "오퍼레이터",
             "builder": "빌더",
         }.get(self.archetype, "")
