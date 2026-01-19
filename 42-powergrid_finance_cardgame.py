@@ -47,7 +47,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="노후 설비 전면 교체",
         card_type="정비",
-        play_cost=29,
+        play_cost=21,
         description="B +2, U -3",
         effect_key="full_retrofit",
     ),
@@ -209,7 +209,7 @@ CARD_LIBRARY: list[CardData] = [
         name="노후 설비 폐기",
         card_type="정비",
         play_cost=1,
-        description="B -1, U -3",
+        description="B -1, U -4",
         effect_key="retire_aging_equipment",
     ),
     CardData(
@@ -222,7 +222,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="운영 자동화",
         card_type="정비",
-        play_cost=18,
+        play_cost=13,
         description="U -2, B +1",
         effect_key="operations_automation",
     ),
@@ -367,6 +367,8 @@ class CardWidget(rectObj):
         self._base_color = self.color
         self._hover_color = Cs.light(self.color)
         self.purchased = False
+        self.is_selected = False
+        self.show_checkbox = False
 
         self.type_text = textObj("", size=18, color=Cs.lightgrey)
         self.type_text.setParent(self, depth=1)
@@ -394,13 +396,21 @@ class CardWidget(rectObj):
         self.note_text.setParent(self, depth=1)
         self.note_text.midbottom = RPoint(self.offsetRect.midbottom) - RPoint(0, 14)
 
+        self.checkbox_text = textObj("", size=40, color=Cs.white)
+        self.checkbox_text.setParent(self, depth=1)
+        self.checkbox_text.midtop = RPoint(self.offsetRect.midbottom) + RPoint(0, 6)
 
+        self.checkbox_label = textObj("", size=16, color=Cs.lightgrey)
+        self.checkbox_label.setParent(self, depth=1)
+        self.checkbox_label.midtop = RPoint(self.offsetRect.midbottom) + RPoint(0, 30)
 
         self.set_card(card)
 
     def set_card(self, card: CardData | None) -> None:
         self.card = card
         self.purchased = False
+        self.is_selected = False
+        self.show_checkbox = False
         if card is None:
             self.color = Cs.dark(Cs.gray)
             self._base_color = self.color
@@ -410,6 +420,7 @@ class CardWidget(rectObj):
             self.cost_text.text = "-"
             self.desc_text.text = ""
             self.note_text.text = ""
+            self._refresh_checkbox()
             return
         self._base_color = CARD_COLORS.get(card.card_type, Cs.dark(Cs.steelblue))
         self._hover_color = Cs.light(self._base_color)
@@ -419,22 +430,37 @@ class CardWidget(rectObj):
         self.cost_text.text = str(card.play_cost)
         self.desc_text.text = card.description
         self.note_text.text = ""
+        self._refresh_checkbox()
 
         self.type_text.midtop = RPoint(self.offsetRect.midtop) + RPoint(0, 12)
         self.title_text.centerx = self.offsetRect.centerx
         self.desc_text.centerx = self.offsetRect.centerx
         self.note_text.midbottom = RPoint(self.offsetRect.midbottom) - RPoint(0, 14)
 
+    def set_startup_checkbox(self, show: bool, selected: bool) -> None:
+        self.show_checkbox = show
+        self.is_selected = selected
+        self._refresh_checkbox()
+
+    def _refresh_checkbox(self) -> None:
+        if not self.show_checkbox or not self.card:
+            self.checkbox_text.text = ""
+            self.checkbox_label.text = ""
+            return
+        self.checkbox_text.text = "☑" if self.is_selected else "☐"
+        self.checkbox_label.text = "선택됨" if self.is_selected else "선택"
 
     def mark_purchased(self) -> None:
         self.purchased = True
         self.note_text.text = "구매 완료"
         self.color = Cs.dark(Cs.black)
+        self.set_startup_checkbox(False, False)
 
     def mark_selected(self, note: str) -> None:
         self.purchased = True
         self.note_text.text = note
         self.color = Cs.dark(Cs.black)
+        self.set_startup_checkbox(False, False)
 
     def update(self, enabled: bool, *, allow_click: bool = True) -> bool:
         if not self.card:
@@ -495,6 +521,7 @@ class PowerGridFinanceScene(Scene):
         self.hand_widgets: list[CardWidget] = []
         self.available_cards: list[CardData] = list(CARD_LIBRARY)
         self.startup_picks_remaining = 0
+        self.startup_selected_widgets: list[CardWidget] = []
 
     def _create_panels(self) -> None:
         self.status_panel = rectObj(pygame.Rect(40, 150, 440, 850), color=Cs.dark(Cs.black), edge=4, radius=20)
@@ -628,10 +655,12 @@ class PowerGridFinanceScene(Scene):
 
     def _prepare_startup_selection(self) -> None:
         self.startup_picks_remaining = 2
+        self.startup_selected_widgets.clear()
         self.market_cards = random.sample(self.available_cards, k=min(4, len(self.available_cards)))
         for index, widget in enumerate(self.market_widgets):
             card = self.market_cards[index] if index < len(self.market_cards) else None
             widget.set_card(card)
+            widget.set_startup_checkbox(True, False)
         self.market_layout.adjustLayout()
         self._refresh_buttons()
 
@@ -646,6 +675,7 @@ class PowerGridFinanceScene(Scene):
         for index, widget in enumerate(self.market_widgets):
             card = self.market_cards[index] if index < len(self.market_cards) else None
             widget.set_card(card)
+            widget.set_startup_checkbox(False, False)
         self.market_layout.adjustLayout()
 
     def _clear_hand(self) -> None:
@@ -661,16 +691,7 @@ class PowerGridFinanceScene(Scene):
         if widget.purchased:
             return
         if self.phase == "startup":
-            if self.startup_picks_remaining <= 0:
-                return
-            self.startup_picks_remaining -= 1
-            self.hand_cards.append(widget.card)
-            self._add_hand_card(widget.card)
-            self._remove_available_card(widget.card)
-            widget.mark_selected("선택 완료")
-            self._log(f"{widget.card.name} 카드 무료 선택.")
-            if self.startup_picks_remaining <= 0:
-                self._complete_startup_selection()
+            self._toggle_startup_pick(widget)
             return
         if self.cash < self.purchase_cost:
             self._log("현금이 부족해 카드를 구매할 수 없습니다.")
@@ -704,11 +725,51 @@ class PowerGridFinanceScene(Scene):
             self.available_cards.remove(card)
 
     def _enter_play_phase(self) -> None:
+        if self.phase == "startup":
+            self._confirm_startup_selection()
+            return
         if self.phase != "market":
             return
         self.phase = "play"
         self._log("플레이 단계: 카드를 실행하세요.")
         self._refresh_buttons()
+
+    def _toggle_startup_pick(self, widget: CardWidget) -> None:
+        if not widget.card:
+            return
+        if widget.is_selected:
+            widget.set_startup_checkbox(True, False)
+            if widget in self.startup_selected_widgets:
+                self.startup_selected_widgets.remove(widget)
+            self.startup_picks_remaining = 2 - len(self.startup_selected_widgets)
+            self._log(f"{widget.card.name} 선택 해제.")
+            self._refresh_buttons()
+            return
+        if len(self.startup_selected_widgets) >= 2:
+            self._log("이미 2장 선택했습니다. 선택 해제 후 다시 선택하세요.")
+            return
+        widget.set_startup_checkbox(True, True)
+        self.startup_selected_widgets.append(widget)
+        self.startup_picks_remaining = 2 - len(self.startup_selected_widgets)
+        self._log(f"{widget.card.name} 카드 선택.")
+        self._refresh_buttons()
+
+    def _confirm_startup_selection(self) -> None:
+        if self.phase != "startup":
+            return
+        if len(self.startup_selected_widgets) != 2:
+            self._log("시작 카드를 2장 선택해야 합니다.")
+            return
+        for widget in list(self.startup_selected_widgets):
+            if not widget.card:
+                continue
+            self.hand_cards.append(widget.card)
+            self._add_hand_card(widget.card)
+            self._remove_available_card(widget.card)
+            widget.mark_selected("선택 완료")
+            self._log(f"{widget.card.name} 카드 무료 선택.")
+        self.startup_selected_widgets.clear()
+        self._complete_startup_selection()
 
     def _enter_dispatch_phase(self) -> None:
         if self.phase != "play":
@@ -816,7 +877,7 @@ class PowerGridFinanceScene(Scene):
             self.upkeep = max(0, self.upkeep - 1)
         elif card.effect_key == "retire_aging_equipment":
             self.base_output = max(0, self.base_output - 1)
-            self.upkeep = max(0, self.upkeep - 3)
+            self.upkeep = max(0, self.upkeep - 4)
         elif card.effect_key == "demand_response_campaign":
             self.load = max(0, self.load - 2)
         elif card.effect_key == "operations_automation":
@@ -986,9 +1047,12 @@ class PowerGridFinanceScene(Scene):
         self.builder_button.set_enabled(self.phase == "select")
 
         if is_startup:
-            self.to_play_button.set_enabled(False)
+            self.to_play_button.set_label("선택 완료")
+            self.to_play_button.set_enabled(len(self.startup_selected_widgets) == 2)
             self.to_dispatch_button.set_enabled(False)
             self.end_turn_button.set_enabled(False)
+        else:
+            self.to_play_button.set_label("플레이 단계")
 
     def _refresh_status(self) -> None:
         self.turn_text.text = f"턴 {self.turn}"
