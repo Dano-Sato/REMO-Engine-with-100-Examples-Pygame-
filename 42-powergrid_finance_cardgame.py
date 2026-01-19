@@ -33,7 +33,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="초대형 CCGT",
         card_type="발전",
-        play_cost=21,
+        play_cost=31,
         description="B +8, U +11",
         effect_key="mega_ccgt",
     ),
@@ -68,7 +68,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="태양광 증설단지",
         card_type="발전",
-        play_cost=15,
+        play_cost=18,
         description="B +3, U +1",
         effect_key="solar_expansion",
     ),
@@ -431,6 +431,11 @@ class CardWidget(rectObj):
         self.note_text.text = "구매 완료"
         self.color = Cs.dark(Cs.black)
 
+    def mark_selected(self, note: str) -> None:
+        self.purchased = True
+        self.note_text.text = note
+        self.color = Cs.dark(Cs.black)
+
     def update(self, enabled: bool, *, allow_click: bool = True) -> bool:
         if not self.card:
             return False
@@ -488,6 +493,8 @@ class PowerGridFinanceScene(Scene):
         self.market_cards: list[CardData] = []
         self.hand_cards: list[CardData] = []
         self.hand_widgets: list[CardWidget] = []
+        self.available_cards: list[CardData] = list(CARD_LIBRARY)
+        self.startup_picks_remaining = 0
 
     def _create_panels(self) -> None:
         self.status_panel = rectObj(pygame.Rect(40, 150, 440, 850), color=Cs.dark(Cs.black), edge=4, radius=20)
@@ -594,12 +601,12 @@ class PowerGridFinanceScene(Scene):
             print("archetype BUG")
         self.output = self.base_output
         self.store = min(self.store, self.cap)
-        self.phase = "market"
+        self.phase = "startup"
         self.turn = 1
         self.blackout_count = 0
         self.tariff = 2
-        self._start_turn()
-        self._log(f"{self._archetype_label()} 시작! 시장에서 카드를 구매하세요.")
+        self._prepare_startup_selection()
+        self._log(f"{self._archetype_label()} 시작! 4장 중 2장을 무료로 선택하세요.")
 
     def _archetype_label(self) -> str:
         return {
@@ -619,9 +626,25 @@ class PowerGridFinanceScene(Scene):
         self._refresh_market()
         self._refresh_buttons()
 
+    def _prepare_startup_selection(self) -> None:
+        self.startup_picks_remaining = 2
+        self.market_cards = random.sample(self.available_cards, k=min(4, len(self.available_cards)))
+        for index, widget in enumerate(self.market_widgets):
+            card = self.market_cards[index] if index < len(self.market_cards) else None
+            widget.set_card(card)
+        self.market_layout.adjustLayout()
+        self._refresh_buttons()
+
+    def _complete_startup_selection(self) -> None:
+        self.phase = "market"
+        self._start_turn()
+        self._log("시작 카드 선택 완료. 시장에서 카드를 구매하세요.")
+
     def _refresh_market(self) -> None:
-        self.market_cards = random.sample(CARD_LIBRARY, k=4)
-        for widget, card in zip(self.market_widgets, self.market_cards):
+        draw_count = min(4, len(self.available_cards))
+        self.market_cards = random.sample(self.available_cards, k=draw_count) if draw_count else []
+        for index, widget in enumerate(self.market_widgets):
+            card = self.market_cards[index] if index < len(self.market_cards) else None
             widget.set_card(card)
         self.market_layout.adjustLayout()
 
@@ -633,9 +656,21 @@ class PowerGridFinanceScene(Scene):
         self.hand_layout.adjustLayout()
 
     def _buy_card(self, widget: CardWidget) -> None:
-        if self.phase != "market" or not widget.card:
+        if self.phase not in ("market", "startup") or not widget.card:
             return
         if widget.purchased:
+            return
+        if self.phase == "startup":
+            if self.startup_picks_remaining <= 0:
+                return
+            self.startup_picks_remaining -= 1
+            self.hand_cards.append(widget.card)
+            self._add_hand_card(widget.card)
+            self._remove_available_card(widget.card)
+            widget.mark_selected("선택 완료")
+            self._log(f"{widget.card.name} 카드 무료 선택.")
+            if self.startup_picks_remaining <= 0:
+                self._complete_startup_selection()
             return
         if self.cash < self.purchase_cost:
             self._log("현금이 부족해 카드를 구매할 수 없습니다.")
@@ -643,6 +678,7 @@ class PowerGridFinanceScene(Scene):
         self.cash -= self.purchase_cost
         self.hand_cards.append(widget.card)
         self._add_hand_card(widget.card)
+        self._remove_available_card(widget.card)
         widget.mark_purchased()
         self._log(f"{widget.card.name} 카드 구매.")
 
@@ -662,6 +698,10 @@ class PowerGridFinanceScene(Scene):
         self.reroll_cost += 1
         self._refresh_market()
         self._log("시장 카드가 갱신되었습니다.")
+
+    def _remove_available_card(self, card: CardData) -> None:
+        if card in self.available_cards:
+            self.available_cards.remove(card)
 
     def _enter_play_phase(self) -> None:
         if self.phase != "market":
@@ -928,6 +968,7 @@ class PowerGridFinanceScene(Scene):
         is_market = self.phase == "market"
         is_play = self.phase == "play"
         is_dispatch = self.phase == "dispatch"
+        is_startup = self.phase == "startup"
 
         self.reroll_button.set_enabled(is_market)
         self.to_play_button.set_enabled(is_market)
@@ -943,6 +984,11 @@ class PowerGridFinanceScene(Scene):
         self.contractor_button.set_enabled(self.phase == "select")
         self.operator_button.set_enabled(self.phase == "select")
         self.builder_button.set_enabled(self.phase == "select")
+
+        if is_startup:
+            self.to_play_button.set_enabled(False)
+            self.to_dispatch_button.set_enabled(False)
+            self.end_turn_button.set_enabled(False)
 
     def _refresh_status(self) -> None:
         self.turn_text.text = f"턴 {self.turn}"
@@ -974,7 +1020,7 @@ class PowerGridFinanceScene(Scene):
             self.builder_button.update()
         else:
             for widget in self.market_widgets:
-                widget.update(self.phase == "market")
+                widget.update(self.phase in ("market", "startup"))
             hand_click_used = False
             for widget in list(self.hand_widgets):
                 if widget.update(self.phase == "play", allow_click=not hand_click_used):
