@@ -40,21 +40,21 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="재생에너지 메가팩",
         card_type="발전",
-        play_cost=19,
+        play_cost=24,
         description="B +5, U +4",
         effect_key="renewable_megapack",
     ),
     CardData(
         name="노후 설비 전면 교체",
         card_type="정비",
-        play_cost=27,
+        play_cost=29,
         description="B +2, U -3",
         effect_key="full_retrofit",
     ),
     CardData(
         name="복합가스(CCGT)",
         card_type="발전",
-        play_cost=19,
+        play_cost=21,
         description="B +4, U +2",
         effect_key="ccgt",
     ),
@@ -75,7 +75,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="풍력 단지",
         card_type="발전",
-        play_cost=12,
+        play_cost=15,
         description="B +3, U +2",
         effect_key="wind_farm",
     ),
@@ -229,7 +229,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="AI 운영 최적화",
         card_type="정비",
-        play_cost=41,
+        play_cost=31,
         description="U -4, B +2",
         effect_key="ai_operation_optimization",
     ),
@@ -698,8 +698,6 @@ class PowerGridFinanceScene(Scene):
         if card.effect_key == "build_basic":
             self.base_output += 1
             self.upkeep += 1
-            if self.builder_bonus:
-                self.cash += 3
         elif card.effect_key == "nuclear_single":
             self.base_output += 10
             self.upkeep += 10
@@ -818,6 +816,8 @@ class PowerGridFinanceScene(Scene):
         elif card.effect_key == "small_reserve_contract":
             self.cash += 7
             self.store = max(0, self.store - 2)
+        if card.card_type == "발전" and self.builder_bonus:
+            self.cash += 3
 
     def _discharge_one(self) -> None:
         if self.phase != "dispatch":
