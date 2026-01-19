@@ -153,7 +153,7 @@ CARD_LIBRARY: list[CardData] = [
         name="연계선 증설",
         card_type="수출",
         play_cost=11,
-        description="P_export +1, U +3",
+        description="P_export +0.5, U +3",
         effect_key="export_line",
     ),
     CardData(
@@ -208,7 +208,7 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="노후 설비 폐기",
         card_type="정비",
-        play_cost=1,
+        play_cost=6,
         description="B -1, U -4",
         effect_key="retire_aging_equipment",
     ),
@@ -255,6 +255,48 @@ CARD_LIBRARY: list[CardData] = [
         effect_key="export_contract",
     ),
     CardData(
+        name="수출 관세 부과",
+        card_type="정책",
+        play_cost=0,
+        description="P_export -0.5, Tariff +0.5",
+        effect_key="export_tariff",
+    ),
+    CardData(
+        name="정기점검 시즌",
+        card_type="정비",
+        play_cost=7,
+        description="O -2, U -3",
+        effect_key="inspection_season",
+    ),
+    CardData(
+        name="수요반응 인센티브 지급",
+        card_type="수요",
+        play_cost=2,
+        description="L -3, Cash -3",
+        effect_key="demand_response_incentive",
+    ),
+    CardData(
+        name="전기차 충전 피크 분산",
+        card_type="수요",
+        play_cost=5,
+        description="L -2, Cap +1",
+        effect_key="ev_charging_peak_shift",
+    ),
+    CardData(
+        name="요금 동결",
+        card_type="정책",
+        play_cost=0,
+        description="Tariff -0.5, Cash +12",
+        effect_key="tariff_freeze",
+    ),
+    CardData(
+        name="배터리 리스 계약",
+        card_type="정비",
+        play_cost=3,
+        description="Cap +4, U +1",
+        effect_key="battery_leasing",
+    ),
+    CardData(
         name="요금 인상 청구",
         card_type="정책",
         play_cost=17,
@@ -278,8 +320,8 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="HVDC 수출 라인",
         card_type="수출",
-        play_cost=21,
-        description="P_export +2, U +5",
+        play_cost=16,
+        description="P_export +1, U +5",
         effect_key="hvdc_export_line",
     ),
     CardData(
@@ -851,7 +893,7 @@ class PowerGridFinanceScene(Scene):
         elif card.effect_key == "load_shedding":
             self.load = max(0, self.load - 3)
         elif card.effect_key == "export_line":
-            self.p_export += 1
+            self.p_export += 0.5
             self.upkeep += 3
         elif card.effect_key == "carbon_tax":
             self.upkeep += 7
@@ -894,6 +936,24 @@ class PowerGridFinanceScene(Scene):
         elif card.effect_key == "export_contract":
             self.p_export *= 1.5
             self.tariff -= 1
+        elif card.effect_key == "export_tariff":
+            self.p_export = max(0, self.p_export - 0.5)
+            self.tariff += 0.5
+        elif card.effect_key == "inspection_season":
+            self.output = max(0, self.output - 2)
+            self.upkeep = max(0, self.upkeep - 3)
+        elif card.effect_key == "demand_response_incentive":
+            self.load = max(0, self.load - 3)
+            self.cash -= 3
+        elif card.effect_key == "ev_charging_peak_shift":
+            self.load = max(0, self.load - 2)
+            self.cap += 1
+        elif card.effect_key == "tariff_freeze":
+            self.tariff = max(0, self.tariff - 0.5)
+            self.cash += 12
+        elif card.effect_key == "battery_leasing":
+            self.cap += 4
+            self.upkeep += 1
         elif card.effect_key == "tariff_increase_request":
             self.tariff += 1
         elif card.effect_key == "operating_credit_line":
@@ -903,7 +963,7 @@ class PowerGridFinanceScene(Scene):
             self.upkeep += 1
             self.interest_rate = max(0.0, self.interest_rate - 0.02)
         elif card.effect_key == "hvdc_export_line":
-            self.p_export += 2
+            self.p_export += 1
             self.upkeep += 5
         elif card.effect_key == "credit_rating_upgrade":
             self.interest_rate = max(0.0, self.interest_rate - 0.04)
