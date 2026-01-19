@@ -518,6 +518,81 @@ class CardWidget(rectObj):
         return False
 
 
+class ArchetypeSelectScene(Scene):
+    def initOnce(self) -> None:
+        self.background = rectObj(Rs.screenRect(), color=Cs.dark(Cs.darkslategray))
+        self.title = textObj("아키타입 선택", pos=(40, 40), size=50, color=Cs.white)
+        self.subtitle = textObj(
+            "플레이 스타일에 맞는 아키타입을 고르세요.",
+            pos=(44, 100),
+            size=24,
+            color=Cs.lightgrey,
+        )
+
+        self.archetype_panel = rectObj(pygame.Rect(120, 200, 1680, 700), color=Cs.dark(Cs.black), edge=4, radius=24)
+
+        self.archetype_items: list[dict[str, object]] = []
+        self._build_archetype_items()
+
+
+    def _build_archetype_items(self) -> None:
+        archetypes = [
+            {
+                "key": "contractor",
+                "label": "계약자",
+                "desc": "카드 구매 비용 1$, 시작 Cash 35. Debt 10에 이자율 5% 적용. 기본 출력 2, 유지비 1, 저장 0. 수출 단가 1$로 높아 잉여 수출에 강합니다.",
+            },
+            {
+                "key": "operator",
+                "label": "오퍼레이터",
+                "desc": "안정적인 운영형. 시작 Cash 16. 기본 출력 6, 유지비 3. 저장 용량 6으로 수요 변동에 유연하게 대응합니다.",
+            },
+            {
+                "key": "builder",
+                "label": "빌더",
+                "desc": "설비 증설 특화. 시작 Cash 18. 기본 출력 3, 유지비 1, 저장 0. 발전 카드 실행 시 보너스 Cash +3을 얻습니다.",
+            },
+        ]
+
+        start_x = 200
+        start_y = 300
+        row_gap = 140
+        desc_x = 640
+        desc_width = 980
+
+        for index, data in enumerate(archetypes):
+            y = start_y + index * row_gap
+            button = SimpleButton(data["label"], (start_x, y), (360, 70), lambda key=data["key"]: self._select_archetype(key))
+            description = longTextObj(data["desc"], pos=(desc_x, y + 8), size=22, color=Cs.light(Cs.white), textWidth=desc_width)
+            self.archetype_items.append(
+                {
+                    "key": data["key"],
+                    "label": data["label"],
+                    "desc": data["desc"],
+                    "button": button,
+                    "description": description,
+                }
+            )
+
+    def _select_archetype(self, archetype: str) -> None:
+        Scenes.mainScene.queue_archetype(archetype)
+        REMOGame.setCurrentScene(Scenes.mainScene)
+
+    def update(self) -> None:
+        for item in self.archetype_items:
+            button = item["button"]
+            button.update()
+
+    def draw(self) -> None:
+        self.background.draw()
+        self.title.draw()
+        self.subtitle.draw()
+        self.archetype_panel.draw()
+        for item in self.archetype_items:
+            item["button"].draw()
+            item["description"].draw()
+
+
 class PowerGridFinanceScene(Scene):
     BLACKOUT_LIMIT = 3
 
@@ -540,7 +615,12 @@ class PowerGridFinanceScene(Scene):
         self._create_buttons()
         self._create_market_widgets()
         self._refresh_status()
-        self._log("아키타입을 선택해 게임을 시작하세요.")
+
+    def init(self) -> None:
+        if self.pending_archetype:
+            archetype = self.pending_archetype
+            self.pending_archetype = None
+            self._select_archetype(archetype)
 
     def _init_state(self) -> None:
         self.cash = 20
@@ -610,13 +690,6 @@ class PowerGridFinanceScene(Scene):
         self.log_text = longTextObj("", pos=RPoint(544, 940), size=20, color=Cs.white, textWidth=1260)
 
     def _create_buttons(self) -> None:
-        self.contractor_button = SimpleButton("계약자", (80, 520), (360, 60), lambda: self._select_archetype("contractor"))
-        self.contractor_button.centerx = Rs.screenRect().centerx
-        self.operator_button = SimpleButton("오퍼레이터", (80, 600), (360, 60), lambda: self._select_archetype("operator"))
-        self.operator_button.centerx = Rs.screenRect().centerx
-        self.builder_button = SimpleButton("빌더", (80, 680), (360, 60), lambda: self._select_archetype("builder"))
-        self.builder_button.centerx = Rs.screenRect().centerx
-
         self.reroll_button = SimpleButton("리롤 (1$)", (540, 520), (220, 50), self._reroll_market)
         self.to_play_button = SimpleButton("플레이 단계", (780, 520), (220, 50), self._enter_play_phase)
         self.to_dispatch_button = SimpleButton("운영 단계", (1020, 520), (220, 50), self._enter_dispatch_phase)
@@ -641,8 +714,6 @@ class PowerGridFinanceScene(Scene):
         self.hand_layout = cardLayout(RPoint(560, 640), spacing=30, maxWidth=1260, isVertical=False)
 
     def _select_archetype(self, archetype: str) -> None:
-        if self.phase != "select":
-            return
         self.archetype = archetype
         if archetype == "contractor":
             self.purchase_cost = 1
@@ -676,6 +747,9 @@ class PowerGridFinanceScene(Scene):
         self.tariff = 2
         self._prepare_startup_selection()
         self._log(f"{self._archetype_label()} 시작! 4장 중 2장을 무료로 선택하세요.")
+
+    def queue_archetype(self, archetype: str) -> None:
+        self.pending_archetype = archetype
 
     def _archetype_label(self) -> str:
         return {
@@ -1102,10 +1176,6 @@ class PowerGridFinanceScene(Scene):
         self.pay_debt_button.set_enabled(is_dispatch)
         self.pay_all_button.set_enabled(is_dispatch)
 
-        self.contractor_button.set_enabled(self.phase == "select")
-        self.operator_button.set_enabled(self.phase == "select")
-        self.builder_button.set_enabled(self.phase == "select")
-
         if is_startup:
             self.to_play_button.set_label("선택 완료")
             self.to_play_button.set_enabled(len(self.startup_selected_widgets) == 2)
@@ -1138,28 +1208,23 @@ class PowerGridFinanceScene(Scene):
 
     def update(self) -> None:
         self._refresh_status()
-        if self.phase == "select":
-            self.contractor_button.update()
-            self.operator_button.update()
-            self.builder_button.update()
-        else:
-            for widget in self.market_widgets:
-                widget.update(self.phase in ("market", "startup"))
-            hand_click_used = False
-            for widget in list(self.hand_widgets):
-                if widget.update(self.phase == "play", allow_click=not hand_click_used):
-                    hand_click_used = True
-            self.market_layout.adjustLayout()
-            self.hand_layout.adjustLayout()
-            self.reroll_button.update()
-            self.to_play_button.update()
-            self.to_dispatch_button.update()
-            self.end_turn_button.update()
-            self.discharge_one_button.update()
-            self.discharge_all_button.update()
-            self.surplus_mode_button.update()
-            self.pay_debt_button.update()
-            self.pay_all_button.update()
+        for widget in self.market_widgets:
+            widget.update(self.phase in ("market", "startup"))
+        hand_click_used = False
+        for widget in list(self.hand_widgets):
+            if widget.update(self.phase == "play", allow_click=not hand_click_used):
+                hand_click_used = True
+        self.market_layout.adjustLayout()
+        self.hand_layout.adjustLayout()
+        self.reroll_button.update()
+        self.to_play_button.update()
+        self.to_dispatch_button.update()
+        self.end_turn_button.update()
+        self.discharge_one_button.update()
+        self.discharge_all_button.update()
+        self.surplus_mode_button.update()
+        self.pay_debt_button.update()
+        self.pay_all_button.update()
 
     def draw(self) -> None:
         self.background.draw()
@@ -1173,24 +1238,18 @@ class PowerGridFinanceScene(Scene):
 
         self.status_layout.draw()
         self.log_text.draw()
+        self.market_layout.draw()
+        self.hand_layout.draw()
 
-        if self.phase == "select":
-            self.contractor_button.draw()
-            self.operator_button.draw()
-            self.builder_button.draw()
-        else:
-            self.market_layout.draw()
-            self.hand_layout.draw()
-
-            self.reroll_button.draw()
-            self.to_play_button.draw()
-            self.to_dispatch_button.draw()
-            self.end_turn_button.draw()
-            self.discharge_one_button.draw()
-            self.discharge_all_button.draw()
-            self.surplus_mode_button.draw()
-            self.pay_debt_button.draw()
-            self.pay_all_button.draw()
+        self.reroll_button.draw()
+        self.to_play_button.draw()
+        self.to_dispatch_button.draw()
+        self.end_turn_button.draw()
+        self.discharge_one_button.draw()
+        self.discharge_all_button.draw()
+        self.surplus_mode_button.draw()
+        self.pay_debt_button.draw()
+        self.pay_all_button.draw()
 
         if self.game_over:
             overlay = rectObj(pygame.Rect(0, 0, 1920, 1080), color=Cs.dark(Cs.black))
@@ -1202,10 +1261,11 @@ class PowerGridFinanceScene(Scene):
 
 
 class Scenes:
+    archetypeScene = ArchetypeSelectScene()
     mainScene = PowerGridFinanceScene()
 
 
 if __name__ == "__main__":
     window = REMOGame(window_resolution=(1920, 1080), screen_size=(1920, 1080), fullscreen=False, caption="전력망 x 금융 카드 운영")
-    window.setCurrentScene(Scenes.mainScene)
+    window.setCurrentScene(Scenes.archetypeScene)
     window.run()
