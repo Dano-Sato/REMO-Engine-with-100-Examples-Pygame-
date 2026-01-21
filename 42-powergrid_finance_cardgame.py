@@ -110,14 +110,14 @@ CARD_LIBRARY: list[CardData] = [
     CardData(
         name="스팟 전력 구매",
         card_type="즉발",
-        play_cost=6,
+        play_cost=4,
         description="O +2 (즉발 조달)",
         effect_key="spot_purchase",
     ),
     CardData(
         name="비상 전력 수입",
         card_type="즉발",
-        play_cost=10,
+        play_cost=7,
         description="O +4 (긴급 수입)",
         effect_key="emergency_import",
     ),
@@ -1196,6 +1196,11 @@ class PowerGridFinanceScene(Scene):
         self.load_text.text = f"Load: {self.load}"
         self.output_text.text = f"Output: {self.output}"
         self.base_text.text = f"Base: {self.base_output}"
+
+
+
+
+        
         self.store_text.text = f"Store: {self.store}/{self.cap}"
         self.upkeep_text.text = f"Upkeep: {self.upkeep}$"
         self.bo_text.text = f"Blackout: {self.blackout_count}/{self.BLACKOUT_LIMIT}"
