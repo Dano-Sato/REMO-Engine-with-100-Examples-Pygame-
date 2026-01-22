@@ -222,12 +222,12 @@ class mainScene(Scene):
         self.pending_row: str | None = None
         self.selected_cards: list[CardData] = []
 
-        self.title = textObj("REMO Style 솔로 카드 엔진", size=36, color=Cs.white)
+        self.title = textObj("Splendor Style 솔로 카드 엔진", size=36, color=Cs.white)
         self.title.pos = RPoint(40, 20)
 
         self.status = longTextObj("", pos=RPoint(40, 70), size=18, color=Cs.white, textWidth=700)
 
-        self.log_area = longTextObj("", pos=RPoint(40, 520), size=18, color=Cs.light(Cs.grey))
+        self.log_area = longTextObj("", pos=RPoint(40, 660), size=18, color=Cs.light(Cs.grey))
 
         self.action_buttons = []
         self._create_action_buttons()
@@ -328,9 +328,9 @@ class mainScene(Scene):
         self.facility_widgets.clear()
 
         start_positions = {
-            "discount": RPoint(400, 120),
-            "prestige": RPoint(400, 380),
-            "score": RPoint(900, 120),
+            "discount": RPoint(300, 160),
+            "prestige": RPoint(300, 410),
+            "score": RPoint(1100, 160),
         }
         for key in ("discount", "prestige", "score"):
             start = start_positions[key]
@@ -338,7 +338,7 @@ class mainScene(Scene):
                 widget = CardWidget(card, self._on_card_clicked)
                 widget.pos = start + RPoint(idx * 190, 0)
                 self.market_widgets[key].append(widget)
-        facility_start = RPoint(900, 380)
+        facility_start = RPoint(1100, 410)
         for idx, facility in enumerate(self.state.market["facility"]):
             widget = FacilityWidget(facility, self._on_facility_market_clicked)
             widget.pos = facility_start + RPoint(idx * 210, 0)
