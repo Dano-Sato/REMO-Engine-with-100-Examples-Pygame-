@@ -214,7 +214,7 @@ class WorkshopScene(Scene):
         ] + [
             self._make_card("톱니 수집") for _ in range(2)
         ] + [
-            self._make_card("마나 불씨")
+            self._make_card("마나 불씨") for _ in range(2)
         ]
 
         self.deck = self.start_deck[:]
@@ -293,7 +293,7 @@ class WorkshopScene(Scene):
             ),
             "마이스터": CardSpec(
                 name="마이스터",
-                cost=6,
+                cost=8,
                 card_type="인물",
                 description="카드+1 액션+2 / 이번 턴 첫 제작 상품 가치 +6",
                 draw_cards=1,
@@ -301,15 +301,15 @@ class WorkshopScene(Scene):
             ),
             "공장 감독관": CardSpec(
                 name="공장 감독관",
-                cost=4,
+                cost=5,
                 card_type="인물",
-                description="카드+1 액션+2 / 이번 턴 제작 상품 1장당 골드+1",
+                description="카드+1 액션+2 / 이번 턴 제작 상품 1장당 골드+2",
                 draw_cards=1,
                 action_gain=action_gain(actions=2),
             ),
             "감정사": CardSpec(
                 name="감정사",
-                cost=3,
+                cost=4,
                 card_type="인물",
                 description="카드+1 액션+1 / 이번 턴 첫 상품 판매시 골드+3",
                 draw_cards=1,
@@ -317,11 +317,11 @@ class WorkshopScene(Scene):
             ),
             "정보상": CardSpec(
                 name="정보상",
-                cost=3,
+                cost=4,
                 card_type="인물",
-                description="카드+2 액션+2",
+                description="카드+2 액션+1",
                 draw_cards=2,
-                action_gain=action_gain(actions=2),
+                action_gain=action_gain(actions=1),
             ),
             "밀수업자": CardSpec(
                 name="밀수업자",
@@ -333,10 +333,10 @@ class WorkshopScene(Scene):
             ),
             "장물상": CardSpec(
                 name="장물상",
-                cost=3,
+                cost=4,
                 card_type="인물",
-                description="골드+1 판매+1",
-                action_gain=action_gain(gold=1, sells=1),
+                description="골드+3 판매+1 액션+1",
+                action_gain=action_gain(gold=3, sells=1, actions=1),
             ),
             "대장장이": CardSpec(
                 name="대장장이",
@@ -347,24 +347,25 @@ class WorkshopScene(Scene):
             ),
             "상인": CardSpec(
                 name="상인",
-                cost=3,
+                cost=4,
                 card_type="인물",
-                description="골드 +2",
-                action_gain=action_gain(gold=2),
+                description="골드 +3,판매+1,구매+1",
+                action_gain=action_gain(gold=3,sells=1,buys=1),
             ),
             "대상인": CardSpec(
                 name="대상인",
-                cost=6,
+                cost=7,
                 card_type="인물",
-                description="골드 +3, 판매+1, 구매+1",
-                action_gain=action_gain(gold=3,sells=1,buys=1),
+                description="골드 +5, 판매+1, 구매+1",
+                action_gain=action_gain(gold=5,sells=1,buys=1),
             ),
             "마정석 코어": CardSpec(
                 name="마정석 코어",
-                cost=6,
+                cost=4,
                 card_type="장치",
-                description="마나 +3",
-                action_gain=action_gain(mana=3),
+                description="마나 +2, 액션+1, 카드+1",
+                action_gain=action_gain(mana=2,actions=1),
+                draw_cards=1
             ),
             "톱니 제련소": CardSpec(
                 name="톱니 제련소",
@@ -409,8 +410,8 @@ class WorkshopScene(Scene):
                 name="룬 주입",
                 cost=3,
                 card_type="의식",
-                description="마나+1 / 이번 턴 제작 상품 가치 +2",
-                action_gain=action_gain(mana=1),
+                description="마나-1 / 이번 턴 제작 상품 가치 +2",
+                action_cost=action_cost(mana=1),
                 crafted_bonus=2,
             ),
             "룬 각인": CardSpec(
@@ -466,9 +467,10 @@ class WorkshopScene(Scene):
             ),
             "설계실": CardSpec(
                 name="설계실",
-                cost=4,
+                cost=5,
                 card_type="시설",
-                description="덱 위 4장 확인 후 2장 손패 / 나머지 버림 액션+1",
+                description="카드+3, 액션+1",
+                draw_cards=3,
                 action_gain=action_gain(actions=1),
             ),
             "에테르 정제소": CardSpec(
@@ -482,7 +484,7 @@ class WorkshopScene(Scene):
             ),
             "증기압 조절기": CardSpec(
                 name="증기압 조절기",
-                cost=3,
+                cost=4,
                 card_type="장치",
                 description="마나-1 / 액션+3, 카드+2",
                 action_cost=action_cost(mana=1),
@@ -491,9 +493,9 @@ class WorkshopScene(Scene):
             ),
             "부품 프레스": CardSpec(
                 name="부품 프레스",
-                cost=3,
+                cost=4,
                 card_type="장치",
-                description="금속-1 / 표준 부품 제작",
+                description="금속-1 / 표준 부품 2장 제작",
                 action_cost=action_cost(metal=1),
                 craft_product="표준 부품",
             ),
@@ -525,11 +527,9 @@ class WorkshopScene(Scene):
                 name="기계식 시계",
                 cost=0,
                 card_type="상품",
-                description="액션: 카드+1 액션+1",
+                description="판매 전용",
                 sell_value=14,
                 is_product=True,
-                draw_cards=1,
-                action_gain=action_gain(actions=1),
             ),
             "룬 조각": CardSpec(
                 name="룬 조각",
@@ -683,21 +683,6 @@ class WorkshopScene(Scene):
             self.add_log("버림패를 섞어 덱으로 되돌렸습니다.")
         return self.deck.pop()
 
-    def resolve_design_room(self) -> None:
-        drawn: list[CardInstance] = []
-        for _ in range(4):
-            card = self.draw_from_deck()
-            if not card:
-                break
-            drawn.append(card)
-        if not drawn:
-            self.add_log("설계실: 덱에 카드가 없습니다.")
-            return
-        to_hand = drawn[:2]
-        to_discard = drawn[2:]
-        self.hand.extend(to_hand)
-        self.discard.extend(to_discard)
-        self.add_log(f"설계실: 손패 {len(to_hand)}장, 버림 {len(to_discard)}장")
 
     def on_hand_click(self, widget: WorkshopCard) -> None:
         card = widget.card
@@ -782,13 +767,18 @@ class WorkshopScene(Scene):
             if self.first_craft_pending:
                 bonus += self.first_craft_bonus
                 self.first_craft_pending = False
-            crafted = self._make_card(spec.craft_product, sell_bonus=bonus)
-            self.hand.append(crafted)
+            craft_count = 2 if spec.name == "부품 프레스" else 1
+            for _ in range(craft_count):
+                crafted = self._make_card(spec.craft_product, sell_bonus=bonus)
+                self.hand.append(crafted)
             total_bonus_text = f"(+{bonus}G 보너스)" if bonus else ""
-            self.add_log(f"{spec.craft_product} 제작 {total_bonus_text}")
+            if craft_count == 1:
+                self.add_log(f"{spec.craft_product} 제작 {total_bonus_text}")
+            else:
+                self.add_log(f"{spec.craft_product} {craft_count}장 제작 {total_bonus_text}")
             if self.craft_gold_bonus:
-                self.gold += self.craft_gold_bonus
-                self.add_log(f"제작 보너스 골드 +{self.craft_gold_bonus}G")
+                self.gold += self.craft_gold_bonus * craft_count
+                self.add_log(f"제작 보너스 골드 +{self.craft_gold_bonus * craft_count}G")
         if spec.crafted_bonus:
             self.crafted_bonus += spec.crafted_bonus
             self.add_log(f"이번 턴 제작 상품 가치 +{spec.crafted_bonus}G")
@@ -804,12 +794,12 @@ class WorkshopScene(Scene):
             self.enchant_bonus = 3
             self.add_log("각인 대상: 상품 1장 선택")
         if spec.name == "마이스터":
-            self.first_craft_bonus = 6
+            self.first_craft_bonus += 6
             self.first_craft_pending = True
             self.add_log("이번 턴 첫 제작 상품 가치 +6G")
         if spec.name == "공장 감독관":
-            self.craft_gold_bonus += 1
-            self.add_log("이번 턴 제작 상품 1장당 골드 +1G")
+            self.craft_gold_bonus += 2
+            self.add_log("이번 턴 제작 상품 1장당 골드 +2G")
         if spec.name == "일괄 납품":
             self.sell_gold_bonus += 1
             self.add_log("이번 턴 판매 상품 1장당 골드 +1G")
@@ -817,8 +807,6 @@ class WorkshopScene(Scene):
             self.first_sale_bonus = 3
             self.first_sale_pending = True
             self.add_log("이번 턴 첫 상품 판매 골드 +3G")
-        if spec.name == "설계실":
-            self.resolve_design_room()
 
         self.hand.remove(card)
         self.discard.append(card)
