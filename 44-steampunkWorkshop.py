@@ -168,14 +168,22 @@ class WorkshopScene(Scene):
         self.gear = 0
         self.metal = 0
         self.mana = 0
-        self.gold = 7
+        self.gold = 10
         self.actions = 1
         self.buys = 1
         self.sells = 1
         self.crafted_bonus = 0
+        self.first_craft_bonus = 0
+        self.first_craft_pending = False
+        self.craft_gold_bonus = 0
+        self.sell_gold_bonus = 0
+        self.first_sale_bonus = 0
+        self.first_sale_pending = False
         self.auction_remaining = 0
         self.auction_bonus = 0
         self.trash_remaining = 0
+        self.enchant_remaining = 0
+        self.enchant_bonus = 0
 
         self.logs: list[str] = []
 
@@ -200,11 +208,13 @@ class WorkshopScene(Scene):
 
         self.card_specs = self._build_card_specs()
         self.start_deck = [
-            self._make_card("상인") for _ in range(5)
+            self._make_card("잔돈 주머니") for _ in range(3)
         ] + [
-            self._make_card("금속 채굴권") for _ in range(4)
+            self._make_card("고철 수집") for _ in range(2)
         ] + [
-            self._make_card("마정석 코어")
+            self._make_card("톱니 수집") for _ in range(2)
+        ] + [
+            self._make_card("마나 불씨")
         ]
 
         self.deck = self.start_deck[:]
@@ -280,6 +290,53 @@ class WorkshopScene(Scene):
                 description="액션 +2",
                 action_gain=action_gain(actions=2),
             ),
+            "마이스터": CardSpec(
+                name="마이스터",
+                cost=6,
+                card_type="인물",
+                description="카드+1 액션+2 / 이번 턴 첫 제작 상품 가치 +6",
+                draw_cards=1,
+                action_gain=action_gain(actions=2),
+            ),
+            "공장 감독관": CardSpec(
+                name="공장 감독관",
+                cost=4,
+                card_type="인물",
+                description="카드+1 액션+2 / 이번 턴 제작 상품 1장당 골드+1",
+                draw_cards=1,
+                action_gain=action_gain(actions=2),
+            ),
+            "감정사": CardSpec(
+                name="감정사",
+                cost=3,
+                card_type="인물",
+                description="카드+1 액션+1 / 이번 턴 첫 상품 판매시 골드+3",
+                draw_cards=1,
+                action_gain=action_gain(actions=1),
+            ),
+            "정보상": CardSpec(
+                name="정보상",
+                cost=3,
+                card_type="인물",
+                description="카드+2 액션+2",
+                draw_cards=2,
+                action_gain=action_gain(actions=2),
+            ),
+            "밀수업자": CardSpec(
+                name="밀수업자",
+                cost=4,
+                card_type="인물",
+                description="골드+2 카드+1 액션+1",
+                draw_cards=1,
+                action_gain=action_gain(gold=2, actions=1),
+            ),
+            "장물상": CardSpec(
+                name="장물상",
+                cost=3,
+                card_type="인물",
+                description="골드+1 판매+1",
+                action_gain=action_gain(gold=1, sells=1),
+            ),
             "대장장이": CardSpec(
                 name="대장장이",
                 cost=4,
@@ -298,8 +355,8 @@ class WorkshopScene(Scene):
                 name="대상인",
                 cost=6,
                 card_type="인물",
-                description="골드 +3",
-                action_gain=action_gain(gold=3),
+                description="골드 +3, 판매+1, 구매+1",
+                action_gain=action_gain(gold=3,sells=1,buys=1),
             ),
             "마정석 코어": CardSpec(
                 name="마정석 코어",
@@ -349,11 +406,17 @@ class WorkshopScene(Scene):
             ),
             "룬 주입": CardSpec(
                 name="룬 주입",
-                cost=5,
+                cost=3,
                 card_type="의식",
                 description="마나+1 / 이번 턴 제작 상품 가치 +2",
                 action_gain=action_gain(mana=1),
                 crafted_bonus=2,
+            ),
+            "룬 각인": CardSpec(
+                name="룬 각인",
+                cost=5,
+                card_type="의식",
+                description="손패의 상품 1장의 판매가 +3",
             ),
             "브로치 제작": CardSpec(
                 name="브로치 제작",
@@ -385,6 +448,28 @@ class WorkshopScene(Scene):
                 draw_cards=2,
                 action_gain=action_gain(actions=1, mana=1),
             ),
+            "유통망": CardSpec(
+                name="유통망",
+                cost=4,
+                card_type="시설",
+                description="구매+1 판매+1 액션+1",
+                action_gain=action_gain(buys=1, sells=1, actions=1),
+            ),
+            "분해 작업": CardSpec(
+                name="분해 작업",
+                cost=3,
+                card_type="시설",
+                description="손패 카드 1장 폐기 / 금속+1 톱니+2",
+                action_gain=action_gain(metal=1, gear=2),
+                trash_cards=1,
+            ),
+            "설계실": CardSpec(
+                name="설계실",
+                cost=4,
+                card_type="시설",
+                description="덱 위 4장 확인 후 2장 손패 / 나머지 버림 액션+1",
+                action_gain=action_gain(actions=1),
+            ),
             "황동 보일러실": CardSpec(
                 name="황동 보일러실",
                 cost=3,
@@ -400,13 +485,110 @@ class WorkshopScene(Scene):
                 description="카드+3",
                 draw_cards=3,
             ),
+            "에테르 정제소": CardSpec(
+                name="에테르 정제소",
+                cost=4,
+                card_type="시설",
+                description="금속-1 / 골드+2, 마나+2 카드+1",
+                action_cost=action_cost(metal=1),
+                action_gain=action_gain(mana=2,gold=2),
+                draw_cards=1,
+            ),
             "증기압 조절기": CardSpec(
                 name="증기압 조절기",
                 cost=3,
                 card_type="장치",
-                description="마나-1 / 액션+3",
+                description="마나-1 / 액션+3, 카드+2",
                 action_cost=action_cost(mana=1),
                 action_gain=action_gain(actions=3),
+                draw_cards=2,
+            ),
+            "부품 프레스": CardSpec(
+                name="부품 프레스",
+                cost=3,
+                card_type="장치",
+                description="금속-1 / 표준 부품 제작",
+                action_cost=action_cost(metal=1),
+                craft_product="표준 부품",
+            ),
+            "시계 제작": CardSpec(
+                name="시계 제작",
+                cost=4,
+                card_type="공정",
+                description="톱니-2 금속-1 마나-1 / 기계식 시계 제작",
+                action_cost=action_cost(gear=2, metal=1, mana=1),
+                craft_product="기계식 시계",
+            ),
+            "룬 조각 정련": CardSpec(
+                name="룬 조각 정련",
+                cost=3,
+                card_type="공정",
+                description="마나-1 / 룬 조각 제작",
+                action_cost=action_cost(mana=1),
+                craft_product="룬 조각",
+            ),
+            "표준 부품": CardSpec(
+                name="표준 부품",
+                cost=0,
+                card_type="상품",
+                description="판매 전용",
+                sell_value=3,
+                is_product=True,
+            ),
+            "기계식 시계": CardSpec(
+                name="기계식 시계",
+                cost=0,
+                card_type="상품",
+                description="액션: 카드+1 액션+1",
+                sell_value=14,
+                is_product=True,
+                draw_cards=1,
+                action_gain=action_gain(actions=1),
+            ),
+            "룬 조각": CardSpec(
+                name="룬 조각",
+                cost=0,
+                card_type="상품",
+                description="액션: 마나+2",
+                sell_value=4,
+                is_product=True,
+                action_gain=action_gain(mana=2),
+            ),
+            "일괄 납품": CardSpec(
+                name="일괄 납품",
+                cost=2,
+                card_type="공정",
+                description="판매+2 / 이번 턴 판매 상품 1장당 골드+1",
+                action_gain=action_gain(sells=2),
+            ),
+            "잔돈 주머니": CardSpec(
+                name="잔돈 주머니",
+                cost=0,
+                card_type="기본",
+                description="골드+1, 액션+1",
+                action_gain=action_gain(gold=1,actions=1),
+            ),
+            "고철 수집": CardSpec(
+                name="고철 수집",
+                cost=0,
+                card_type="기본",
+                description="금속+1",
+                action_gain=action_gain(metal=1),
+            ),
+            "톱니 수집": CardSpec(
+                name="톱니 수집",
+                cost=0,
+                card_type="기본",
+                description="톱니+2",
+                action_gain=action_gain(gear=2),
+            ),
+            "마나 불씨": CardSpec(
+                name="마나 불씨",
+                cost=0,
+                card_type="기본",
+                description="마나+1 카드+1, 액션+1",
+                action_gain=action_gain(mana=1,actions=1),
+                draw_cards=1,
             ),
         }
         return specs
@@ -424,6 +606,7 @@ class WorkshopScene(Scene):
                 spec.crafted_bonus,
                 spec.auction,
                 spec.trash_cards,
+                spec.name == "룬 각인",
             ]
         )
 
@@ -436,6 +619,10 @@ class WorkshopScene(Scene):
         while len(self.market) < 6:
             choice = random.choice(purchasable)
             self.market.append(self._make_card(choice))
+
+    def reset_market(self) -> None:
+        self.market.clear()
+        self.refresh_market()
 
     def _rebuild_widgets(self) -> None:
         self.hand_widgets = [WorkshopCard(card, self.on_hand_click, is_market=False) for card in self.hand]
@@ -456,6 +643,9 @@ class WorkshopScene(Scene):
     def set_mode(self, mode: str) -> None:
         if self.trash_remaining > 0:
             self.add_log("폐기 모드 중에는 모드를 변경할 수 없습니다.")
+            return
+        if self.enchant_remaining > 0:
+            self.add_log("각인 대상 선택 중에는 모드를 변경할 수 없습니다.")
             return
         self.mode = mode
         self.add_log(f"모드 변경: {mode}")
@@ -492,14 +682,36 @@ class WorkshopScene(Scene):
 
     def draw_cards(self, count: int) -> None:
         for _ in range(count):
-            if not self.deck:
-                if not self.discard:
-                    return
-                self.deck = self.discard[:]
-                random.shuffle(self.deck)
-                self.discard.clear()
-                self.add_log("버림패를 섞어 덱으로 되돌렸습니다.")
-            self.hand.append(self.deck.pop())
+            card = self.draw_from_deck()
+            if not card:
+                return
+            self.hand.append(card)
+
+    def draw_from_deck(self) -> CardInstance | None:
+        if not self.deck:
+            if not self.discard:
+                return None
+            self.deck = self.discard[:]
+            random.shuffle(self.deck)
+            self.discard.clear()
+            self.add_log("버림패를 섞어 덱으로 되돌렸습니다.")
+        return self.deck.pop()
+
+    def resolve_design_room(self) -> None:
+        drawn: list[CardInstance] = []
+        for _ in range(4):
+            card = self.draw_from_deck()
+            if not card:
+                break
+            drawn.append(card)
+        if not drawn:
+            self.add_log("설계실: 덱에 카드가 없습니다.")
+            return
+        to_hand = drawn[:2]
+        to_discard = drawn[2:]
+        self.hand.extend(to_hand)
+        self.discard.extend(to_discard)
+        self.add_log(f"설계실: 손패 {len(to_hand)}장, 버림 {len(to_discard)}장")
 
     def on_hand_click(self, widget: WorkshopCard) -> None:
         card = widget.card
@@ -511,11 +723,28 @@ class WorkshopScene(Scene):
             self._refresh_ui()
             return
 
+        if self.enchant_remaining > 0:
+            if not card.spec.is_product:
+                self.add_log("상품 카드만 각인할 수 있습니다.")
+                return
+            card.sell_bonus += self.enchant_bonus
+            self.enchant_remaining -= 1
+            self.add_log(f"{card.spec.name} 판매가 +{self.enchant_bonus}G")
+            if self.enchant_remaining == 0:
+                self.enchant_bonus = 0
+            self._rebuild_widgets()
+            self._refresh_ui()
+            return
+
         if self.auction_remaining > 0 and card.spec.is_product:
             self.hand.remove(card)
-            self.gold += card.sell_value + self.auction_bonus
+            bonus = self.sell_gold_bonus
+            if self.first_sale_pending:
+                bonus += self.first_sale_bonus
+                self.first_sale_pending = False
+            self.gold += card.sell_value + self.auction_bonus + bonus
             self.auction_remaining -= 1
-            self.add_log(f"경매로 {card.spec.name} 판매 (+{card.sell_value + self.auction_bonus}G)")
+            self.add_log(f"경매로 {card.spec.name} 판매 (+{card.sell_value + self.auction_bonus + bonus}G)")
             if self.auction_remaining == 0:
                 self.add_log("경매 종료")
             self._rebuild_widgets()
@@ -531,8 +760,12 @@ class WorkshopScene(Scene):
                 return
             self.hand.remove(card)
             self.sells -= 1
-            self.gold += card.sell_value
-            self.add_log(f"{card.spec.name} 판매 (+{card.sell_value}G)")
+            bonus = self.sell_gold_bonus
+            if self.first_sale_pending:
+                bonus += self.first_sale_bonus
+                self.first_sale_pending = False
+            self.gold += card.sell_value + bonus
+            self.add_log(f"{card.spec.name} 판매 (+{card.sell_value + bonus}G)")
             self._rebuild_widgets()
             self._refresh_ui()
             return
@@ -559,10 +792,17 @@ class WorkshopScene(Scene):
         if spec.draw_cards:
             self.draw_cards(spec.draw_cards)
         if spec.craft_product:
-            crafted = self._make_card(spec.craft_product, sell_bonus=self.crafted_bonus)
+            bonus = self.crafted_bonus
+            if self.first_craft_pending:
+                bonus += self.first_craft_bonus
+                self.first_craft_pending = False
+            crafted = self._make_card(spec.craft_product, sell_bonus=bonus)
             self.hand.append(crafted)
-            bonus_text = f"(+{self.crafted_bonus}G 보너스)" if self.crafted_bonus else ""
-            self.add_log(f"{spec.craft_product} 제작 {bonus_text}")
+            total_bonus_text = f"(+{bonus}G 보너스)" if bonus else ""
+            self.add_log(f"{spec.craft_product} 제작 {total_bonus_text}")
+            if self.craft_gold_bonus:
+                self.gold += self.craft_gold_bonus
+                self.add_log(f"제작 보너스 골드 +{self.craft_gold_bonus}G")
         if spec.crafted_bonus:
             self.crafted_bonus += spec.crafted_bonus
             self.add_log(f"이번 턴 제작 상품 가치 +{spec.crafted_bonus}G")
@@ -572,7 +812,27 @@ class WorkshopScene(Scene):
             self.add_log("경매 시작: 상품 최대 3장 +2G")
         if spec.trash_cards:
             self.trash_remaining = spec.trash_cards
-            self.add_log("폐기 모드: 최대 2장 선택")
+            self.add_log(f"폐기 모드: {spec.trash_cards}장 선택")
+        if spec.name == "룬 각인":
+            self.enchant_remaining = 1
+            self.enchant_bonus = 3
+            self.add_log("각인 대상: 상품 1장 선택")
+        if spec.name == "마이스터":
+            self.first_craft_bonus = 6
+            self.first_craft_pending = True
+            self.add_log("이번 턴 첫 제작 상품 가치 +6G")
+        if spec.name == "공장 감독관":
+            self.craft_gold_bonus += 1
+            self.add_log("이번 턴 제작 상품 1장당 골드 +1G")
+        if spec.name == "일괄 납품":
+            self.sell_gold_bonus += 1
+            self.add_log("이번 턴 판매 상품 1장당 골드 +1G")
+        if spec.name == "감정사":
+            self.first_sale_bonus = 3
+            self.first_sale_pending = True
+            self.add_log("이번 턴 첫 상품 판매 골드 +3G")
+        if spec.name == "설계실":
+            self.resolve_design_room()
 
         self.hand.remove(card)
         self.discard.append(card)
@@ -608,11 +868,21 @@ class WorkshopScene(Scene):
         self.buys = 1
         self.sells = 1
         self.crafted_bonus = 0
+        self.first_craft_bonus = 0
+        self.first_craft_pending = False
+        self.craft_gold_bonus = 0
+        self.sell_gold_bonus = 0
+        self.first_sale_bonus = 0
+        self.first_sale_pending = False
         self.auction_remaining = 0
         self.auction_bonus = 0
         self.trash_remaining = 0
+        self.enchant_remaining = 0
+        self.enchant_bonus = 0
         self.turn += 1
+        self.mode = "action"
         self.draw_cards(5)
+        self.reset_market()
         self._rebuild_widgets()
         self._refresh_ui()
 
@@ -629,6 +899,8 @@ class WorkshopScene(Scene):
             extra = f" (경매 {self.auction_remaining}회 남음)"
         if self.trash_remaining > 0:
             extra = f" (폐기 {self.trash_remaining}장 선택)"
+        if self.enchant_remaining > 0:
+            extra = " (각인 대상 선택)"
         self.mode_text.text = f"현재 모드: {mode_korean}{extra}"
         for button in self.mode_buttons:
             button.set_active(button.mode_key == self.mode)
