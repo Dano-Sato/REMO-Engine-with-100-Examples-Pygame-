@@ -1236,6 +1236,15 @@ class graphicObj(interpolableObj):
     def center(self,_center):
         self.__adjustPosBy("center",_center)
 
+    
+
+    @property
+    def topleft(self):
+        return self.pos
+    
+    @topleft.setter
+    def topleft(self,_topleft):
+        self.pos = _topleft
 
     @property
     def topright(self):
