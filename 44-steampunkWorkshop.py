@@ -287,7 +287,8 @@ class WorkshopScene(Scene):
                 name="작업반장",
                 cost=3,
                 card_type="인물",
-                description="액션 +2",
+                description="액션 +2, 카드+1",
+                draw_cards=1,
                 action_gain=action_gain(actions=2),
             ),
             "마이스터": CardSpec(
@@ -385,8 +386,8 @@ class WorkshopScene(Scene):
                 name="금속 채굴권",
                 cost=4,
                 card_type="계약",
-                description="금속+1 액션+1",
-                action_gain=action_gain(metal=1, actions=1),
+                description="금속+2 액션+1",
+                action_gain=action_gain(metal=2, actions=1),
             ),
             "톱니 판매 계약": CardSpec(
                 name="톱니 판매 계약",
@@ -469,21 +470,6 @@ class WorkshopScene(Scene):
                 card_type="시설",
                 description="덱 위 4장 확인 후 2장 손패 / 나머지 버림 액션+1",
                 action_gain=action_gain(actions=1),
-            ),
-            "황동 보일러실": CardSpec(
-                name="황동 보일러실",
-                cost=3,
-                card_type="시설",
-                description="카드+1 액션+2",
-                draw_cards=1,
-                action_gain=action_gain(actions=2),
-            ),
-            "루프탑 공방": CardSpec(
-                name="루프탑 공방",
-                cost=4,
-                card_type="시설",
-                description="카드+3",
-                draw_cards=3,
             ),
             "에테르 정제소": CardSpec(
                 name="에테르 정제소",
