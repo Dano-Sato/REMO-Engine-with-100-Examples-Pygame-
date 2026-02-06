@@ -1435,49 +1435,52 @@ class graphicObj(interpolableObj):
 
         # id가 없으므로 childs의 재귀적 union을 통해 전체 영역을 계산
         r = self.boundary
-        
-        bp = RPoint(r.x,r.y) #position of boundary
-        cache = REMOGame._lastStartedWindow.surface_pool.get_surface((r.w,r.h))
+        bp = RPoint(r.x, r.y) #position of boundary
+        cache = REMOGame._lastStartedWindow.surface_pool.get_surface((r.w, r.h))
 
-        depth_excluded = sorted(set(self.childs.keys()) - self._hidedDepth)
+        # 숨겨진 depth를 제외하고 정렬한 depth 목록
+        hided_depth = self._hidedDepth
+        visible_depths = [depth for depth in sorted(self.childs.keys()) if depth not in hided_depth]
 
-        split_point = next((i for i, d in enumerate(depth_excluded) if d >= 0), len(depth_excluded))
-        negative_depths = depth_excluded[:split_point]
-        positive_depths = depth_excluded[split_point:]
+        blend_flag = pygame.BLEND_ALPHA_SDL2
+        blit = cache.blit
+        child_lists = self.childs
 
         ##depth가 음수인 차일드들을 먼저 그린다.
-        for depth in negative_depths:
-            l = self.childs[depth]
-            for c in l:
-                ccache,cpos,_ = c._getCache()
-                p = cpos-bp
-                cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+        for depth in visible_depths:
+            if depth >= 0:
+                break
+            for c in child_lists[depth]:
+                ccache, cpos, _ = c._getCache()
+                blit(ccache, (cpos - bp).toTuple(), special_flags=blend_flag)
 
-        cache.blit(self.graphic,(self.geometryPos-bp).toTuple())
+        geometry_pos = self.geometryPos
+        blit(self.graphic, (geometry_pos - bp).toTuple())
 
         ##depth가 양수인 차일드들을 그린다.
-        for depth in positive_depths:
-            l = self.childs[depth]
-            if depth==0 and self.isViewport(): ##뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
-                # 현재 geometry 기준으로 클리핑 영역 설정
+        viewport_mode = self.isViewport()
+        viewport_geometry = self.geometry if viewport_mode else None
+        for depth in visible_depths:
+            if depth < 0:
+                continue
+
+            l = child_lists[depth]
+            if depth == 0 and viewport_mode: ##뷰포트일 경우, depth 0의 차일드는 rect 안쪽에 그려진다.
                 old_clip = cache.get_clip()
-                clip_rect = pygame.Rect((self.geometryPos-bp).toTuple(), self.rect.size)
+                clip_rect = pygame.Rect((geometry_pos - bp).toTuple(), self.rect.size)
                 cache.set_clip(clip_rect)
-                
+
                 # 클리핑 영역과 겹치는 child들만 필터링
                 for c in l:
                     ccache, cpos, _ = c._getCache()
-                    cache_boundary = pygame.Rect(cpos.x, cpos.y, ccache.get_rect().w, ccache.get_rect().h)
-                    if cache_boundary.colliderect(self.geometry):
-                        cache.blit(ccache, (cpos-bp).toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
-                
-                # 클리핑 복원
+                    if pygame.Rect(cpos.x, cpos.y, ccache.get_width(), ccache.get_height()).colliderect(viewport_geometry):
+                        blit(ccache, (cpos - bp).toTuple(), special_flags=blend_flag)
+
                 cache.set_clip(old_clip)
             else:
                 for c in l:
-                    ccache,cpos,_ = c._getCache()
-                    p = cpos-bp
-                    cache.blit(ccache,p.toTuple(),special_flags=pygame.BLEND_ALPHA_SDL2)
+                    ccache, cpos, _ = c._getCache()
+                    blit(ccache, (cpos - bp).toTuple(), special_flags=blend_flag)
 
         cache.set_alpha(self.alpha)
         texture = Rs.render_engine.surface_to_texture(cache)
@@ -3101,5 +3104,4 @@ class dialogObj(rectObj):
         return Rs.isPopup(self)
 
                 
-
 
