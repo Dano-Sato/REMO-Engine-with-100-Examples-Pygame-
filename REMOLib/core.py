@@ -160,7 +160,8 @@ class Rs:
 
         ###Mouse Pos Transform 처리
         #윈도우 해상도에서 실제 게임내 픽셀로 마우스 위치를 옮겨오는 역할
-        Rs.__mousePos = RPoint(pygame.mouse.get_pos()[0]*Rs._mouseTransformer[0],pygame.mouse.get_pos()[1]*Rs._mouseTransformer[1])
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        Rs.__mousePos = RPoint(mouse_x*Rs._mouseTransformer[0],mouse_y*Rs._mouseTransformer[1])
         if Rs.cursor:
             Rs.cursor.pos = Rs.__mousePos
 
@@ -198,24 +199,30 @@ class Rs:
         
                 
         ##animation 처리
+        current_time = time.time()
+        active_animations = []
         for animation in Rs.__animationPipeline:
-            if animation["obj"].isEnded():
-                if animation["stay"]>time.time():
-                    continue
-                else:
-                    Rs.__animationPipeline.remove(animation)
-            else:
-                animation["obj"].update()
+            animation_obj = animation["obj"]
+            if animation_obj.isEnded():
+                if animation["stay"] > current_time:
+                    active_animations.append(animation)
+                continue
+
+            animation_obj.update()
+            active_animations.append(animation)
+        Rs.__animationPipeline = active_animations
+
+        active_fade_animations = []
         for obj in Rs.__fadeAnimationPipeline:
-            if obj["Time"]==0:
-                Rs.__fadeAnimationPipeline.remove(obj)
-            else:
-                obj["Time"]-=1
-                obj["Obj"].alpha = int(obj["Alpha"]*obj["Time"]/obj["Max"])
+            if obj["Time"] > 0:
+                obj["Time"] -= 1
+                obj["Obj"].alpha = int(obj["Alpha"] * obj["Time"] / obj["Max"])
+                active_fade_animations.append(obj)
+        Rs.__fadeAnimationPipeline = active_fade_animations
             
         ##change Music 처리
         if Rs.__changeMusic != None:
-            if Rs.__changeMusic["Time"]<time.time():
+            if Rs.__changeMusic["Time"]<current_time:
                 Rs.playMusic(Rs.__changeMusic["Name"],volume=Rs.__changeMusic["Volume"],fadein_ms=Rs.__changeMusic["fadein"])
                 Rs.__changeMusic = None
 
@@ -380,7 +387,7 @@ class Rs:
         loops=-1 인자를 넣을 경우 무한 반복재생.   
         '''
         fileName = REMODatabase.getPath(fileName)
-        if fileName not in list(Rs.__soundPipeline):
+        if fileName not in Rs.__soundPipeline:
             Rs.__soundPipeline[fileName] = pygame.mixer.Sound(fileName)         
         mixer = Rs.__soundPipeline[fileName]
         mixer.set_volume(volume*Rs.__masterSEVolume)
@@ -389,7 +396,7 @@ class Rs:
     @classmethod
     def stopSound(cls,fileName:str):
         fileName = REMODatabase.getPath(fileName)
-        if fileName not in list(Rs.__soundPipeline):
+        if fileName not in Rs.__soundPipeline:
             return
         mixer = Rs.__soundPipeline[fileName]
         mixer.stop()        
@@ -3094,6 +3101,5 @@ class dialogObj(rectObj):
         return Rs.isPopup(self)
 
                 
-
 
 

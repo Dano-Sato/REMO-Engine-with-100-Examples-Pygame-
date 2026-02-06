@@ -416,9 +416,9 @@ class WorkshopScene(Scene):
             ),
             "룬 각인": CardSpec(
                 name="룬 각인",
-                cost=5,
+                cost=4,
                 card_type="의식",
-                description="손패의 상품 1장의 판매가 +3",
+                description="손패의 상품 1장의 판매가 +5",
             ),
             "브로치 제작": CardSpec(
                 name="브로치 제작",
@@ -791,7 +791,7 @@ class WorkshopScene(Scene):
             self.add_log(f"폐기 모드: {spec.trash_cards}장 선택")
         if spec.name == "룬 각인":
             self.enchant_remaining = 1
-            self.enchant_bonus = 3
+            self.enchant_bonus = 5
             self.add_log("각인 대상: 상품 1장 선택")
         if spec.name == "마이스터":
             self.first_craft_bonus += 6
