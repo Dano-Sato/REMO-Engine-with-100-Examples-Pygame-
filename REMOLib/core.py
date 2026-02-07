@@ -41,6 +41,7 @@
 from __future__ import annotations
 
 
+import multiprocessing
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ['SDL_VIDEO_CENTERED'] = '1' # You have to call this before pygame.init()
@@ -1021,6 +1022,8 @@ class REMOGame:
     _lastStartedWindow = None
     def __init__(self,window_resolution=(1920,1080),screen_size = (1920,1080),fullscreen=True,*,caption="REMOGame window",flags=0):
 
+
+        multiprocessing.freeze_support() # 무한 재실행 버그를 막는다.
         REMODatabase._buildPath() ## 경로 파이프라인을 구성한다.
 
         ##파이게임 윈도우가 화면 밖을 벗어나는 문제를 해결하기 위한 코드

@@ -3,7 +3,7 @@ moderngl
 numpy
 pandas
 pillow
-pygame
+pygame_ce
 pyopengl
 screeninfo
 xxhash
