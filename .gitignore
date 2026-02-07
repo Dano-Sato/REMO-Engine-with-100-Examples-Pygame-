@@ -1,0 +1,20 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.venv-build/
+venv/
+env/
+
+# ---- Build / Packaging ----
+build/
+dist/
+*.spec
+
+# ---- Logs / temp ----
+*.log
+.DS_Store
+Thumbs.db
