@@ -283,7 +283,10 @@ class REMOLocalizeManager:
         if key==None:
             key = "default"
         if key in cls.__fonts:
-            return cls.__fonts[key][REMOLocalizeManager.getLanguage()]
+            try:
+                return cls.__fonts[key][REMOLocalizeManager.getLanguage()]
+            except:
+                return cls.__fonts[key]["en"]
 
     @classmethod
     def manageObj(cls,obj,key,*,font=None,callback=lambda obj:None):
