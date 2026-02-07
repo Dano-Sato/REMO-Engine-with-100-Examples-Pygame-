@@ -1,0 +1,9 @@
+fonttools
+moderngl
+numpy
+pandas
+pillow
+pygame
+pyopengl
+screeninfo
+xxhash
