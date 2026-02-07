@@ -11,7 +11,7 @@ class REMODatabase:
 
     __pathData = {}  # 확장자에 따라 경로를 분류하는 딕셔너리
     __pathPipeline = {}  # 파일명과 실제 경로를 연결하는 딕셔너리
-    __pathException = [".git", ".pyc", ".py"]  # 경로에서 제외할 파일 패턴
+    __pathException = [".git", ".pyc", ".py",".venv"]  # 경로에서 제외할 파일 패턴
 
     @classmethod
     def _buildPath(cls):
