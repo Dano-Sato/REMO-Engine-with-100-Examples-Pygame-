@@ -28,8 +28,9 @@ class CardDef:
 
 
 class ThreatDef:
-    def __init__(self, name: str):
+    def __init__(self, name: str, description: str):
         self.name = name
+        self.description = description
 
 
 class TankState:
@@ -79,6 +80,7 @@ class MinimalBrewScene(Scene):
 
         self.threat_title = textObj("TODAY THREAT", size=20, color=WARNING)
         self.threat_name = textObj("", size=30, color=Cs.black)
+        self.threat_description = textObj("", size=18, color=Cs.black)
         self.next_threat_text = textObj("", size=18, color=WARNING)
         self.ap_text = textObj("", size=18, color=Cs.black)
 
@@ -177,18 +179,18 @@ class MinimalBrewScene(Scene):
 
     def _all_threats(self) -> list[ThreatDef]:
         return [
-            ThreatDef("SPIKE"),
-            ThreatDef("DROP"),
-            ThreatDef("CONTAM"),
-            ThreatDef("LEAK"),
-            ThreatDef("DELAY"),
-            ThreatDef("RUSH-ORDER"),
-            ThreatDef("INSPECTION"),
-            ThreatDef("POWER-ISSUE"),
-            ThreatDef("SHORT-STAFF"),
-            ThreatDef("BAD-BATCH"),
-            ThreatDef("PRICE-UP"),
-            ThreatDef("HUMID"),
+            ThreatDef("SPIKE", "Balance +2"),
+            ThreatDef("DROP", "Balance -2"),
+            ThreatDef("CONTAM", "Risk +2"),
+            ThreatDef("LEAK", "Ready -10"),
+            ThreatDef("DELAY", "AP -1 today"),
+            ThreatDef("RUSH-ORDER", "Bottle within 2 days"),
+            ThreatDef("INSPECTION", "Skip CLEAN -> Risk +2"),
+            ThreatDef("POWER-ISSUE", "TUNE weaker"),
+            ThreatDef("SHORT-STAFF", "Hand size 4"),
+            ThreatDef("BAD-BATCH", "High risk fails"),
+            ThreatDef("PRICE-UP", "RUSH costs 2"),
+            ThreatDef("HUMID", "Extra risk if off-balance"),
         ]
 
     def _play_card(self, card: CardDef) -> None:
@@ -282,6 +284,9 @@ class MinimalBrewScene(Scene):
 
         threat_name = self.current_threat.name if self.current_threat else ""
         self.threat_name.text = threat_name
+        self.threat_description.text = (
+            self.current_threat.description if self.current_threat else ""
+        )
         if self.next_threat_preview:
             self.next_threat_text.text = f"Next: {self.next_threat_preview.name}"
         else:
@@ -368,9 +373,6 @@ class MinimalBrewScene(Scene):
             ready_label = textObj("Ready", size=16, color=Cs.black)
             ready_label.pos = (rect.x + 12, rect.y + 50)
             ready_label.draw()
-            ready_value = textObj(f"{tank.ready}%", size=16, color=Cs.black)
-            ready_value.pos = (rect.right - 70, rect.y + 50)
-            ready_value.draw()
 
             bar_x = rect.x + 80
             bar_y = rect.y + 54
@@ -434,8 +436,11 @@ class MinimalBrewScene(Scene):
         self.threat_title.draw()
         self.threat_name.pos = (rect.x + 16, rect.y + 50)
         self.threat_name.draw()
+        if self.threat_description.text:
+            self.threat_description.pos = (rect.x + 16, rect.y + 90)
+            self.threat_description.draw()
         if self.next_threat_text.text:
-            self.next_threat_text.pos = (rect.x + 16, rect.y + 100)
+            self.next_threat_text.pos = (rect.x + 16, rect.y + 130)
             self.next_threat_text.draw()
 
     def _draw_hand(self, screen: pygame.Surface) -> None:
