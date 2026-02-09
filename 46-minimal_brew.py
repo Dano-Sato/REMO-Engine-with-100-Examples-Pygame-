@@ -80,6 +80,7 @@ class MinimalBrewScene(Scene):
         self.threat_title = textObj("TODAY THREAT", size=20, color=WARNING)
         self.threat_name = textObj("", size=30, color=Cs.black)
         self.next_threat_text = textObj("", size=18, color=WARNING)
+        self.ap_text = textObj("", size=18, color=Cs.black)
 
         self.end_day_button = pygame.Rect(self.screen_w - 180, self.screen_h - 90, 140, 50)
 
@@ -319,15 +320,40 @@ class MinimalBrewScene(Scene):
         self.top_cash_text.draw()
         self.top_rep_text.draw()
 
+    def _draw_rect(self, rect: pygame.Rect, color, *, radius: int = 0) -> None:
+        rectObj(rect, color=color, radius=radius).draw()
+
+    def _draw_rect_with_border(
+        self,
+        rect: pygame.Rect,
+        *,
+        fill_color,
+        border_color,
+        border: int = 2,
+        radius: int = 0,
+    ) -> None:
+        self._draw_rect(rect, border_color, radius=radius)
+        inner = rect.inflate(-2 * border, -2 * border)
+        if inner.width > 0 and inner.height > 0:
+            self._draw_rect(inner, fill_color, radius=radius)
+
     def _draw_tanks(self, screen: pygame.Surface) -> None:
         for index, rect in enumerate(self._tank_rects()):
             selected = index == self.active_tank_index
             border_color = WARNING if selected else Cs.black
             backdrop = rect.inflate(10, 10)
-            pygame.draw.rect(screen, Cs.lightgrey, backdrop)
-            pygame.draw.rect(screen, Cs.grey25, backdrop, 1)
-            pygame.draw.rect(screen, Cs.white, rect)
-            pygame.draw.rect(screen, border_color, rect, 2)
+            self._draw_rect_with_border(
+                backdrop,
+                fill_color=Cs.lightgrey,
+                border_color=Cs.grey25,
+                border=1,
+            )
+            self._draw_rect_with_border(
+                rect,
+                fill_color=Cs.white,
+                border_color=border_color,
+                border=2,
+            )
             tank = self.tanks[index]
 
             label = textObj(f"TANK {index + 1}", size=18, color=Cs.black)
@@ -350,9 +376,19 @@ class MinimalBrewScene(Scene):
             bar_y = rect.y + 54
             bar_w = rect.width - 100
             bar_h = 12
-            pygame.draw.rect(screen, Cs.black, pygame.Rect(bar_x, bar_y, bar_w, bar_h), 1)
+            bar_rect = pygame.Rect(bar_x, bar_y, bar_w, bar_h)
+            self._draw_rect_with_border(
+                bar_rect,
+                fill_color=Cs.white,
+                border_color=Cs.black,
+                border=1,
+            )
             fill_w = int(bar_w * (tank.ready / 100))
-            pygame.draw.rect(screen, Cs.black, pygame.Rect(bar_x, bar_y, fill_w, bar_h))
+            if fill_w > 0:
+                self._draw_rect(
+                    pygame.Rect(bar_x, bar_y, fill_w, bar_h),
+                    Cs.black,
+                )
 
             balance_label = textObj("Balance", size=16, color=Cs.black)
             balance_label.pos = (rect.x + 12, rect.y + 85)
@@ -388,8 +424,12 @@ class MinimalBrewScene(Scene):
 
     def _draw_threat(self, screen: pygame.Surface) -> None:
         rect = self._threat_rect()
-        pygame.draw.rect(screen, Cs.white, rect)
-        pygame.draw.rect(screen, WARNING, rect, 2)
+        self._draw_rect_with_border(
+            rect,
+            fill_color=Cs.white,
+            border_color=WARNING,
+            border=2,
+        )
         self.threat_title.pos = (rect.x + 16, rect.y + 12)
         self.threat_title.draw()
         self.threat_name.pos = (rect.x + 16, rect.y + 50)
@@ -403,10 +443,18 @@ class MinimalBrewScene(Scene):
             enabled = self.ap > 0 and not self.tanks[self.active_tank_index].locked
             border_color = Cs.black if enabled else WARNING
             backdrop = rect.inflate(8, 8)
-            pygame.draw.rect(screen, Cs.lightgrey, backdrop)
-            pygame.draw.rect(screen, Cs.grey25, backdrop, 1)
-            pygame.draw.rect(screen, Cs.white, rect)
-            pygame.draw.rect(screen, border_color, rect, 2)
+            self._draw_rect_with_border(
+                backdrop,
+                fill_color=Cs.lightgrey,
+                border_color=Cs.grey25,
+                border=1,
+            )
+            self._draw_rect_with_border(
+                rect,
+                fill_color=Cs.white,
+                border_color=border_color,
+                border=2,
+            )
             verb_text = textObj(card.verb, size=24, color=Cs.black)
             verb_text.pos = (rect.x + 12, rect.y + 12)
             verb_text.draw()
@@ -418,14 +466,21 @@ class MinimalBrewScene(Scene):
         ap_label = textObj("AP", size=18, color=Cs.black)
         ap_label.pos = (40, self.screen_h - 90)
         ap_label.draw()
+        self.ap_text.text = f"{self.ap}/2"
+        self.ap_text.pos = (70, self.screen_h - 90)
+        self.ap_text.draw()
         for idx in range(2):
             color = Cs.black if idx < self.ap else Cs.white
             pygame.draw.circle(screen, color, (90 + idx * 20, self.screen_h - 78), 6)
             pygame.draw.circle(screen, Cs.black, (90 + idx * 20, self.screen_h - 78), 6, 1)
 
     def _draw_end_day(self, screen: pygame.Surface) -> None:
-        pygame.draw.rect(screen, Cs.white, self.end_day_button)
-        pygame.draw.rect(screen, Cs.black, self.end_day_button, 2)
+        self._draw_rect_with_border(
+            self.end_day_button,
+            fill_color=Cs.white,
+            border_color=Cs.black,
+            border=2,
+        )
         label = textObj("END DAY", size=18, color=Cs.black)
         label.pos = (self.end_day_button.x + 18, self.end_day_button.y + 12)
         label.draw()
