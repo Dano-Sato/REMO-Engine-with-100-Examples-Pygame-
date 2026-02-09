@@ -323,6 +323,9 @@ class MinimalBrewScene(Scene):
         for index, rect in enumerate(self._tank_rects()):
             selected = index == self.active_tank_index
             border_color = WARNING if selected else Cs.black
+            backdrop = rect.inflate(10, 10)
+            pygame.draw.rect(screen, Cs.lightgrey, backdrop)
+            pygame.draw.rect(screen, Cs.grey25, backdrop, 1)
             pygame.draw.rect(screen, Cs.white, rect)
             pygame.draw.rect(screen, border_color, rect, 2)
             tank = self.tanks[index]
@@ -339,6 +342,9 @@ class MinimalBrewScene(Scene):
             ready_label = textObj("Ready", size=16, color=Cs.black)
             ready_label.pos = (rect.x + 12, rect.y + 50)
             ready_label.draw()
+            ready_value = textObj(f"{tank.ready}%", size=16, color=Cs.black)
+            ready_value.pos = (rect.right - 70, rect.y + 50)
+            ready_value.draw()
 
             bar_x = rect.x + 80
             bar_y = rect.y + 54
@@ -351,6 +357,9 @@ class MinimalBrewScene(Scene):
             balance_label = textObj("Balance", size=16, color=Cs.black)
             balance_label.pos = (rect.x + 12, rect.y + 85)
             balance_label.draw()
+            balance_value = textObj(f"{tank.balance:+d}", size=16, color=Cs.black)
+            balance_value.pos = (rect.right - 70, rect.y + 85)
+            balance_value.draw()
 
             line_x = rect.x + 90
             line_y = rect.y + 95
@@ -366,6 +375,9 @@ class MinimalBrewScene(Scene):
             risk_label = textObj("Risk", size=16, color=Cs.black)
             risk_label.pos = (rect.x + 12, rect.y + 125)
             risk_label.draw()
+            risk_value = textObj(f"{tank.risk}/6", size=16, color=Cs.black)
+            risk_value.pos = (rect.right - 70, rect.y + 125)
+            risk_value.draw()
 
             dot_start_x = rect.x + 70
             dot_y = rect.y + 135
@@ -390,6 +402,9 @@ class MinimalBrewScene(Scene):
         for card, rect in self._hand_rects():
             enabled = self.ap > 0 and not self.tanks[self.active_tank_index].locked
             border_color = Cs.black if enabled else WARNING
+            backdrop = rect.inflate(8, 8)
+            pygame.draw.rect(screen, Cs.lightgrey, backdrop)
+            pygame.draw.rect(screen, Cs.grey25, backdrop, 1)
             pygame.draw.rect(screen, Cs.white, rect)
             pygame.draw.rect(screen, border_color, rect, 2)
             verb_text = textObj(card.verb, size=24, color=Cs.black)
