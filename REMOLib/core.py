@@ -1017,6 +1017,7 @@ class REMOGame:
     benchmark_fps = {"Draw":0,"Update":0}
     target_fps = 60
     clock = pygame.time.Clock() ##프레임 제한을 위한 클락
+    use_precise_timing = True ##True면 tick_busy_loop를 사용해 프레임 페이싱을 안정화한다.
     drawClock = pygame.time.Clock() ##드로우 쓰레드의 클락
     __showBenchmark = False
     _lastStartedWindow = None
@@ -1154,7 +1155,10 @@ class REMOGame:
 
                 Rs._updateState()
 
-                REMOGame.clock.tick(REMOGame.target_fps)
+                if REMOGame.use_precise_timing:
+                    REMOGame.clock.tick_busy_loop(REMOGame.target_fps)
+                else:
+                    REMOGame.clock.tick(REMOGame.target_fps)
             except:
                 import traceback
                 traceback.print_exc()
@@ -1627,11 +1631,16 @@ class graphicObj(interpolableObj):
     def draw(self):        
         if self.alpha==0: ## 알파값이 0일경우는 그리지 않는다
             return
-        if id(self) not in Rs.graphicCache:
-            self._cacheGraphic()
-        sfc,p,texture = self._getCache()
+        cache_key = id(self)
+        cached = Rs.graphicCache.get(cache_key)
+        if cached is None:
+            cached = self._getCache()
+            Rs.graphicCache[cache_key] = cached
+
+        sfc,p,texture = cached
         if texture.glo == 0: ##texture가 released된 경우
             texture = Rs.render_engine.surface_to_texture(sfc)
+            cached[2] = texture ##다음 프레임에서 재생성 반복을 방지한다.
         Rs.render_engine.render(texture,Rs.source_layer,position=p.toTuple(),alpha=self.alpha)
 
                 
