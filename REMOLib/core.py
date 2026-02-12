@@ -1203,14 +1203,14 @@ class graphicObj(interpolableObj):
 
     @property
     def size(self):
-        return self.rect.size
+        return self._graphic_size
     @size.setter
     def size(self,size):
         self.rect = pygame.Rect(self.pos.x,self.pos.y,size[0],size[1])
 
     @property
     def width(self):
-        return self.rect.width
+        return self._graphic_size[0]
     
     @width.setter
     def width(self,width):
@@ -1218,7 +1218,7 @@ class graphicObj(interpolableObj):
 
     @property
     def height(self):
-        return self.rect.height
+        return self._graphic_size[1]
     
     @height.setter
     def height(self,height):
@@ -1226,7 +1226,7 @@ class graphicObj(interpolableObj):
 
     @property
     def x(self):
-        return self.rect.x
+        return self.pos.x
     @x.setter
     def x(self,_x):
         self.__adjustPosBy("x",_x)
@@ -1234,7 +1234,7 @@ class graphicObj(interpolableObj):
 
     @property
     def y(self):
-        return self.rect.y
+        return self.pos.y
     @y.setter
     def y(self,_y):
         self.__adjustPosBy("y",_y)
@@ -1324,7 +1324,8 @@ class graphicObj(interpolableObj):
     ##pos : position of the object, size : size of the object
     @property
     def rect(self) -> pygame.Rect:
-        return pygame.Rect(self.pos.x,self.pos.y,self.graphic.get_rect().w,self.graphic.get_rect().h)
+        w, h = self._graphic_size
+        return pygame.Rect(self.pos.x, self.pos.y, w, h)
 
     #could be replaced
     @rect.setter
@@ -1338,16 +1339,19 @@ class graphicObj(interpolableObj):
         ''' 
         pos를 (0,0)으로 처리한 rect를 반환합니다.
         '''
-        return pygame.Rect(0,0,self.graphic.get_rect().w,self.graphic.get_rect().h)
+        w, h = self._graphic_size
+        return pygame.Rect(0, 0, w, h)
 
 
     #geometry란 object가 실제로 screen상에서 차지하는 영역을 의미합니다.
     #getter only입니다.
     @property
     def geometry(self) -> pygame.Rect:
+        w, h = self._graphic_size
         if self.parent:
-            return pygame.Rect(self.parent.geometry.x+self.pos.x,self.parent.geometry.y+self.pos.y,self.rect.width,self.rect.height)
-        return self.rect
+            parent_geometry = self.parent.geometry
+            return pygame.Rect(parent_geometry.x + self.pos.x, parent_geometry.y + self.pos.y, w, h)
+        return pygame.Rect(self.pos.x, self.pos.y, w, h)
     
     #object의 실제 스크린 상의 위치 
     @property
@@ -1426,6 +1430,7 @@ class graphicObj(interpolableObj):
     @graphic.setter
     def graphic(self,graphic:pygame.Surface):
         self._graphic = graphic
+        self._graphic_size = graphic.get_size()
         self._clearGraphicCache()
 
 
@@ -3107,4 +3112,3 @@ class dialogObj(rectObj):
         return Rs.isPopup(self)
 
                 
-
