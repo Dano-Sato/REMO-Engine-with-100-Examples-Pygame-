@@ -280,7 +280,7 @@ class Particle(graphicObj):
         cache_key = (size, color)
         surface = cls._surface_cache.get(cache_key)
         if surface is None:
-            surface = REMOGame._lastStartedWindow.surface_pool.get_surface((size, size))
+            surface = pygame.Surface((size, size), pygame.SRCALPHA, 32)
             surface.fill((0, 0, 0, 0))
             if size <= 2:
                 surface.fill(color)

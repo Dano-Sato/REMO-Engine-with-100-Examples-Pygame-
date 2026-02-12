@@ -1083,7 +1083,6 @@ class REMOGame:
         # Fill the background with white
         Rs.screen = pygame.Surface(screen_size,pygame.SRCALPHA,32).convert_alpha()
         Rs.screen.fill(Cs.white)
-        self.surface_pool = SurfacePoolManager()
 
 
 
@@ -1143,7 +1142,6 @@ class REMOGame:
 
         while self.running:
             try:
-                self.surface_pool.process_main_thread()
                 Rs._update()
                 # Did the user click the window close button?
                 Rs.events = pygame.event.get()
@@ -1161,7 +1159,6 @@ class REMOGame:
                 import traceback
                 traceback.print_exc()
                 self.running = False
-        self.surface_pool.shutdown()
 
 
     def paint(self):
@@ -1444,7 +1441,7 @@ class graphicObj(interpolableObj):
         # id가 없으므로 childs의 재귀적 union을 통해 전체 영역을 계산
         r = self.boundary
         bp = RPoint(r.x, r.y) #position of boundary
-        cache = REMOGame._lastStartedWindow.surface_pool.get_surface((r.w, r.h))
+        cache = pygame.Surface((r.w, r.h), pygame.SRCALPHA, 32)
 
         # 숨겨진 depth를 제외하고 정렬한 depth 목록
         hided_depth = self._hidedDepth
@@ -1577,7 +1574,7 @@ class graphicObj(interpolableObj):
         return tuple(self._effects)
 
     def __init__(self,rect=pygame.Rect(0,0,0,0)):
-        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h))
+        self.graphic_n = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA, 32)
         self.graphic = self.graphic_n.copy()
         self._pos = RPoint(0,0)
         self.childs = defaultdict(list) ##차일드들을 depth별로 저장한다.
@@ -1824,7 +1821,7 @@ class rectObj(graphicObj):
                 self._surface_cache.pop(next(iter(self._surface_cache)))
                 
             # 새로운 surface 생성
-            surface = REMOGame._lastStartedWindow.surface_pool.get_surface(rect.size)
+            surface = pygame.Surface(rect.size, pygame.SRCALPHA, 32)
             surface.fill((0, 0, 0, 0))  # 투명 배경으로 초기화
             
             # 기존 draw 공식 적용
@@ -2140,7 +2137,7 @@ class layoutObj(graphicObj):
         self.pad = RPoint(0,0) ## 레이아웃 오프셋
 
 
-        self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((rect.w,rect.h)) # 빈 Surface
+        self.graphic_n = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA, 32) # 빈 Surface
         self.graphic = self.graphic_n.copy()
         if pos==None:
             self.pos = RPoint(rect.x,rect.y)
@@ -2164,7 +2161,7 @@ class layoutObj(graphicObj):
         레이아웃의 경계를 depth 0에 해당하는 차일드에 맞게 조정한다.
         '''
         if self.childs[0]!=[]:
-            self.graphic_n = REMOGame._lastStartedWindow.surface_pool.get_surface((self.getBoundary(0).w,self.getBoundary(0).h)) # 빈 Surface
+            self.graphic_n = pygame.Surface((self.getBoundary(0).w, self.getBoundary(0).h), pygame.SRCALPHA, 32) # 빈 Surface
             self.graphic = self.graphic_n.copy()
 
 
