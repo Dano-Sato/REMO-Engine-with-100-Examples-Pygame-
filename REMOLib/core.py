@@ -1436,6 +1436,20 @@ class graphicObj(interpolableObj):
 
 
     ##그래픽 캐시 관련 함수 ##
+    def _markChildDepthCacheDirty(self):
+        self._depthCacheDirty = True
+
+    def _getVisibleDepths(self):
+        if self._depthCacheDirty:
+            self._sortedDepthsCache = sorted(self.childs.keys())
+            self._depthCacheDirty = False
+
+        if not self._hidedDepth:
+            return self._sortedDepthsCache
+
+        hided_depth = self._hidedDepth
+        return [depth for depth in self._sortedDepthsCache if depth not in hided_depth]
+
     #오브젝트의 캐시 이미지를 만든다.
     def _getCache(self):
         cached_result = Rs.graphicCache.get(id(self))
@@ -1448,8 +1462,7 @@ class graphicObj(interpolableObj):
         cache = pygame.Surface((r.w, r.h), pygame.SRCALPHA, 32)
 
         # 숨겨진 depth를 제외하고 정렬한 depth 목록
-        hided_depth = self._hidedDepth
-        visible_depths = [depth for depth in sorted(self.childs.keys()) if depth not in hided_depth]
+        visible_depths = self._getVisibleDepths()
 
         blend_flag = pygame.BLEND_ALPHA_SDL2
         blit = cache.blit
@@ -1523,6 +1536,7 @@ class graphicObj(interpolableObj):
         '''
         if depth in self._hidedDepth:
             self._hidedDepth.remove(depth)
+            self._markChildDepthCacheDirty()
             self._clearGraphicCache()
         
     def hideChilds(self,depth):
@@ -1531,6 +1545,7 @@ class graphicObj(interpolableObj):
         '''
         if depth not in self._hidedDepth:
             self._hidedDepth.add(depth)
+            self._markChildDepthCacheDirty()
             self._clearGraphicCache()
 
     def isHided(self,depth):
@@ -1583,6 +1598,8 @@ class graphicObj(interpolableObj):
         self._pos = RPoint(0,0)
         self.childs = defaultdict(list) ##차일드들을 depth별로 저장한다.
         self._hidedDepth = set() #숨길 depth를 저장한다.
+        self._sortedDepthsCache = []
+        self._depthCacheDirty = True
         self.parent = None
         self._depth = None #부모에 대한 나의 depth를 저장한다.
         self._alpha = 255
@@ -1608,6 +1625,7 @@ class graphicObj(interpolableObj):
         ##기존 부모관계 청산
         if self.parent !=None:
             self.parent.childs[self._depth].remove(self)
+            self.parent._markChildDepthCacheDirty()
             if self._depth == 0 and hasattr(self.parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 self.parent.adjustLayout()
 
@@ -1621,6 +1639,7 @@ class graphicObj(interpolableObj):
                 _parent.childs[depth].insert(index,self)
             else:
                 _parent.childs[depth].append(self)
+            _parent._markChildDepthCacheDirty()
             if depth == 0 and hasattr(_parent,'adjustLayout'): ##부모가 레이아웃 오브젝트일 경우, 자동으로 레이아웃을 조정한다.
                 _parent.adjustLayout()
             self._depth = depth
