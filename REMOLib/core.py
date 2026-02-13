@@ -1898,6 +1898,7 @@ class rectObj(graphicObj):
 
 class textObj(graphicObj,localizable):
     fallback_fonts =["unifont_button.ttf","unifont_script.ttf","unifont_retro.ttf"]
+    _resolved_font_cache: dict[tuple[str, str], str] = {}
     def __init__(self,text="",pos=(0,0),*,font=None,size=None,color=Cs.white,angle=0,style=freetype.STYLE_DEFAULT):
         """
         Parameters
@@ -1938,6 +1939,8 @@ class textObj(graphicObj,localizable):
 
     @color.setter
     def color(self,_color:typing.Tuple[int,int,int]):
+        if self.__color == _color:
+            return
         self.__color = _color
         self.__update_text_graphics()
 
@@ -1947,6 +1950,8 @@ class textObj(graphicObj,localizable):
         return self.__size
     @size.setter
     def size(self,_size:float):
+        if self.__size == _size:
+            return
         self.__size = _size
         self.__update_text_graphics()
 
@@ -1955,7 +1960,10 @@ class textObj(graphicObj,localizable):
         return self.__angle
     @angle.setter
     def angle(self,_angle:int):
-        self.__angle = int(_angle)
+        _angle = int(_angle)
+        if self.__angle == _angle:
+            return
+        self.__angle = _angle
         self.__update_text_graphics()
 
     @property
@@ -1963,6 +1971,8 @@ class textObj(graphicObj,localizable):
         return self.__font
     @font.setter
     def font(self,_font:str):
+        if self.__font == _font:
+            return
         self.__font = _font
         self.__update_text_graphics()
 
@@ -1971,22 +1981,33 @@ class textObj(graphicObj,localizable):
         return self.__text
     @text.setter
     def text(self,_text:str):
+        if self.__text == _text:
+            return
         self.__text = _text
         self.__update_text_graphics()
 
+    @classmethod
+    def __resolve_font_for_text(cls, base_font: str, text: str) -> str:
+        key = (base_font, text)
+        cached_font = cls._resolved_font_cache.get(key)
+        if cached_font:
+            return cached_font
+
+        resolved_font = base_font
+        fonts_to_try = [base_font, "unifont_script.ttf", "unifont_retro.ttf"]
+
+        for font_name in fonts_to_try:
+            cmap = Rs.getFontCmap(font_name)
+            if not text or all(ord(char) in cmap for char in text):
+                resolved_font = font_name
+                break
+
+        cls._resolved_font_cache[key] = resolved_font
+        return resolved_font
+
     def __update_text_graphics(self):
-        # 폰트 내 글리프 목록 가져오기
-        
-        cmap = Rs.getFontCmap(self.__font)
-        # 지원하지 않는 문자 찾기
-        unsupported_chars = ''.join([char for char in self.text if ord(char) not in cmap])
-        if unsupported_chars:
-            print(f"fallback occured in font: {self.__font}, Unsupported characters: {unsupported_chars}")
-            self.__font = "unifont_script.ttf"
-            cmap = Rs.getFontCmap(self.__font)
-            if [char for char in self.text if ord(char) not in cmap]:
-                self.__font = "unifont_retro.ttf"
-        self.graphic_n = Rs.getFont(self.__font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
+        resolved_font = self.__resolve_font_for_text(self.__font, self.__text)
+        self.graphic_n = Rs.getFont(resolved_font).render(self.__text,self.__color,None,size=self.__size,rotation=self.__angle,style=self.__style)[0].convert_alpha()
         self.graphic = self.graphic_n
         
 
