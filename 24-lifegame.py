@@ -49,7 +49,12 @@ class mainScene(Scene):
         self.calc_process.start()
         
         # 초기 상태 전송
-        self.send_current_state()        
+        self.send_current_state()
+
+        self.frame_info = textObj("", size=24, color=Cs.white)
+        self.frame_info.topright = RPoint(Rs.screenRect().right - 24, 18)
+        self._frame_prev_time = time.perf_counter()
+        self._frame_ms = 0.0
         return
     
     def getState(self,x,y):
@@ -124,11 +129,20 @@ class mainScene(Scene):
 
         if Rs.userJustPressed(pygame.K_r):
             self.randomInit()
+
+        now = time.perf_counter()
+        self._frame_ms = (now - self._frame_prev_time) * 1000.0
+        self._frame_prev_time = now
+
+        fps = REMOGame.clock.get_fps()
+        self.frame_info.text = f"FPS {fps:5.1f} Frame {self._frame_ms:5.1f} ms"
+        self.frame_info.topright = RPoint(Rs.screenRect().right - 24, 18)
         
         return
 
     def draw(self):
         self.grid.draw()
+        self.frame_info.draw()
         return
 
 class defaultScene(Scene):
