@@ -1958,8 +1958,12 @@ class textObj(graphicObj,localizable):
 
     @color.setter
     def color(self,_color:typing.Tuple[int,int,int]):
-        if self.__color == _color:
-            return
+        if isinstance(self.__color, np.ndarray) or isinstance(_color, np.ndarray):
+            if np.array_equal(self.__color, _color):
+                return
+        else:
+            if self.__color == _color:
+                return
         self.__color = _color
         self.__update_text_graphics()
 
