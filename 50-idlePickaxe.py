@@ -76,7 +76,7 @@ class IdleMiningScene(Scene):
         self.log_text.text = "\n".join(f"- {line}" for line in reversed(self.logs))
 
     def _base_success_chance(self) -> float:
-        return max(5.0, 100.0 - (self.enhance_level - 1) * 5.0)
+        return max(5.0, 100.0 - (self.enhance_level - 1) * 3.0)
 
     def _destroy_chance(self) -> float:
         if self.enhance_level < 10:
