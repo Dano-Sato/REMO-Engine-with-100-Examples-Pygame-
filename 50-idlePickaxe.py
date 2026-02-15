@@ -36,7 +36,7 @@ class IdleMiningScene(Scene):
 
         self.info_text = longTextObj("", pos=RPoint(50, 130), size=24, color=Cs.white, textWidth=900)
         self.enchant_text = longTextObj("", pos=RPoint(50, 360), size=22, color=Cs.light(Cs.lightgoldenrodyellow), textWidth=1020)
-        self.log_text = longTextObj("", pos=RPoint(1180, 130), size=20, color=Cs.light(Cs.white), textWidth=620)
+        self.log_text = longTextObj("", pos=RPoint(1180, 180), size=20, color=Cs.light(Cs.white), textWidth=620)
 
         self.left_panel = rectObj(pygame.Rect(35, 115, 1080, 920), color=(32, 38, 52), radius=20)
         self.right_panel = rectObj(pygame.Rect(1140, 115, 730, 920), color=(34, 44, 40), radius=20)
@@ -84,7 +84,7 @@ class IdleMiningScene(Scene):
         return float(self.enhance_level - 9)
 
     def _enhance_cost(self) -> int:
-        return int(100 * (1.6 ** (self.enhance_level - 1)))
+        return int(100 * (1.3 ** (self.enhance_level - 1)))
 
     def _total_enchant_bonus(self) -> dict[str, float]:
         totals = {
@@ -105,7 +105,7 @@ class IdleMiningScene(Scene):
 
     def _gold_per_second_preview(self) -> float:
         bonus = self._total_enchant_bonus()
-        base = 1.0 + float(self.enhance_level ** 2)
+        base = 1.0 + float(self.enhance_level ** 2.5)
         after_enchant = base * (1.0 + bonus["gold_pct"] / 100.0)
         after_spell = after_enchant * (1.0 + self.spell_bonus_percent / 100.0)
         expected_crit_factor = 1.0 + (bonus["crit_chance_pct"] / 100.0) * (bonus["crit_gold_pct"] / 100.0)
@@ -113,7 +113,7 @@ class IdleMiningScene(Scene):
 
     def _produce_gold_for_one_second(self) -> None:
         bonus = self._total_enchant_bonus()
-        amount = 1.0 + float(self.enhance_level ** 2)
+        amount = 1.0 + float(self.enhance_level ** 2.5)
         amount *= 1.0 + bonus["gold_pct"] / 100.0
         amount *= 1.0 + self.spell_bonus_percent / 100.0
 
