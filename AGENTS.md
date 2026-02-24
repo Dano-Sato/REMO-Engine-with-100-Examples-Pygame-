@@ -3,3 +3,4 @@
 1. pygame.draw 관련 함수는 사용할 수 없습니다. (pygame.draw.rect, pygame.draw.line 등) 
 대체해서 사용하세요.
 
+2. Cs.grey25, Cs.grey75 외에 Cs.greyXX 컬러를 쓰지 말아주세요. (Cs.grey85 같은 컬러는 없습니다.)
